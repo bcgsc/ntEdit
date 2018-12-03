@@ -1,0 +1,34 @@
+
+Running: ../ntEdit.pl [v0.1]
+-f ecoliWithMismatches001Indels0001.fa.gz
+-k 25
+-d 5
+-i 4
+-x 5
+-y 9
+-z 100
+-b ntEditEcolik25
+-r solidBF_k25.bf
+
+
+----------------- Verifying files -----------------
+
+Checking sequence target file ecoliWithMismatches001Indels0001.fa.gz...ok
+A Bloom filter was supplied (solidBF_k25.bf)
+Checking Bloom filter file solidBF_k25.bf...ok
+Loading bloom filter from solidBF_k25.bf
+
+
+=>Reading sequence contigs (to edit), tracking k-mer positions : Fri Nov 30 14:30:41 PST 2018
+Contigs (>= 100 bp) processed k=25:
+1
+
+
+=>Process completed : Fri Nov 30 14:30:59 PST 2018
+
+The new draft is: ntEditEcolik25_edited.fa with accompanying changes: ntEditEcolik25_changes.tsv
+
+../ntEdit.pl executed normally Fri Nov 30 14:30:59 PST 2018
+
+../ntEdit.pl [v0.1] terminated successfully on Fri Nov 30 14:30:59 PST 2018
+
