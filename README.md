@@ -18,7 +18,7 @@ We expect ntEdit to have additional applications in fast mapping of simple nucle
 ### Implementation and requirements
 -------------------------------
 
-ntEdit v0.1 is prototyped in PERL and runs on any OS where PERL is installed.
+ntEdit v1.0 is prototyped in PERL and runs on any OS where PERL is installed.
 
 
 ### Install
@@ -26,8 +26,8 @@ ntEdit v0.1 is prototyped in PERL and runs on any OS where PERL is installed.
 
 Download the tar ball, gunzip and extract the files on your system using:
 <pre>
-gunzip ntedit_v0-1.tar.gz
-tar -xvf ntedit_v0-1.tar
+gunzip ntedit_v1-0.tar.gz
+tar -xvf ntedit_v1-0.tar
 </pre>
 
 ### Dependencies
@@ -185,7 +185,7 @@ ntEditEcolik25_edited.fa
 
 ### How it works
 ------------
-
+![Logo](https://github.com/bcgsc/ntEdit/blob/master/figS1.png)
 Sequence reads are first shredded into kmers using ntHits, keeping track of kmer multiplicity. The kmers that pass coverage thresholds (ntHits, -c option) are used to construct a Bloom filter (BF). The draft assembly is supplied to ntEdit (-f option, fasta file), along with the BF (-r option) and sequences are read sequentially. Draft assembly contigs are shredded into kmers (at a specified –k value matching that used to build the BF), and each kmer from 5’ to 3’ queries the BF data structure for presence/absence (step 1). When kmers are not found in the filter, a subset (k/3) of k kmers containing the 3’-end base is queried for absence (step 2). When >=k/5 kmers (by default, -x option) are absent, editing takes place, otherwise step 1 resumes and the next assembly kmer is assessed. The 3’-end base is permuted to one of the three alternate bases (step 3), and a subset of k kmers containing the change is assessed (>= k/9 by default, -y option). When a base substitution is made that qualifies, it is tracked along with the number of supported kmers and the remaining alternate 3’-end base substitutions are also assessed (ie. resuming step3 until all bases inspected). If it does not qualify, then a cycle of base insertion(s) (step 4) and deletion(s) (step 5) begins. As is the case for the substitutions, a subset of k kmers containing the indel change is assessed (>= k/9 by default, -y option). If there are no qualifying changes, then the next alternate 3’-end base is inspected as per above; otherwise the change is applied to the sequence string and the next assembly kmer is inspected (step 1). The process is repeated until a qualifying change or until no suitable edits are found (back to step 1).  
 
 ### OUTPUT FILES
