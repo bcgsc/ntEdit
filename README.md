@@ -2,8 +2,8 @@
 
 # ntEdit
 
-## ntEdit: scalable genome assembly polishing
-## 2018
+## Scalable genome assembly polishing
+## 12/2018
 ## email: rwarren [at] bcgsc [dot] ca
 
 
