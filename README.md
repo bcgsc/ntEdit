@@ -171,11 +171,11 @@ Go to ./demo
 
 
 run:
-<pre>
 -------------------------------------
-./runme.sh
+./runme.sh (../ntEdit.pl -f ecoliWithMismatches001Indels0001.fa.gz -r solidBF_k25.bf -k 25 -b ntEditEcolik25)
 
 ntEdit will polish an E. coli genome sequence with substitution error ~0.001 and indels ~0.0001 using pre-made nthits Bloom filter
+
 Expected files will be:
 ntEditEcolik25.log
 ntEditEcolik25_changes.tsv
@@ -185,9 +185,7 @@ ntEditEcolik25_edited.fa
 ### How it works
 ------------
 
-<pre>
 Sequence reads are first shredded into kmers using ntHits, keeping track of kmer multiplicity. The kmers that pass coverage thresholds (ntHits, -c option) are used to construct a Bloom filter (BF). The draft assembly is supplied to ntEdit (-f option, fasta file), along with the BF (-r option) and sequences are read sequentially. Draft assembly contigs are shredded into kmers (at a specified –k value matching that used to build the BF), and each kmer from 5’ to 3’ queries the BF data structure for presence/absence (step 1). When kmers are not found in the filter, a subset (k/3) of k kmers containing the 3’-end base is queried for absence (step 2). When >=k/5 kmers (by default, -x option) are absent, editing takes place, otherwise step 1 resumes and the next assembly kmer is assessed. The 3’-end base is permuted to one of the three alternate bases (step 3), and a subset of k kmers containing the change is assessed (>= k/9 by default, -y option). When a base substitution is made that qualifies, it is tracked along with the number of supported kmers and the remaining alternate 3’-end base substitutions are also assessed (ie. resuming step3 until all bases inspected). If it does not qualify, then a cycle of base insertion(s) (step 4) and deletion(s) (step 5) begins. As is the case for the substitutions, a subset of k kmers containing the indel change is assessed (>= k/9 by default, -y option). If there are no qualifying changes, then the next alternate 3’-end base is inspected as per above; otherwise the change is applied to the sequence string and the next assembly kmer is inspected (step 1). The process is repeated until a qualifying change or until no suitable edits are found (back to step 1).  
-</pre>
 
 ### OUTPUT FILES
 ------------------------
