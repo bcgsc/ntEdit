@@ -103,6 +103,7 @@ ntEdit: scalable genome assembly polishing
 TBD
 </pre>
 
+The experimental data described in our paper can be downloaded here: http://www.bcgsc.ca/downloads/btl/ntedit/
 Thank you for using, developing and promoting this free software.
 
 
