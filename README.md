@@ -1,4 +1,4 @@
-![Logo](https://github.com/warrenlr/ntedit/blob/master/ntedit-logo.png)
+![Logo](https://github.com/bcgsc/ntEdit/blob/master/ntedit-logo.png)
 
 # ntEdit
 
