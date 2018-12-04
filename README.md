@@ -10,7 +10,7 @@
 ### Description
 -----------
 
-ntEdit is a genomics application for polishing genome assembly drafts
+ntEdit is a genomics application for polishing genome assembly drafts.
 ntEdit simplifies polishing and "haploidization" of gene and genome sequences with its re-usable Bloom filter design.
 We expect ntEdit to have additional applications in fast mapping of simple nucleotide variations between any two individuals or species’ genomes.
 
