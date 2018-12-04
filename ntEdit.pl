@@ -1,4 +1,4 @@
-#!/gsc/btl/linuxbrew/bin/perl
+#!/usr/bin/env perl
 
 #AUTHOR
 #   Rene Warren, Hamid Mohamadi, Jessica Zhang, Lauren Coombe
