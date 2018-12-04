@@ -72,8 +72,9 @@ If they are not located in /usr/lib64/perl5, you can run "perl -e 'use Config; p
 2. VERIFY your install
 
 in the lib folder, execute:
-$ ./test.pl
-All tests should pass
+./test.pl
+
+-All tests should pass
 
 
 3. CHANGE the relative path to BloomFilter.pm in ntEdit.pl/test.pl 
