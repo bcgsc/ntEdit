@@ -1,4 +1,5 @@
 #!/usr/bin/env perl
+#/gsc/btl/linuxbrew/bin/perl
 
 #AUTHOR
 #   Rene Warren, Hamid Mohamadi, Jessica Zhang, Lauren Coombe
@@ -32,9 +33,9 @@ getopts('f:r:k:d:i:z:b:v:x:y:');
 #### SET DEFAULT VARIABLES ####
 my ($bf_file,$base_name,$k,$min_size,$verbose)=("","",35,100,0);
 my $i = 3;###factor1 low helps prevent FP.  factor2 high help make changes that are confirmed by subset of k kmers
-my ($MAXBASEINS,$MAXBASEDEL,$MAXSTRINGLEN) = (4,5,5000000);
+my ($MAXBASEINS,$MAXBASEDEL,$MAXSTRINGLEN) = (0,0,5000000);
 my ($factor1,$factor2) = (5,9);### was 5,9 for ecoli,celegans,human
-my $version = "[v1.0]";
+my $version = "[v1.0.1]";
 
 #-------------------------------------------------
 
@@ -43,8 +44,8 @@ if(! $opt_f || ! $opt_r){
    print "-f  draft genome assembly (Multi-FASTA format, required)\n"; 
    print "-r  Bloom filter of sequence reads (ntHits format, required)\n";
    print "-k  k-mer value (default -k $k, optional, same value of k to build -r Bloom filter)\n";
-   print "-d  maximum number of base deletions (default -d $MAXBASEDEL, optional, range 1-5)\n";
-   print "-i  maximum number of base insertions (default -i $MAXBASEINS, optional, range 1-5, values higher than 4 will impact run speed)\n";
+   print "-d  maximum number of base deletions (default -d $MAXBASEDEL, optional, range 0-5)\n";
+   print "-i  maximum number of base insertions (default -i $MAXBASEINS, optional, range 0-5, values higher than 4 will impact run speed)\n";
    print "-x  leniency factor 1 : determines whether a missing kmer should be edited (default -x $factor1, optional, lower value=less permissive)\n";
    print "-y  leniency factor 2 : determines whether a change should be kept (default -y $factor2, optional, lower value=less permissive)\n";
    print "-z  minimum contig length to consider (default -z $min_size, optional)\n";
@@ -69,8 +70,9 @@ $MAXBASEINS = 5 if($MAXBASEINS>5);
 $factor1 = $opt_x if($opt_x);
 $factor2 = $opt_y if($opt_y);
 
-if($MAXBASEINS==1){
-   print "Because insertions are set at -i $MAXBASEINS, the deletions will also be set at -d $MAXBASEINS)\n";
+if($MAXBASEINS==0 || ($MAXBASEINS==1 && $MAXBASEDEL>1)){
+   print "\n*WARNING: Because insertions are set at -i $MAXBASEINS, the deletions will also be set at -d $MAXBASEINS)\n";
+   print "-" x 60, "\n";
    $MAXBASEDEL = $MAXBASEINS;
 }
 
@@ -100,7 +102,7 @@ foreach my $initialbase(@dnabases){
          }
       }
    }
-   my @insertarr = @singlearr;                                              ### 1 possibility for given base
+   my @insertarr;                                                           ### 1 possibility for given base
    if($MAXBASEINS == 5){
       @insertarr = (@singlearr,@level1arr,@level2arr,@level3arr,@level4arr);### 1 + 4 + 16 + 64 + 256 = 341 possibilites for given base 
    }elsif($MAXBASEINS == 4){
@@ -109,6 +111,8 @@ foreach my $initialbase(@dnabases){
       @insertarr = (@singlearr,@level1arr,@level2arr);                      ### 1 + 4 + 16 = 19 possibilites for given base
    }elsif($MAXBASEINS == 2){
       @insertarr = (@singlearr,@level1arr);                                 ### 1 + 4  = 5 possibilities for given base
+   }elsif($MAXBASEINS == 1){
+      @insertarr = @singlearr; 
    }
    $inserthash->{$initialbase} = \@insertarr; ### hash or insert bases arrays, where all insertbase combos up to 
 }
@@ -210,7 +214,7 @@ $assemblyruninfo.=$reading_seqs_message;
 $date = `date`;
 chomp($date);
 
-my $sc_start_message = "\n=>Process completed : $date\n\nThe new draft is: $editeddraft_file with accompanying changes: $changes_file\n";
+my $sc_start_message = "\n=>Process completed : $date\n\nThe new draft is: $editeddraft_file\nwith accompanying changes: $changes_file\n";
 print $sc_start_message;
 print LOG $sc_start_message;
 
