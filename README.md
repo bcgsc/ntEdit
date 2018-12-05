@@ -33,7 +33,7 @@ tar -xvf ntedit_v1-0.tar
 ### Dependencies
 -------
 
-1. ntHits
+1. ntHits (https://github.com/bcgsc/nthits)
 2. BloomFilter utilities (provided in ./lib - you may need to recompile, see instructions below)
 
 
