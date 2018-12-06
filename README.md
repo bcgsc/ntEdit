@@ -26,8 +26,8 @@ ntEdit v1.0 is prototyped in PERL and runs on any OS where PERL is installed.
 
 Download the tar ball, gunzip and extract the files on your system using:
 <pre>
-gunzip ntedit_v1-0.tar.gz
-tar -xvf ntedit_v1-0.tar
+gunzip ntedit_v1-0-1.tar.gz
+tar -xvf ntedit_v1-0-1.tar
 </pre>
 
 ### Dependencies
@@ -144,12 +144,12 @@ eg.
 <pre>
 e.g. ./ntEdit.pl -f ecoliWithMismatches001Indels0001.fa -r solidBF_k25.bf -k 25 -b ntEditEcolik25
 
-Usage: ../ntEdit.pl [v1.0]
+Usage: ../ntEdit.pl [v1.0.1]
 -f  draft genome assembly (Multi-FASTA format, required)
 -r  Bloom filter of sequence reads (ntHits format, required)
 -k  k-mer value (default -k 35, optional, same value of k to build -r Bloom filter)
--d  maximum number of base deletions (default -d 5, optional, range 1-5)
--i  maximum number of base insertions (default -i 4, optional, range 1-5, values higher than 4 will impact run speed)
+-d  maximum number of base deletions (default -d 0, optional, range 1-5)
+-i  maximum number of base insertions (default -i 0, optional, range 1-5, values higher than 4 will impact run speed)
 -x  leniency factor 1 : determines whether a missing kmer should be edited (default -x 5, optional, lower value=less permissive)
 -y  leniency factor 2 : determines whether a change should be kept (default -y 9, optional, lower value=less permissive)
 -z  minimum contig length to consider (default -z 100, optional)
