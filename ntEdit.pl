@@ -237,8 +237,8 @@ if($@){
    $assemblyruninfo.=$success . "\n";
 }
 
-print "$0 $version terminated successfully on $date\n\n";
-print LOG "$0 $version terminated successfully on $date\n\n";
+print "$0 $version terminated on $date\n\n";
+print LOG "$0 $version terminated on $date\n\n";
 
 close LOG;
 
