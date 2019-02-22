@@ -102,6 +102,15 @@ public:
         return true;
     }
 
+    bool contains(const uint64_t *hVal) {
+	    for (unsigned i=0; i< m_hashNum; i++) {
+		    size_t hLoc = hVal[i] % m_size; 
+		    if ((m_filter[hLoc / 8] & (1 << (7 - hLoc % 8))) == 0)
+			    return false; 
+	    }
+	    return true; 
+    }
+
     void storeFilter(const char * fPath) const {
         FileHeader header;
         strncpy(header.magic, "BlOOMFXX", 8);
@@ -124,6 +133,11 @@ public:
         myFile.close();
     }
 
+    void printBloomFilterDetails() {
+	    std::cout << "BLOOM::\tsize: " << m_size << "\tnumber hash functions: " << m_hashNum << "\tkmer size: " << m_kmerSize 
+		    << "\tFPR: " << pow(getPop()*1.0/m_size, m_hashNum) << std::endl; 
+    }
+
     size_t getPop() const {
         size_t i, popBF=0;
         #pragma omp parallel for reduction(+:popBF)
@@ -134,6 +148,14 @@ public:
 	
     size_t getSize() const {
         return m_size;
+    }
+
+    unsigned getHashNum() const {
+	    return m_hashNum; 
+    }
+
+    unsigned getKmerSize() const {
+	    return m_kmerSize; 
     }
      
     ~BloomFilter() {

@@ -18,29 +18,72 @@ We expect ntEdit to have additional applications in fast mapping of simple nucle
 ### Implementation and requirements
 -------------------------------
 
-ntEdit v2.0 is written in C++. 
+ntEdit v1.0 is prototyped in PERL and runs on any OS where PERL is installed.
 
 
 ### Install
 -------
 
-Clone this directory and enter this directory.
+Download the tar ball, gunzip and extract the files on your system using:
 <pre>
-https://github.com/bcgsc/ntEdit.git
-cd ntEdit
+gunzip ntedit_v1-0-1.tar.gz
+tar -xvf ntedit_v1-0-1.tar
 </pre>
-Compile ntEdit
-<pre>
-make ntedit
-</pre>
-
 
 ### Dependencies
 -------
 
 1. ntHits (https://github.com/bcgsc/nthits)
-2. BloomFilter utilities (provided in ./lib)
-3. kseq (provided in ./lib)
+2. BloomFilter utilities (provided in ./lib - you may need to recompile, see instructions below)
+
+
+### Instructions for building the nthits Bloom filter utility PERL module
+-------
+
+1. BUILD a PERL5 module
+
+Make sure you have swig installed and included in your path.
+
+http://www.swig.org/
+
+
+TO BUILD a Perl5 module (run in swig/):
+```
+a) /home/<user>/<path to swig>/preinst-swig -Wall -c++ -perl5 BloomFilter.i
+
+b) g++ -c BloomFilter_wrap.cxx -I/usr/lib64/perl5/CORE -fPIC -Dbool=char -O3
+
+The location of CORE may change on your system.
+If you use linuxbrew, this works:
+-I/<yourpath>/linuxbrew/Cellar/perl/5.28.0/lib/perl5/5.28.0/x86_64-linux-thread-multi/CORE/
+
+c) g++ -Wall -shared BloomFilter_wrap.o -o BloomFilter.so -O3
+```
+
+TO COMPILE, swig needs the following Perl5 headers:
+```C++
+#include "EXTERN.h"
+#include "perl.h"
+#include "XSUB.h"
+```
+If they are not located in /usr/lib64/perl5, you can run "perl -e 'use Config; print $Config{archlib};" to locate them.
+
+
+2. VERIFY your install
+
+in the lib folder, execute:
+./test.pl
+
+-All tests should pass
+
+
+3. CHANGE the relative path to BloomFilter.pm in ntEdit.pl/test.pl 
+
+You only need to change if you have re-built in a relative directory different
+from:
+<pre>
+use lib "$FindBin::Bin/./lib/"; (for LINKS and test.pl)
+</pre>
 
 
 ### Documentation
@@ -48,7 +91,7 @@ make ntedit
 
 Refer to the README.md file on how to run ntEdit and our manuscript for information about the software and its performance 
 Questions or comments?  We would love to hear from you!
-rwarren@bcgsc.ca
+rwarren at bcgsc.ca
 
 
 ### Citing ntEdit 
@@ -91,33 +134,31 @@ Where @reads.in is a file listing the path to all fastq files
 
 
 2. Running ntEdit (see complete usage below)
-./ntedit -f <fasta file to polish> -k <kmer length> -r <Bloom filter from nthits>
+ntEdit.pl -f <fasta file to polish> -k <kmer length> -r <Bloom filter from nthits>
 eg.
-./ntedit -f ecoliWithMismatches001Indels0001.fa -r solidBF_k25.bf -k 25 -b ntEditEcolik25
+./ntEdit.pl -f ecoliWithMismatches001Indels0001.fa -r solidBF_k25.bf -k 25 -b ntEditEcolik25
 
 
 ### Running ntEdit
 -------------
 <pre>
-e.g. ./ntedit -f ecoliWithMismatches001Indels0001.fa -r solidBF_k25.bf -k 25 -b ntEditEcolik25
+e.g. ./ntEdit.pl -f ecoliWithMismatches001Indels0001.fa -r solidBF_k25.bf -k 25 -b ntEditEcolik25
 
 Usage: ../ntEdit.pl [v1.0.1]
- Options:
-	-t,	number of threads [default=1]
-	-f,	Draft genome assembly (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED
-	-r,	Bloom filter file (generated from ntHits), REQUIRED
-	-b,	output file prefix, OPTIONAL
-	-k,	kmer size, REQUIRED
-	-z,	minimum contig length [default=100]
-	-i,	maximum number of insertion bases to try, range 0-5, [default=4]
-	-d,	maximum number of deletions bases to try, range 0-5, [default=5]
-	-x,	k/x ratio for the number of kmers that should be missing, [default=5.000]
-	-y, 	k/y ratio for the number of editted kmers that should be present, [default=9.000]
-	-v,	verbose mode (-v 1 = yes, default = 0, no)
+-f  draft genome assembly (Multi-FASTA format, required)
+-r  Bloom filter of sequence reads (ntHits format, required)
+-k  k-mer value (default -k 35, optional, same value of k to build -r Bloom filter)
+-d  maximum number of base deletions (default -d 0, optional, range 1-5)
+-i  maximum number of base insertions (default -i 0, optional, range 1-5, values higher than 4 will impact run speed)
+-x  leniency factor 1 : determines whether a missing kmer should be edited (default -x 5, optional, lower value=less permissive)
+-y  leniency factor 2 : determines whether a change should be kept (default -y 9, optional, lower value=less permissive)
+-z  minimum contig length to consider (default -z 100, optional)
+-b  base name for your output files (optional)
+-v  Runs in verbose mode (-v 1 = yes, default = no, optional)
 
-	--help,		display this message and exit 
-	--version,	output version information and exit
-Report bugs to rwarren@bcgsc.ca
+NOTE: BLOOM FILTER MUST BE DERIVED FROM THE SAME SEQUENCE READS FILE(S) SUPPLIED to ntHits, WITH SAME -k VALUE SPECIFIED
+
+Error: Missing mandatory options -f, -r
 
 </pre>
 
@@ -132,7 +173,7 @@ Go to ./demo
 
 run:
 -------------------------------------
-./runme.sh (../ntedit -f ecoliWithMismatches001Indels0001.fa.gz -r solidBF_k25.bf -k 25 -b ntEditEcolik25)
+./runme.sh (../ntEdit.pl -f ecoliWithMismatches001Indels0001.fa.gz -r solidBF_k25.bf -k 25 -b ntEditEcolik25)
 
 ntEdit will polish an E. coli genome sequence with substitution error ~0.001 and indels ~0.0001 using pre-made nthits Bloom filter
 
@@ -152,6 +193,7 @@ Sequence reads are first shredded into kmers using ntHits, keeping track of kmer
 
 |Output files|                    Description|
 |---|---|
+|.log                         | text file; Logs execution time / errors / pairing stats|
 |_changes.tsv                 | tab-separated file; ID      bpPosition+1    OriginalBase    NewBase Support 25-mers (out of k/3)   AlternateNewBase   Alt.Support k-mers   eg. U00096.3_MG1655_k12     117     A       T       9|
 |_edited.fa                   | fasta file; contains the polished genome assembly |
 
