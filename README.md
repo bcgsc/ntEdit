@@ -3,7 +3,7 @@
 # ntEdit
 
 ## Scalable genome assembly polishing
-## 12/2018
+## 2/2019
 ## email: rwarren [at] bcgsc [dot] ca
 
 
@@ -18,7 +18,7 @@ We expect ntEdit to have additional applications in fast mapping of simple nucle
 ### Implementation and requirements
 -------------------------------
 
-ntEdit v2.0 is written in C++. 
+ntEdit v1.1 is written in C++. 
 
 
 ### Install
@@ -29,7 +29,7 @@ Clone this directory and enter this directory.
 https://github.com/bcgsc/ntEdit.git
 cd ntEdit
 </pre>
-Compile ntEdit
+Compile ntEdit.
 <pre>
 make ntedit
 </pre>
