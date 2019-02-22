@@ -788,8 +788,9 @@ void readAndCorrect(BloomFilter& bloom) {
 #pragma omp critical(reading)
 			{
 				l = kseq_read(seq); 
-				contigHdr = seq->name.s; 
-				contigName = contigHdr + " " + seq->comment.s; 
+				contigHdr = seq->name.s;
+				if (seq->comment.l) contigName = contigHdr + " " + seq->comment.s; 
+				else contigName = contigHdr; 
 				contigSeq = seq->seq.s; 
 			}
 			if (l<0) break; 
