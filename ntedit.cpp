@@ -26,13 +26,14 @@
 KSEQ_INIT(gzFile, gzread)
 
 static const char VERSION_MESSAGE[] = 
-	PROGRAM " Version 0.0.1\n"
+	PROGRAM " Version 1.1.0\n"
 	"Written by Rene Warren, Hamid Mohamadi, and Jessica Zhang.\n"
 	"Copyright 2018 Canada's Michael smith Genome Science Centre\n";
 
 static const char USAGE_MESSAGE[] = 
-	"Usage: " PROGRAM " \n"
-	"Make haploid edits to an assembly. \n"
+	"Usage: " PROGRAM " v1.1.0\n" 
+	"\n"
+	"Scalable genome assembly polishing. \n"
 	"\n"
 	"\n"
 	" Options:\n"
@@ -197,6 +198,40 @@ int getNumIndelFront(pair<FixInfo, bool>& edit) {
 	return 0;
 }
 
+unsigned findFirstAcceptedKmer(unsigned b_i, const string& contigSeq) {
+	for (unsigned i=b_i; i+opt::k<contigSeq.size();) {
+		if (isAcceptedBase(toupper(contigSeq.at(i)))) {
+			bool good_kmer=true; 
+			for (unsigned j=i+1; j<i+opt::k; j++) {
+				if (!isAcceptedBase(toupper(contigSeq.at(j)))) {
+					good_kmer=false;
+					i=j+1; 
+					break;
+				}
+			}
+			if (good_kmer) {
+				return i; 
+			}
+		} else {
+			i++; 
+		}
+	}
+	return contigSeq.size()-1; 
+}
+
+bool isRepeatInsertion(string possible_repeat) {
+	unsigned longest_pre_suf=0; 
+	unsigned len = possible_repeat.size(); 
+	for (unsigned i=-1; i<len; i++) {
+		if (possible_repeat[i] == possible_repeat[len-i-2])
+			longest_pre_suf++; 
+		else
+			break; 
+	}
+	if (len % (len-longest_pre_suf)  == 0) return true; 
+	return false;
+}
+
 void writeEditsToFile(FILE* dfout, FILE* rfout, vector<pair<FixInfo, bool>>& edits, 
 			const string& contigHdr, const string& contigSeq) {
 	fprintf(dfout, ">%s\n", contigHdr.c_str()); 
@@ -246,6 +281,7 @@ void writeEditsToFile(FILE* dfout, FILE* rfout, vector<pair<FixInfo, bool>>& edi
 	}
 	fprintf(dfout, "\n");
 }	
+
 
 int tryDeletions(const unsigned char draft_char, unsigned& deletions_done, string& deleted_bases,
 		unsigned& h_seq_i, unsigned& t_seq_i,
@@ -477,9 +513,30 @@ int tryIndels(const unsigned char draft_char, const unsigned char index_char, un
 					add_on_end.push_back(insertion_bases[j]); 
 				}
 			} else {
-				if (opt::verbose) std::cout << "\t\t\tprev insertion: " << edits[t_seq_i].first.indel;
+				if (opt::verbose) std::cout << "\t\t\tprev insertion: " << edits[t_seq_i].first.indel << std::endl;;
 				edits[t_seq_i].first.indel.insert(edits[t_seq_i].first.indel.size()-num_indel_back, insertion_bases); 
-				if (opt::verbose) std::cout << " new insertion: " << edits[t_seq_i].first.indel << std::endl; 
+				if (edits[t_seq_i].first.indel.size() >= opt::k) {
+					if (isRepeatInsertion(edits[t_seq_i].first.indel)) {
+						// reset so that we can jump over it
+						edits[t_seq_i].first.indel.clear();		
+						insertion_bases = ""; 
+						//num_indel_front=0; 
+						num_indel_back = 0; 
+						add_on_end.clear(); 
+						// skip over this bad one and move on
+						if (opt::verbose) std::cout 
+							<< "\t\tremoved and jumped over low complexity this repeat insertion at: "
+						       	<< t_seq_i << std::endl; 
+						h_seq_i = findFirstAcceptedKmer(t_seq_i, contigSeq); 
+						t_seq_i = h_seq_i+opt::k-1;
+						if (h_seq_i < seq_len && t_seq_i < seq_len) {
+							NTMC64(contigSeq.substr(h_seq_i, opt::k).c_str(), opt::k, opt::h, fhVal, rhVal, hVal); 
+							charIn=contigSeq.at(t_seq_i); 
+						}
+						return num_indel_back; 
+					}
+				}
+				if (opt::verbose) std::cout << "\t\t\tnew insertion: " << edits[t_seq_i].first.indel << std::endl; 
 				if (num_indel_back > 0) {
 					add_on_end.push_front(draft_char); 	
 					num_indel_back += insertion_bases.length();
@@ -516,18 +573,18 @@ int tryIndels(const unsigned char draft_char, const unsigned char index_char, un
 	return 0; 
 }
 
-
 void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seq_len, BloomFilter& bloom, 
 		FILE* dfout, FILE* rfout) {
 
-	// initialize the coordinates
-	unsigned h_seq_i=0; 
-	unsigned t_seq_i=h_seq_i+opt::k-1; 
-	//unsigned seq_len=contigSeq.length(); 
 
 	// initialize values for hashing
 	uint64_t fhVal, rhVal;
-	uint64_t* hVal = new uint64_t[opt::h]; 
+	uint64_t* hVal;
+#pragma omp critical(hVal)
+	{
+		hVal = new uint64_t[opt::h]; 
+	}
+	
 	unsigned char charOut, charIn; 
 	
 	// initialize storages to track our changes
@@ -535,27 +592,9 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seq_len, B
 	int num_indel_front=0, num_indel_back=0; 
 	deque<unsigned char> add_on_end;
 
-	// readjust the first character depending on the first N or nonATGC kmer
-	for (unsigned i=0; i+opt::k<seq_len;) {
-		if (isAcceptedBase(toupper(contigSeq.at(i)))) {
-			bool good_kmer=true; 
-			for (unsigned j=i+1; j<i+opt::k; j++) {
-				if (!isAcceptedBase(toupper(contigSeq.at(j)))) {
-					good_kmer=false;
-					i=j+1; 
-					break;
-				}
-			}
-			if (good_kmer) {
-				h_seq_i=i; 
-				t_seq_i=h_seq_i+opt::k-1; 
-				break;
-			}
-		} else {
-			i++; 
-		}
-	}
-
+	// initialize and readjust the first character depending on the first N or nonATGC kmer
+	unsigned h_seq_i = findFirstAcceptedKmer(0, contigSeq); 
+	unsigned t_seq_i = h_seq_i+opt::k-1;
 
 	// intialize our seed kmer
 	if (h_seq_i < seq_len && t_seq_i < seq_len) {
@@ -563,7 +602,9 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seq_len, B
 		charIn=contigSeq.at(t_seq_i); 
 	}
 
+
 	while (h_seq_i < seq_len && t_seq_i < seq_len) {
+
 		if (opt::verbose) 
 			std::cout <<  h_seq_i << " " << t_seq_i << " " << charOut << " " << charIn << " " 
 				<< hVal[0] << hVal[1] << hVal[2] << std::endl;
@@ -653,7 +694,7 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seq_len, B
 						// check every 3rd kmer to confirm substitution
 						unsigned check_present=0;
 					        unsigned k=1;	
-						for (; k<opt::k && h_i<seq_len; k++) {
+						for (; k<=opt::k+1 && h_i<seq_len; k++) {
 							charOut=contigSeq.at(h_i); 
 							if (temp_num_indel_front==0 && edits[h_i].first.indel != ""
 									&& !edits[h_i].second) { 
@@ -670,21 +711,21 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seq_len, B
 						}
 
 						// do the last kmer
-						if (k%3==1) {
-							if (temp_num_indel_front==0 && edits[h_i].first.indel != ""
-									&& !edits[h_i].second) { 
-								temp_num_indel_front=getNumIndelFront(edits[h_i]);
-								subset_indel_pos.push_back(h_i); 
-							}
-							if (getNextChars(charOut, charIn, h_i, t_i, temp_num_indel_front, 
-										edits[h_i].first.indel, temp_num_indel_back, 
-										temp_add_on_end, 
-										contigSeq, seq_len)) {
-								NTMC64(sub_base, charIn, opt::k, opt::h, temp_fhVal,
-										temp_rhVal, hVal); 
-								if (bloom.contains(hVal)) check_present++; 
-							}
-						}
+//						if (k%3==1) {
+//							if (temp_num_indel_front==0 && edits[h_i].first.indel != ""
+//									&& !edits[h_i].second) { 
+//								temp_num_indel_front=getNumIndelFront(edits[h_i]);
+//								subset_indel_pos.push_back(h_i); 
+//							}
+//							if (getNextChars(charOut, charIn, h_i, t_i, temp_num_indel_front, 
+//										edits[h_i].first.indel, temp_num_indel_back, 
+//										temp_add_on_end, 
+//										contigSeq, seq_len)) {
+//								NTMC64(sub_base, charIn, opt::k, opt::h, temp_fhVal,
+//										temp_rhVal, hVal); 
+//								if (bloom.contains(hVal)) check_present++; 
+//							}
+//						}
 
 						// reset the indels we mightve changed
 						while (!subset_indel_pos.empty()) {
@@ -735,7 +776,7 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seq_len, B
 				} else if (!made_indel) {
 					// There was no good change
 					if (opt::verbose)
-						std::cout << "\tt_seq_i: " << t_seq_i << " FIX NOT FOUND." << std::endl; 
+						std::cout << "\tt_seq_i: " << t_seq_i << " NO FIX MADE HERE." << std::endl; 
 				}
 			}
 		}
@@ -750,9 +791,16 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seq_len, B
 			NTMC64(charOut, charIn, opt::k, opt::h, fhVal, rhVal, hVal); 
 			if (!isAcceptedBase(charIn)) target_t_seq_i = t_seq_i + opt::k;
 		} while (target_t_seq_i >=0 && t_seq_i != target_t_seq_i); 
+
 	}
 
-#pragma omp critical(writing)
+#pragma omp critical(clean)
+	{
+		// clean allocated memory
+		delete [] hVal; 
+		hVal = NULL;
+	}
+#pragma omp critical(write)
 	{
 		// write this to file	
 		writeEditsToFile(dfout, rfout, edits, contigHdr, contigSeq); 
@@ -761,10 +809,11 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seq_len, B
 
 void readAndCorrect(BloomFilter& bloom) {
 	// read file handle
-	int l;
 	gzFile dfp; 
 	dfp = gzopen(opt::draft_filename.c_str(), "r"); 
 	kseq_t * seq = kseq_init(dfp); 
+	bool stop = false; 
+	int num_contigs=0; 
 
 
 	// outfile handles
@@ -776,38 +825,46 @@ void readAndCorrect(BloomFilter& bloom) {
 	fprintf(rfout, 
 		"ID\tbpPosition+1\tOriginalBase\tNewBase Support %d-mer (out of %d)\tAlternateNewBase\tAlt.Support %d-mers\n",
 			opt::k, 
-			(unsigned) opt::edit_threshold,
+			(opt::k / 3),
 			opt::k); 
 
-#pragma omp parallel
+#pragma omp parallel shared(seq,dfout,rfout)
 	{
 		string contigHdr, contigSeq, contigName;
-		int num_contigs=0; 
+//		bool stop=false; 
 
 		while(1) {
 #pragma omp critical(reading)
 			{
-				l = kseq_read(seq); 
-				contigHdr = seq->name.s;
-				if (seq->comment.l) contigName = contigHdr + " " + seq->comment.s; 
-				else contigName = contigHdr; 
-				contigSeq = seq->seq.s; 
+				if (!stop && kseq_read(seq) >= 0) {
+					contigHdr = seq->name.s; 
+					if (seq->comment.l) contigName = contigHdr + " " + seq->comment.s; 
+					else contigName = contigHdr; 
+					contigSeq = seq->seq.s; 
+				}else
+					stop = true; 
+#pragma omp flush(stop)
 			}
-			if (l<0) break; 
-
-			unsigned seq_len = contigSeq.length();
-			if (opt::verbose) 
-				std::cout << contigName << std::endl; 
-			if (seq_len >= opt::min_contig_len) {
-				kmerizeAndCorrect(contigName, contigSeq, seq_len, bloom, dfout, rfout); 
-			}
-			num_contigs++; 
-			if (num_contigs % 1000000 == 0) {
-				std::cout << "Processed " << num_contigs << std::endl; 
+			if (stop) 
+				break; 
+			else {
+				unsigned seq_len = contigSeq.length();
+				if (opt::verbose) std::cout << contigName << std::endl; 
+				if (seq_len >= opt::min_contig_len) {
+					kmerizeAndCorrect(contigName, contigSeq, seq_len, bloom, dfout, rfout); 
+				}
+#pragma omp atomic
+				num_contigs++; 
+				if (num_contigs % 1000000 == 0) {
+					std::cout << "Processed " << num_contigs << std::endl; 
+				}
 			}
 		}
 	}
+//#pragma omp barrier
+	std::cout << "trying to destroy" << std::endl; 
 	kseq_destroy(seq); 
+	std::cout << "destroyed" << std::endl; 
 	gzclose(dfp); 
 	fclose(dfout); 
 	fclose(rfout); 
