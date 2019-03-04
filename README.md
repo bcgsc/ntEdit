@@ -10,7 +10,7 @@
 ### Description
 -----------
 
-ntEdit is a genomics application for polishing genome assembly drafts.
+ntEdit is a scalable genomics application for polishing genome assembly drafts.
 ntEdit simplifies polishing and "haploidization" of gene and genome sequences with its re-usable Bloom filter design.
 We expect ntEdit to have additional applications in fast mapping of simple nucleotide variations between any two individuals or species’ genomes.
 
@@ -18,7 +18,7 @@ We expect ntEdit to have additional applications in fast mapping of simple nucle
 ### Implementation and requirements
 -------------------------------
 
-ntEdit v1.1 is written in C++. 
+ntEdit v1.1.0 is written in C++. 
 
 
 ### Install
@@ -91,9 +91,9 @@ Where @reads.in is a file listing the path to all fastq files
 
 
 2. Running ntEdit (see complete usage below)
-./ntedit -f <fasta file to polish> -k <kmer length> -r <Bloom filter from nthits>
+./ntedit -f <fasta file to polish> -k <kmer length> -r <Bloom filter from nthits> -b <base output name> -t <threads>
 eg.
-./ntedit -f ecoliWithMismatches001Indels0001.fa -r solidBF_k25.bf -k 25 -b ntEditEcolik25
+./ntedit -f ecoliWithMismatches001Indels0001.fa -r solidBF_k25.bf -k 25 -b ntEditEcolik25 -t 48
 
 
 ### Running ntEdit
@@ -101,7 +101,6 @@ eg.
 <pre>
 e.g. ./ntedit -f ecoliWithMismatches001Indels0001.fa -r solidBF_k25.bf -k 25 -b ntEditEcolik25
 
-Usage: ../ntEdit.pl [v1.0.1]
  Options:
 	-t,	number of threads [default=1]
 	-f,	Draft genome assembly (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED
@@ -145,7 +144,8 @@ ntEditEcolik25_edited.fa
 ### How it works
 ------------
 ![Logo](https://github.com/bcgsc/ntEdit/blob/master/figS1.png)
-Sequence reads are first shredded into kmers using ntHits, keeping track of kmer multiplicity. The kmers that pass coverage thresholds (ntHits, -c option) are used to construct a Bloom filter (BF). The draft assembly is supplied to ntEdit (-f option, fasta file), along with the BF (-r option) and sequences are read sequentially. Draft assembly contigs are shredded into kmers (at a specified –k value matching that used to build the BF), and each kmer from 5’ to 3’ queries the BF data structure for presence/absence (step 1). When kmers are not found in the filter, a subset (k/3) of k kmers containing the 3’-end base is queried for absence (step 2). When >=k/5 kmers (by default, -x option) are absent, editing takes place, otherwise step 1 resumes and the next assembly kmer is assessed. The 3’-end base is permuted to one of the three alternate bases (step 3), and a subset of k kmers containing the change is assessed (>= k/9 by default, -y option). When a base substitution is made that qualifies, it is tracked along with the number of supported kmers and the remaining alternate 3’-end base substitutions are also assessed (ie. resuming step3 until all bases inspected). If it does not qualify, then a cycle of base insertion(s) (step 4) and deletion(s) (step 5) begins. As is the case for the substitutions, a subset of k kmers containing the indel change is assessed (>= k/9 by default, -y option). If there are no qualifying changes, then the next alternate 3’-end base is inspected as per above; otherwise the change is applied to the sequence string and the next assembly kmer is inspected (step 1). The process is repeated until a qualifying change or until no suitable edits are found (back to step 1).  
+Sequence reads are first shredded into kmers using ntHits, keeping track of kmer multiplicity. The kmers that pass coverage thresholds (ntHits, -c option builds a filter with kmers having a coverage higher than c) are used to construct a Bloom filter (BF). The draft assembly is supplied to ntEdit (-f option, fasta file), along with the BF (-r option) and sequences are read sequentially. Sequence strings are shredded into words of length k (kmers) at a specified value (-k option) matching that used to build the BF, and each kmer from 5’ to 3’ queries the BF data structure for presence/absence (step 1). When a kmer is not found in the filter, a subset (Sk) of overlapping k kmers (defined by k over three, k/3) containing the 3’-end base is queried for absence (step 2). The subset Sk, representing a subsampling of k kmers obtained by sliding over 3 bases at a time over k bases, is chosen to minimize the number of checks against the Bloom filter. Of this subset, when the number of absent (-) kmers matches or exceeds a threshold defined by Sk- >= k/x (-x option), representing the majority of kmers in Sk, editing takes place (step 3 and beyond), otherwise step 1 resumes. In the former case, the 3’-end base is permuted to one of the three alternate bases (step 3), and the subset (Sk_alt) containing the change is assessed for Bloom filter presence (+). When that number matches or exceeds the threshold defined by Sk_alt+ >= k/y (-y option), which means the base substitution qualifies, it is tracked along with the number of supported kmers and the remaining alternate 3’-end base substitutions are also assessed (ie. resuming step 3 until all bases inspected). If the edit does not qualify, then a cycle of base insertion(s) and deletion(s) of up to –i and –d bases begins (step 4, -i option and step 5, -d option, respectively). As is the case for the substitutions, a subset of k kmers containing the indel change is tested for presence. If there are no qualifying changes, then the next alternate 3’-end base is inspected as per above; otherwise the change is applied to the sequence string and the next assembly kmer is inspected (step 1). The process is repeated until a qualifying change or until no suitable edits are found. In the latter case, we go back to step 1. When a change is made, the position on the new sequence is tracked, along with an alternate base with lesser or equal k kmer subset support, when applicable. Currently, ntEdit only tracks cases when edits are made (steps 3-5), and does not flag unedited, missing draft kmers (steps 1-2).  
+
 
 ### OUTPUT FILES
 ------------------------
