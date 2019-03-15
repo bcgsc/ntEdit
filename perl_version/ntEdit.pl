@@ -404,6 +404,7 @@ sub kmerizeCheck{
                      for(my $subset=$pos+1;$subset<=($pos+$k);$subset+=$i){   #### this code prevents changing the seq string when base change caused by indels
                         my $subkmer = substr($_,$subset,$k);
                         $ctchg++ if($bloom->contains($subkmer)); #### expect very few to be missing if correction is valid
+			my $isfound = $bloom->contains($subkmer);
                      }
 
                      #### IF MET, CHECK SUBSTITUTIONS, ELSE GO TO INDELS.  SAME BASE WILL GO TO INDELS
