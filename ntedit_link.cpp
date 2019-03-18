@@ -107,8 +107,7 @@ unordered_map<unsigned char, vector<string>> multi_possible_bases = {{'A', { "A"
 								{'T', { "T", "TA", "TC", "TG", "TT", "TAA", "TAC", "TAG", "TAT", "TCA", "TCC", "TCG", "TCT", "TGA", "TGC", "TGG", "TGT", "TTA", "TTC", "TTG", "TTT", "TAAA", "TAAC", "TAAG", "TAAT", "TACA", "TACC", "TACG", "TACT", "TAGA", "TAGC", "TAGG", "TAGT", "TATA", "TATC", "TATG", "TATT", "TCAA", "TCAC", "TCAG", "TCAT", "TCCA", "TCCC", "TCCG", "TCCT", "TCGA", "TCGC", "TCGG", "TCGT", "TCTA", "TCTC", "TCTG", "TCTT", "TGAA", "TGAC", "TGAG", "TGAT", "TGCA", "TGCC", "TGCG", "TGCT", "TGGA", "TGGC", "TGGG", "TGGT", "TGTA", "TGTC", "TGTG", "TGTT", "TTAA", "TTAC", "TTAG", "TTAT", "TTCA", "TTCC", "TTCG", "TTCT", "TTGA", "TTGC", "TTGG", "TTGT", "TTTA", "TTTC", "TTTG", "TTTT", "TAAAA", "TAAAC", "TAAAG", "TAAAT", "TAACA", "TAACC", "TAACG", "TAACT", "TAAGA", "TAAGC", "TAAGG", "TAAGT", "TAATA", "TAATC", "TAATG", "TAATT", "TACAA", "TACAC", "TACAG", "TACAT", "TACCA", "TACCC", "TACCG", "TACCT", "TACGA", "TACGC", "TACGG", "TACGT", "TACTA", "TACTC", "TACTG", "TACTT", "TAGAA", "TAGAC", "TAGAG", "TAGAT", "TAGCA", "TAGCC", "TAGCG", "TAGCT", "TAGGA", "TAGGC", "TAGGG", "TAGGT", "TAGTA", "TAGTC", "TAGTG", "TAGTT", "TATAA", "TATAC", "TATAG", "TATAT", "TATCA", "TATCC", "TATCG", "TATCT", "TATGA", "TATGC", "TATGG", "TATGT", "TATTA", "TATTC", "TATTG", "TATTT", "TCAAA", "TCAAC", "TCAAG", "TCAAT", "TCACA", "TCACC", "TCACG", "TCACT", "TCAGA", "TCAGC", "TCAGG", "TCAGT", "TCATA", "TCATC", "TCATG", "TCATT", "TCCAA", "TCCAC", "TCCAG", "TCCAT", "TCCCA", "TCCCC", "TCCCG", "TCCCT", "TCCGA", "TCCGC", "TCCGG", "TCCGT", "TCCTA", "TCCTC", "TCCTG", "TCCTT", "TCGAA", "TCGAC", "TCGAG", "TCGAT", "TCGCA", "TCGCC", "TCGCG", "TCGCT", "TCGGA", "TCGGC", "TCGGG", "TCGGT", "TCGTA", "TCGTC", "TCGTG", "TCGTT", "TCTAA", "TCTAC", "TCTAG", "TCTAT", "TCTCA", "TCTCC", "TCTCG", "TCTCT", "TCTGA", "TCTGC", "TCTGG", "TCTGT", "TCTTA", "TCTTC", "TCTTG", "TCTTT", "TGAAA", "TGAAC", "TGAAG", "TGAAT", "TGACA", "TGACC", "TGACG", "TGACT", "TGAGA", "TGAGC", "TGAGG", "TGAGT", "TGATA", "TGATC", "TGATG", "TGATT", "TGCAA", "TGCAC", "TGCAG", "TGCAT", "TGCCA", "TGCCC", "TGCCG", "TGCCT", "TGCGA", "TGCGC", "TGCGG", "TGCGT", "TGCTA", "TGCTC", "TGCTG", "TGCTT", "TGGAA", "TGGAC", "TGGAG", "TGGAT", "TGGCA", "TGGCC", "TGGCG", "TGGCT", "TGGGA", "TGGGC", "TGGGG", "TGGGT", "TGGTA", "TGGTC", "TGGTG", "TGGTT", "TGTAA", "TGTAC", "TGTAG", "TGTAT", "TGTCA", "TGTCC", "TGTCG", "TGTCT", "TGTGA", "TGTGC", "TGTGG", "TGTGT", "TGTTA", "TGTTC", "TGTTG", "TGTTT", "TTAAA", "TTAAC", "TTAAG", "TTAAT", "TTACA", "TTACC", "TTACG", "TTACT", "TTAGA", "TTAGC", "TTAGG", "TTAGT", "TTATA", "TTATC", "TTATG", "TTATT", "TTCAA", "TTCAC", "TTCAG", "TTCAT", "TTCCA", "TTCCC", "TTCCG", "TTCCT", "TTCGA", "TTCGC", "TTCGG", "TTCGT", "TTCTA", "TTCTC", "TTCTG", "TTCTT", "TTGAA", "TTGAC", "TTGAG", "TTGAT", "TTGCA", "TTGCC", "TTGCG", "TTGCT", "TTGGA", "TTGGC", "TTGGG", "TTGGT", "TTGTA", "TTGTC", "TTGTG", "TTGTT", "TTTAA", "TTTAC", "TTTAG", "TTTAT", "TTTCA", "TTTCC", "TTTCG", "TTTCT", "TTTGA", "TTTGC", "TTTGG", "TTTGT", "TTTTA", "TTTTC", "TTTTG", "TTTTT"}}
 };
 
-
-// print an error message and exit if path is not readable
+/* Checks that the filepath is readable and exits if it is not. */
 static inline void assert_readable(const string& path) {
 	if (access(path.c_str(), R_OK) == -1) {
 		std::cerr << PROGRAM ": error: `" << path << "': " << strerror(errno) << std::endl; 
@@ -116,11 +115,13 @@ static inline void assert_readable(const string& path) {
 	}
 }
 
-
+/* Checks if the base is ATGC. */
 bool isAcceptedBase(unsigned char C) {
 	return (C=='A' || C=='T' || C=='G' || C=='C'); 
 }
 
+/* Find the first only ATGC kmer starting at the beginning of a sequence.
+ * 	Assumption: no insertions or deletions. */
 unsigned findFirstAcceptedKmer(unsigned b_i, const string& contigSeq) {
 	for (unsigned i=b_i; i+opt::k<contigSeq.size();) {
 		if (isAcceptedBase(toupper(contigSeq.at(i)))) {
@@ -142,6 +143,7 @@ unsigned findFirstAcceptedKmer(unsigned b_i, const string& contigSeq) {
 	return contigSeq.size()-1; 
 }
 
+/* Helper for filling out the LPS array for detecting a low complexity repeat. */
 void computeLPSArray(string possible_repeat, int n, vector<int>& lps) {
 	int len=0; 
 	int i; 
@@ -164,6 +166,7 @@ void computeLPSArray(string possible_repeat, int n, vector<int>& lps) {
 	}
 }
 
+/* Determines if a string is a low complexity repeat of a word. */
 bool isRepeatInsertion(string possible_repeat) {
 	int n = possible_repeat.size(); 
 	vector<int> lps(n); 
@@ -174,7 +177,7 @@ bool isRepeatInsertion(string possible_repeat) {
 	return (len>0 && n%(n-len) == 0);
 }
 
-// struct to keep track of details for substitutions
+/* Struct that keeps track of details for substitutions. */
 struct sRec {
 	unsigned pos; 
 	unsigned char draft_char;
@@ -182,16 +185,17 @@ struct sRec {
 	unsigned num_support;
 };
 
-// START: RopeLink structure and functions
+/* START: RopeLink Structure and Functions -- todo: abstract this into its own class. */
 struct RopeLink {
-	RopeLink *left, *right; 
+	RopeLink *left, *right; // left== refers to parent; right== refers to following
 	int node_type=-1; // -1==unset; 0==position; 1==character;
-	size_t s_pos; 
-	size_t e_pos; 
-	unsigned char c; 
-	unsigned num_support=0; 
+	size_t s_pos; // start position of a position node
+	size_t e_pos; // end position of a position node
+	unsigned char c; // character for a character node
+	unsigned num_support=0; // check_present for an insertion/deletion
 };
 
+/* Creates a position RopeLink at <node> with parent <left> and s_pos <s_pos> and e_pos <e_pos>. */
 void createPositionRopeLink(RopeLink *& node, RopeLink *& left, size_t s_pos, size_t e_pos) {
 	RopeLink * tmp = (struct RopeLink* ) malloc(sizeof(struct RopeLink)); 
 	tmp->node_type = 0; 
@@ -204,6 +208,7 @@ void createPositionRopeLink(RopeLink *& node, RopeLink *& left, size_t s_pos, si
 	node = tmp; 
 }
 
+/* Creates a character RopeLink at <node> with parent <left> and character <c>. */
 void createCharacterRopeLink(RopeLink *& node, RopeLink *& left, unsigned char c) {
 	RopeLink *tmp = (struct RopeLink* ) malloc(sizeof(struct RopeLink)); 
 	tmp->node_type = 1;
@@ -215,6 +220,7 @@ void createCharacterRopeLink(RopeLink *& node, RopeLink *& left, unsigned char c
 	node = tmp; 
 }
 
+/* Removes a RopeLink and adjusts the parent and next node pointers. */
 void removeRopeLink(RopeLink *& to_remove) {
 	RopeLink * prev_node = to_remove->left; 
 	if (prev_node != nullptr) {
@@ -231,6 +237,8 @@ void removeRopeLink(RopeLink *& to_remove) {
 	free(to_remove); 
 }
 
+/* Makes a character insertion RIGHT BEFORE <insert_pos> by creating a character node holding <c> with <num_support> 
+ * 	- sets <node> to your insertion node (the node that holds the character <c>). */
 void makeCharacterInsertion(RopeLink *& node, int insert_pos, unsigned char c, unsigned num_support) {
 	RopeLink *insertion_node = nullptr; 
 	RopeLink *prev_node = nullptr; 
@@ -274,6 +282,7 @@ void makeCharacterInsertion(RopeLink *& node, int insert_pos, unsigned char c, u
 	node = insertion_node;
 }
 
+/* Makes a deletion by deleting the characters starting and including <delete_pos> of size <num_del>. */
 void makeDeletion(RopeLink *&node, unsigned& delete_pos, unsigned num_del, unsigned num_support) {
 	RopeLink * tmp_right_node = node->right;
 	// making a deletion from a position node
@@ -341,6 +350,7 @@ void makeDeletion(RopeLink *&node, unsigned& delete_pos, unsigned num_del, unsig
 	}
 }
 
+/* Starts at root and removes all of the nodes following it. */
 void cleanRopeLinks(RopeLink *&master_root) {
 	RopeLink * to_remove;
 	do {
@@ -349,9 +359,77 @@ void cleanRopeLinks(RopeLink *&master_root) {
 		removeRopeLink(to_remove); 
 	} while (master_root != nullptr); 
 }
+/* END: RopeLink Struct and Functions */
 
-// END: RopeLink struct and functions
+/* Returns the character at pos based on the RopeLink structure. */
+unsigned char getCharacter(unsigned pos, RopeLink *node, const string& contigSeq) {
+	if (node->node_type == 0) return contigSeq.at(pos); 
+	else if (node->node_type == 1) return node->c; 
+	unsigned char c;
+	return c; 
+}
 
+/* Increments the position and adjusts the node accordingly based on RopeLink structure. */
+void increment(unsigned& pos, RopeLink *& node) {
+	if (node->node_type == 0) {
+		pos++; 
+		if (pos > node->e_pos) {
+			node = node->right; 
+			if (node != nullptr && node->node_type == 0 && pos < node->s_pos)
+				pos = node->s_pos;
+		} 
+	} else if (node->node_type == 1) {
+		node = node->right; 
+		if (node != nullptr && node->node_type == 0 && pos < node->s_pos)
+			pos = node->s_pos;
+	}
+}
+
+/* Find the first accepted kmer (contains only ATGC characters) starting anywhere, based on the RopeLink structure. */
+string findAcceptedKmer(unsigned& h_seq_i, unsigned& t_seq_i,
+			RopeLink*& hNode, RopeLink *& tNode, const string& contigSeq) {
+	// temporary values
+	string kmer_str; 	
+	RopeLink * curr_node = hNode;
+	RopeLink * new_hNode, * new_tNode;
+	unsigned i=h_seq_i; 
+	while (i<contigSeq.size() && curr_node != nullptr) {
+		unsigned char c; 
+		c = getCharacter(i, curr_node, contigSeq); 
+		if (isAcceptedBase(toupper(c))) {
+			string kmer_str; 
+			kmer_str += c; 
+			new_hNode = curr_node; 
+			unsigned j=i; 
+			increment(j, curr_node); 
+			// continue until you cant
+			while (kmer_str.size() <= opt::k && j<contigSeq.size() && curr_node != nullptr) {
+				c = getCharacter(j, curr_node, contigSeq); 
+				if (!isAcceptedBase(toupper(c))) {
+					i=j; 
+					break;
+				} 
+				kmer_str += c; 
+				increment(j, curr_node); 
+			}
+			// you found a good kmer so return it and adjust
+			if (kmer_str.size() == opt::k) {
+				h_seq_i = i; 
+				t_seq_i = j; 
+				hNode = curr_node;
+				tNode = curr_node;
+				return kmer_str; 				
+			}
+		}
+		increment(i, curr_node); 
+	}
+
+	h_seq_i = contigSeq.length(); 
+	t_seq_i = contigSeq.length(); 
+	return ""; 
+}
+
+/* Get the previous insertion (aka continuous string of character nodes) starting at this node tNode. */
 string getPrevInsertion(RopeLink *tNode) {
 	string prev_insertion;
 	while (tNode != nullptr && tNode->node_type == 1) {
@@ -361,12 +439,11 @@ string getPrevInsertion(RopeLink *tNode) {
 	return prev_insertion;
 }
 
+/* Write the edits and new draft contig into respective files. */
 void writeEditsToFile(FILE* dfout, FILE* rfout, const string& contigHdr, const string& contigSeq,
 		RopeLink *& root, queue<sRec>& substitution_record) {
 	fprintf(dfout, ">%s\n", contigHdr.c_str()); 
-	RopeLink * curr_node = root; 
-//	RopeLink * to_remove;
-	// track an insertion
+	RopeLink * curr_node = root;
 	string insertion_bases=""; 
 	int num_support=-1; 
 	unsigned char draft_char;
@@ -394,15 +471,12 @@ void writeEditsToFile(FILE* dfout, FILE* rfout, const string& contigHdr, const s
 			} 
 			fprintf(dfout, "%s", contigSeq.substr(curr_node->s_pos, (curr_node->e_pos-curr_node->s_pos+1)).c_str()); 
 			pos = curr_node->e_pos+1; 
-//			draft_char = contigSeq.at(pos-1); 
 		} else if (curr_node->node_type == 1) {
 			insertion_bases += curr_node->c; 
 			if (num_support==-1) num_support = curr_node->num_support; 
 			fprintf(dfout, "%c", curr_node->c); 
 		}
-//		RopeLink * to_remove = curr_node;
 		curr_node = curr_node->right; 
-//		removeRopeLink(to_remove); 
 		if (curr_node != nullptr && curr_node->node_type == 0 && curr_node->s_pos != pos) {
 			// print out the deletion
 			fprintf(rfout, "%s\t%d\t%c\t%c%s\t%d\n", 
@@ -413,43 +487,58 @@ void writeEditsToFile(FILE* dfout, FILE* rfout, const string& contigHdr, const s
 	fprintf(dfout, "\n");
 }
 
-// roll ntHash over the Rope Data structure for the sequence
+/* Roll ntHash using the Rope Data structure. */
 bool roll(unsigned& h_seq_i, unsigned& t_seq_i, 
 		RopeLink *& hNode, RopeLink *&tNode,
 		uint64_t& fhVal, uint64_t& rhVal, uint64_t *&hVal,
 		const string& contigSeq, unsigned char& charIn) {
 
 	// quit if h_seq_i is out of scope
-	if (h_seq_i >= contigSeq.size()) return false;
+	if (h_seq_i >= contigSeq.size() || hNode == nullptr) return false;
+
+	unsigned char charOut = getCharacter(h_seq_i, hNode, contigSeq); 
+	increment(h_seq_i, hNode); 
+	if (hNode == nullptr) return false; 
+
+	increment(t_seq_i, tNode); 
+	if (t_seq_i >= contigSeq.size() || tNode == nullptr) return false; 
+	charIn = getCharacter(t_seq_i, tNode, contigSeq); 
 
 	// get the charOut from h_seq_i and adjust hNode if necessary
-	unsigned char charOut;
+/*	unsigned char charOut;
 	if (hNode->node_type == 0) {
 		charOut = contigSeq.at(h_seq_i); 
 		// adjust the hNode for next time
-		h_seq_i++; 
-		if (h_seq_i > hNode->e_pos) {
-			hNode = hNode->right; 
-			if (hNode == nullptr) return false;
-			if (hNode->node_type == 0)
-				// account h_seq_i for deletion
-				if (hNode->s_pos != h_seq_i) h_seq_i = hNode->s_pos; 
-		}
+		increment(h_seq_i, hNode); 
+		if (hNode == nullptr) return false;
+//		h_seq_i++; 
+//		if (h_seq_i > hNode->e_pos) {
+//			hNode = hNode->right; 
+//			if (hNode == nullptr) return false;
+//			if (hNode->node_type == 0)
+//				// account h_seq_i for deletion
+//				if (hNode->s_pos != h_seq_i) h_seq_i = hNode->s_pos; 
+//		}
 	} else if (hNode->node_type == 1) {
 		charOut = hNode->c; 
 		// adjust the hNode for next time
-		hNode = hNode->right;
+		increment(h_seq_i, hNode); 
 		if (hNode == nullptr) return false; 
-		if (hNode->node_type == 0)
-			// account h_seq_i for deletion
-			if (hNode->s_pos != h_seq_i) h_seq_i = hNode->s_pos; 
+//		hNode = hNode->right;
+//		if (hNode == nullptr) return false; 
+//		if (hNode->node_type == 0)
+//			// account h_seq_i for deletion
+//			if (hNode->s_pos != h_seq_i) h_seq_i = hNode->s_pos; 
 	} else {
 		return false;
 	}
 
 	// get the charIn from t_seq_i
 	if (tNode->node_type == 0) {
-		t_seq_i++;
+		// increment first then get character
+		increment(t_seq_i, tNode); 
+		if (t_seq_i >= contigSeq.size() || tNode == nullptr) return false; 
+//		t_seq_i++;
 		// quit is t_seq_i is out of scope
 		if (t_seq_i >= contigSeq.size()) return false;
 		// get the character from contigSeq if t_seq_i is within the node
@@ -483,13 +572,14 @@ bool roll(unsigned& h_seq_i, unsigned& t_seq_i,
 	} else {
 		return false;
 	}
-
+*/
 
 	// roll the hash
 	NTMC64(charOut, charIn, opt::k, opt::h, fhVal, rhVal, hVal); 
 	return true;
 }
 
+/* Returns a substring using the RopeLink structure starting at <start_pos> of length <length>. */
 string getSubstring(unsigned start_pos, RopeLink *sNode, int length, const string& contigSeq) {
 	string substring; 
 	substring.reserve(length);
@@ -512,7 +602,7 @@ string getSubstring(unsigned start_pos, RopeLink *sNode, int length, const strin
 	return ss.str(); 
 }
 
-
+/* Try a deletion in ntEdit. */
 bool tryDeletion(const unsigned char draft_char, unsigned num_deletions,
 		unsigned& h_seq_i, unsigned& t_seq_i, 
 		RopeLink *&hNode, RopeLink *&tNode,
@@ -532,8 +622,6 @@ bool tryDeletion(const unsigned char draft_char, unsigned num_deletions,
 	ss << before_t << after_t.substr(num_deletions); 
 	deletion_substring = ss.str();
 	deleted_bases = after_t.substr(0, num_deletions); 
-//	std::cout << deletion_substring << std::endl; 
-	//string deletion_kmer_subset = getSubsetString(h_seq_i, t_seq_i, (-1)*num_deletions, "", deleted_bases, hNode, contigSeq); 
 	NTMC64_changelast(draft_char, deletion_substring.at(temp_t_seq_i), opt::k, opt::h, temp_fhVal, temp_rhVal, hVal); 
 
 	// verify the deletion with a subset
@@ -560,6 +648,7 @@ bool tryDeletion(const unsigned char draft_char, unsigned num_deletions,
 	return false;
 }
 
+/* Try indel combinations starting with index_char. */
 bool tryIndels(const unsigned char draft_char, const unsigned char index_char, 
 		unsigned char& charIn,
 		unsigned& num_deletions,
@@ -614,12 +703,14 @@ bool tryIndels(const unsigned char draft_char, const unsigned char index_char,
 					std::cout << "\tprev_insertion: " << prev_insertion << std::endl; 
 					if (isRepeatInsertion(prev_insertion)) {
 						std::cout << "\t\t is a repeat insertion" << std::endl; 
-						unsigned k=0; 
-						while (k<opt::k 
-							&& roll(h_seq_i, t_seq_i, hNode, tNode, fhVal, rhVal, hVal, 
-								contigSeq, charIn)) {
-							k++;
+						RopeLink *to_remove; 
+						while (tNode != nullptr && tNode->node_type == 0) {
+							to_remove = tNode; 
+							tNode = tNode->right; 
+							removeRopeLink(to_remove); 
 						}
+						NTMC64(findAcceptedKmer(h_seq_i, t_seq_i, hNode, tNode, contigSeq).c_str(),
+								opt::k, opt::h, fhVal, rhVal, hVal); 
 						return false; 
 					}	
 				}
@@ -647,7 +738,7 @@ bool tryIndels(const unsigned char draft_char, const unsigned char index_char,
 	return false;
 }
 
-
+/* Kmerize and polish the contig. */
 void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, BloomFilter& bloom, 
 		FILE* dfout, FILE* rfout) {
 
@@ -722,10 +813,8 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 				// stuff for indels
 				// everything before t_seq_i
 				string before_t = getSubstring(h_seq_i, hNode, opt::k-1, contigSeq); 
-				//std::cout << before_t << std::endl; 
 				// everything including t_seq_i and after
 				string after_t = getSubstring(t_seq_i, tNode, opt::k+opt::max_deletions, contigSeq); 
-				//std::cout << after_t << std::endl; 
 
 				// try substitution 
 				unsigned char best_sub_base; 
@@ -840,6 +929,7 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 	hNode = nullptr;
 }	
 
+/* Read the contigs from the file and polish each contig. */
 void readAndCorrect(BloomFilter& bloom) {
 	// read file handle
 	gzFile dfp; 
@@ -1053,7 +1143,7 @@ int main (int argc, char ** argv) {
 	
 	// Read & edit contigs
 	time(&rawtime); 
-	std::cout << "\n----------Reading and Correcting Draft-------- " << ctime(&rawtime); 
+	std::cout << "\n----------Reading and Polishing Draft-------- " << ctime(&rawtime); 
 	readAndCorrect(bloom); 
 
 	time(&rawtime); 
