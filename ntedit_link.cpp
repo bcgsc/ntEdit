@@ -767,7 +767,6 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 
 				// try substitution 
 				for (const unsigned char sub_base : bases_array[draft_char]) {
-					std::cout << "trying starting with: " << sub_base << std::endl; 
 					//reset the temporary values
 					temp_fhVal = fhVal; 
 					temp_rhVal = rhVal; 
@@ -779,7 +778,6 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 
 					// only do verification of substition if it is found in bloom filter
 					if (bloom.contains(hVal) || opt::mode == 2) {
-						std::cout << "found start: " << sub_base << std::endl; 
 						// reset temporary values 
 						temp_h_seq_i = h_seq_i; 
 						temp_t_seq_i = t_seq_i; 
