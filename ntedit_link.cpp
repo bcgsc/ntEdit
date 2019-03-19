@@ -392,7 +392,7 @@ string findAcceptedKmer(unsigned& h_seq_i, unsigned& t_seq_i,
 	string kmer_str; 	
 	RopeLink * curr_node = hNode;
 	RopeLink * new_hNode, * new_tNode;
-	unsigned i=h_seq_i; 
+	unsigned i=t_seq_i; 
 	while (i<contigSeq.size() && curr_node != nullptr) {
 		unsigned char c; 
 		c = getCharacter(i, curr_node, contigSeq); 
@@ -403,20 +403,21 @@ string findAcceptedKmer(unsigned& h_seq_i, unsigned& t_seq_i,
 			unsigned j=i; 
 			increment(j, curr_node); 
 			// continue until you cant
-			while (kmer_str.size() <= opt::k && j<contigSeq.size() && curr_node != nullptr) {
+			while (j<contigSeq.size() && curr_node != nullptr) {
 				c = getCharacter(j, curr_node, contigSeq); 
 				if (!isAcceptedBase(toupper(c))) {
 					i=j; 
 					break;
 				} 
-				kmer_str += c; 
+				kmer_str += c;
+			        if (kmer_str.size() == opt::k) break;	
 				increment(j, curr_node); 
 			}
 			// you found a good kmer so return it and adjust
 			if (kmer_str.size() == opt::k) {
 				h_seq_i = i; 
 				t_seq_i = j; 
-				hNode = curr_node;
+				hNode = new_hNode;
 				tNode = curr_node;
 				return kmer_str; 				
 			}
@@ -431,6 +432,10 @@ string findAcceptedKmer(unsigned& h_seq_i, unsigned& t_seq_i,
 
 /* Get the previous insertion (aka continuous string of character nodes) starting at this node tNode. */
 string getPrevInsertion(RopeLink *tNode) {
+	// if we just finished the insertion
+	if (tNode != nullptr && tNode->node_type == 0) {
+		tNode = tNode->left; 
+	}
 	string prev_insertion;
 	while (tNode != nullptr && tNode->node_type == 1) {
 		prev_insertion += tNode->c; 
@@ -696,17 +701,36 @@ bool tryIndels(const unsigned char draft_char, const unsigned char index_char,
 			std::cout << "\t\tinserting: " << insertion_bases << " check_present: " << check_present << std::endl;
 		if (check_present >= ((float) opt::k / opt::edit_threshold)) {
 			// check if we need to check the insertion for low complexity and make that check before preceding
-			string prev_insertion = getPrevInsertion(tNode); 
+			string prev_insertion = getPrevInsertion(tNode);
 			if (prev_insertion.size()+insertion_bases.size() >= opt::k) {
+				std::cout << "\tprev_insertion: " << prev_insertion << std::endl;
+				RopeLink *to_remove;
+				if (isRepeatInsertion(prev_insertion)){
+					std::cout << "\t\t is a repeat insertion" << std::endl;
+					if (tNode != nullptr && tNode->node_type == 0) tNode = tNode->left; 	
+					while (tNode != nullptr && tNode->node_type == 1) {
+						to_remove = tNode; 
+						tNode = tNode->left; 
+						removeRopeLink(to_remove); 
+					}
+//					string new_kmer = findAcceptedKmer(h_seq_i, t_seq_i, hNode, tNode, contigSeq); 
+//					std::cout << "new_kmer: " << new_kmer << std::endl; 
+//					exit(EXIT_FAILURE); 
+//					std::cout << "\tnew kmer: " 
+//						<< findAcceptedKmer(h_seq_i, t_seq_i, hNode, tNode, contigSeq) << std::endl; 
+					NTMC64(findAcceptedKmer(h_seq_i, t_seq_i, hNode, tNode, contigSeq).c_str(), 
+							opt::k, opt::h, fhVal, rhVal, hVal); 
+					return false;
+				}
 				for (unsigned j=0; j<insertion_bases.size(); j++) {
 					prev_insertion += insertion_bases[j]; 
-					std::cout << "\tprev_insertion: " << prev_insertion << std::endl; 
+					std::cout << "\tnew_insertion: " << prev_insertion << std::endl; 
 					if (isRepeatInsertion(prev_insertion)) {
 						std::cout << "\t\t is a repeat insertion" << std::endl; 
-						RopeLink *to_remove; 
-						while (tNode != nullptr && tNode->node_type == 0) {
+						if (tNode != nullptr && tNode->node_type == 0) tNode = tNode->left; 	
+						while (tNode != nullptr && tNode->node_type == 1) {
 							to_remove = tNode; 
-							tNode = tNode->right; 
+							tNode = tNode->left; 
 							removeRopeLink(to_remove); 
 						}
 						NTMC64(findAcceptedKmer(h_seq_i, t_seq_i, hNode, tNode, contigSeq).c_str(),
