@@ -32,7 +32,7 @@ static const char VERSION_MESSAGE[] =
 static const char USAGE_MESSAGE[] = 
 	"Usage: " PROGRAM " v1.1.0\n" 
 	"\n"
-	"Scalable genome assembly polishing. \n"
+	"Scalable genome assembly polishing.\n"
 	"\n"
 	"\n"
 	" Options:\n"
@@ -46,6 +46,10 @@ static const char USAGE_MESSAGE[] =
 	"	-d,	maximum number of deletions bases to try, range 0-5, [default=5]\n"
 	"	-x,	k/x ratio for the number of kmers that should be missing, [default=5.000]\n"
 	"	-y, 	k/y ratio for the number of editted kmers that should be present, [default=9.000]\n"
+	"	-m,	mode of editing, range 0-2, [default=0]\n"
+	"			0: best substitution, or first good indel\n"
+	"			1: best substitution, or best indel\n"
+	"			2: best edit overall (suggestion that you reduce i and d for performance)\n"
 	"	-v,	verbose mode (-v 1 = yes, default = 0, no)\n"
 	"\n"
 	"	--help,		display this message and exit \n"
@@ -66,10 +70,11 @@ namespace opt {
 	float edit_threshold=9.0000; 
 	float missing_threshold=5.0000;
 	string outfile_prefix; 
+	int mode=0; 
 	int verbose=0; 
 }
 
-static const char shortopts[] = "t:f:s:k:z:b:r:v:d:i:x:y:"; 
+static const char shortopts[] = "t:f:s:k:z:b:r:v:d:i:x:y:m:"; 
 
 enum { OPT_HELP = 1, OPT_VERSION }; 
 
@@ -77,13 +82,14 @@ static const struct option longopts[] = {
 	{"threads",	required_argument, NULL, 't'},
 	{"draft_file",	required_argument, NULL, 'f'},
 	{"k",	required_argument, NULL, 'k'},
-	{"minimum contig length",	required_argument, NULL, 'z'},
-	{"maximum insertions",	required_argument, NULL, 'i'},
-	{"maximum deletions", required_argument, NULL, 'd'},
-	{"edit threshold",	required_argument, NULL, 'y'},
-	{"missing threshold",	required_argument, NULL, 'x'},
-	{"bloom filename", required_argument, NULL, 'r'},
-	{"outfile prefix", required_argument, NULL, 'b'},
+	{"minimum_contig_length",	required_argument, NULL, 'z'},
+	{"maximum_insertions",	required_argument, NULL, 'i'},
+	{"maximum_deletions", required_argument, NULL, 'd'},
+	{"edit_threshold",	required_argument, NULL, 'y'},
+	{"missing_threshold",	required_argument, NULL, 'x'},
+	{"bloom_filename", required_argument, NULL, 'r'},
+	{"outfile_prefix", required_argument, NULL, 'b'},
+	{"mode", required_argument, NULL, 'm'},
 	{"verbose", required_argument, NULL, 'v'},
 	{"help", no_argument, NULL, OPT_HELP},
 	{"version", no_argument, NULL, OPT_VERSION},
@@ -509,76 +515,6 @@ bool roll(unsigned& h_seq_i, unsigned& t_seq_i,
 	if (t_seq_i >= contigSeq.size() || tNode == nullptr) return false; 
 	charIn = getCharacter(t_seq_i, tNode, contigSeq); 
 
-	// get the charOut from h_seq_i and adjust hNode if necessary
-/*	unsigned char charOut;
-	if (hNode->node_type == 0) {
-		charOut = contigSeq.at(h_seq_i); 
-		// adjust the hNode for next time
-		increment(h_seq_i, hNode); 
-		if (hNode == nullptr) return false;
-//		h_seq_i++; 
-//		if (h_seq_i > hNode->e_pos) {
-//			hNode = hNode->right; 
-//			if (hNode == nullptr) return false;
-//			if (hNode->node_type == 0)
-//				// account h_seq_i for deletion
-//				if (hNode->s_pos != h_seq_i) h_seq_i = hNode->s_pos; 
-//		}
-	} else if (hNode->node_type == 1) {
-		charOut = hNode->c; 
-		// adjust the hNode for next time
-		increment(h_seq_i, hNode); 
-		if (hNode == nullptr) return false; 
-//		hNode = hNode->right;
-//		if (hNode == nullptr) return false; 
-//		if (hNode->node_type == 0)
-//			// account h_seq_i for deletion
-//			if (hNode->s_pos != h_seq_i) h_seq_i = hNode->s_pos; 
-	} else {
-		return false;
-	}
-
-	// get the charIn from t_seq_i
-	if (tNode->node_type == 0) {
-		// increment first then get character
-		increment(t_seq_i, tNode); 
-		if (t_seq_i >= contigSeq.size() || tNode == nullptr) return false; 
-//		t_seq_i++;
-		// quit is t_seq_i is out of scope
-		if (t_seq_i >= contigSeq.size()) return false;
-		// get the character from contigSeq if t_seq_i is within the node
-		if (t_seq_i <= tNode->e_pos) {
-			charIn = contigSeq.at(t_seq_i);  
-		// othrwise, adjust and get the character from the next node
-		} else {
-			tNode = tNode->right;
-			if (tNode == nullptr) return false;
-			if (tNode->node_type = 0) {
-				// this kind of event should only occur for deletion
-				t_seq_i = tNode->s_pos; 
-				charIn = contigSeq.at(t_seq_i); 
-			} else if (tNode->node_type == 1) {
-				// if the next node is a character node, then use that character 
-				charIn = tNode->c; 
-			}
-		}
-	} else if (tNode->node_type == 1) {
-		// incrementing is just going to the next node
-		tNode = tNode->right; 
-		if (tNode == nullptr) return false;
-		if (tNode->node_type == 0) {
-			if (t_seq_i != tNode->s_pos) 
-				// adjust if there was a deletion with an insertion
-				t_seq_i = tNode->s_pos;
-			charIn = contigSeq.at(t_seq_i); 
-		} else if (tNode->node_type == 1) {
-			charIn = tNode->c; 
-		}
-	} else {
-		return false;
-	}
-*/
-
 	// roll the hash
 	NTMC64(charOut, charIn, opt::k, opt::h, fhVal, rhVal, hVal); 
 	return true;
@@ -608,7 +544,7 @@ string getSubstring(unsigned start_pos, RopeLink *sNode, int length, const strin
 }
 
 /* Try a deletion in ntEdit. */
-bool tryDeletion(const unsigned char draft_char, unsigned num_deletions,
+int tryDeletion(const unsigned char draft_char, unsigned num_deletions,
 		unsigned& h_seq_i, unsigned& t_seq_i, 
 		RopeLink *&hNode, RopeLink *&tNode,
 		uint64_t& fhVal, uint64_t& rhVal, uint64_t *hVal, 
@@ -643,14 +579,9 @@ bool tryDeletion(const unsigned char draft_char, unsigned num_deletions,
 	if (opt::verbose)
 		std::cout << "\t\tdeleting: " << deleted_bases << " check_present: " << check_present << std::endl; 
 	if (check_present >= ((float) opt::k / opt::edit_threshold)) {
-		if (opt::verbose) 
-			std::cout << "\tt_seq_i: " << t_seq_i << " DEL: " << deleted_bases << " check_present: "
-				<< check_present << std::endl;
-		makeDeletion(tNode, t_seq_i, num_deletions, check_present); 
-		NTMC64_changelast(draft_char, deletion_substring.at(opt::k-1), opt::k, opt::h, fhVal, rhVal, hVal); 
-		return true; 
+		return check_present;
 	} 
-	return false;
+	return 0;
 }
 
 /* Try indel combinations starting with index_char. */
@@ -661,11 +592,15 @@ bool tryIndels(const unsigned char draft_char, const unsigned char index_char,
 		RopeLink *&hNode, RopeLink *& tNode,
 		uint64_t& fhVal, uint64_t& rhVal, uint64_t *hVal,
 		string& before_t, string& after_t, const string& contigSeq, 
-		BloomFilter& bloom) {
+		BloomFilter& bloom, unsigned& best_edit_type, string& best_indel, unsigned& best_num_support) {
 
 	// initialize temporary values
 	uint64_t temp_fhVal, temp_rhVal; 
 	unsigned temp_h_seq_i, temp_t_seq_i; 
+	unsigned temp_best_num_support=0;
+	string temp_best_indel; 
+	unsigned temp_best_edit_type=0;
+
 
 	// try all of the combinations of indels starting with our index_char
 	for (unsigned i=0; i<num_tries[opt::max_insertions]; i++) {
@@ -699,67 +634,56 @@ bool tryIndels(const unsigned char draft_char, const unsigned char index_char,
 		}
 		if (opt::verbose)
 			std::cout << "\t\tinserting: " << insertion_bases << " check_present: " << check_present << std::endl;
+		// if the insertion is good, store the insertion accordingly 
 		if (check_present >= ((float) opt::k / opt::edit_threshold)) {
-			// check if we need to check the insertion for low complexity and make that check before preceding
-			string prev_insertion = getPrevInsertion(tNode);
-			if (prev_insertion.size()+insertion_bases.size() >= opt::k) {
-				std::cout << "\tprev_insertion: " << prev_insertion << std::endl;
-				RopeLink *to_remove;
-				if (isRepeatInsertion(prev_insertion)){
-					std::cout << "\t\t is a repeat insertion" << std::endl;
-					if (tNode != nullptr && tNode->node_type == 0) tNode = tNode->left; 	
-					while (tNode != nullptr && tNode->node_type == 1) {
-						to_remove = tNode; 
-						tNode = tNode->left; 
-						removeRopeLink(to_remove); 
-					}
-//					string new_kmer = findAcceptedKmer(h_seq_i, t_seq_i, hNode, tNode, contigSeq); 
-//					std::cout << "new_kmer: " << new_kmer << std::endl; 
-//					exit(EXIT_FAILURE); 
-//					std::cout << "\tnew kmer: " 
-//						<< findAcceptedKmer(h_seq_i, t_seq_i, hNode, tNode, contigSeq) << std::endl; 
-					NTMC64(findAcceptedKmer(h_seq_i, t_seq_i, hNode, tNode, contigSeq).c_str(), 
-							opt::k, opt::h, fhVal, rhVal, hVal); 
-					return false;
+			if (opt::mode == 0) {
+				// if we are in default mode, we just accept this first good insertion and return
+				best_edit_type = 2; 
+				best_indel = insertion_bases; 
+				best_num_support = check_present; 
+				return true;
+			} else if (opt::mode == 1 || opt::mode == 2) {
+				// if we are in some deep mode, we look for the best indel within index char first
+				if (check_present > temp_best_num_support) {
+					temp_best_edit_type = 2; 
+					temp_best_indel = insertion_bases; 
+					temp_best_num_support = check_present; 
 				}
-				for (unsigned j=0; j<insertion_bases.size(); j++) {
-					prev_insertion += insertion_bases[j]; 
-					std::cout << "\tnew_insertion: " << prev_insertion << std::endl; 
-					if (isRepeatInsertion(prev_insertion)) {
-						std::cout << "\t\t is a repeat insertion" << std::endl; 
-						if (tNode != nullptr && tNode->node_type == 0) tNode = tNode->left; 	
-						while (tNode != nullptr && tNode->node_type == 1) {
-							to_remove = tNode; 
-							tNode = tNode->left; 
-							removeRopeLink(to_remove); 
-						}
-						NTMC64(findAcceptedKmer(h_seq_i, t_seq_i, hNode, tNode, contigSeq).c_str(),
-								opt::k, opt::h, fhVal, rhVal, hVal); 
-						return false; 
-					}	
-				}
-			}
-			// make the insertion
-			for (int j=insertion_bases.size()-1; j>=0; j--) {
-				makeCharacterInsertion(tNode, t_seq_i, insertion_bases[j], check_present);
-			}
-			NTMC64_changelast(draft_char, index_char, opt::k, opt::h, fhVal, rhVal, hVal); 
-			if (opt::verbose) 
-				std::cout << "\tt_seq_i: " << t_seq_i << " INS: " << insertion_bases << " check_present: " 
-					<< check_present << std::endl; 
-			return true;
-		} else {
-			// try deletion instead
-			if (num_deletions <= opt::max_deletions) {
-				if (tryDeletion(draft_char, num_deletions, h_seq_i, t_seq_i, hNode, tNode, fhVal, rhVal, hVal, 
-							before_t, after_t, bloom)) {
-					return true; 
-				}
-				num_deletions++; 
+
 			}
 		}
+
+		if (num_deletions <= opt::max_deletions) {
+			unsigned del_support = tryDeletion(draft_char, num_deletions, h_seq_i, t_seq_i, 
+								hNode, tNode, fhVal, rhVal, hVal, before_t, after_t, bloom);
+			if (del_support > 0) {
+				if (opt::mode == 0) {
+					best_edit_type = 3;
+					best_indel = after_t.substr(0, num_deletions); 
+					best_num_support = del_support;
+					return true;
+				} else if (opt::mode == 1 || opt::mode == 2) {
+					if (del_support > temp_best_num_support) {
+						temp_best_edit_type = 3;
+						temp_best_indel = after_t.substr(0, num_deletions);
+						temp_best_num_support = del_support;
+					}
+				}
+			}
+			num_deletions++; 
+		}
 	}
-	return false;
+	
+	// report the best indel info
+	if (temp_best_num_support > 0) {
+		if ((opt::mode == 2 && temp_best_num_support > best_num_support) || opt::mode == 1) {
+			best_edit_type = temp_best_edit_type;
+			best_indel = temp_best_indel; 
+			best_num_support = temp_best_num_support;
+		} 
+		return true;
+	}
+	return false; 
 }
 
 /* Kmerize and polish the contig. */
@@ -829,21 +753,21 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 			if (opt::verbose) 
 				std::cout << "\tcheck_missing: " << check_missing << std::endl; 
 			if (!do_not_fix && check_missing>=((float) opt::k / opt::missing_threshold)) {
-				// checkers
-				bool substitutions_only=false; 
-				bool made_indel = false; 
-				unsigned num_deletions=1; 
+				// recorders
+				unsigned num_deletions=1;
+				unsigned best_edit_type=0; // 0=no edit made; 1=substitution; 2=insertion; 3=deletions
+				string best_indel; 
+				unsigned char best_sub_base; 
+				unsigned best_num_support=0; 
 				
-				// stuff for indels
 				// everything before t_seq_i
 				string before_t = getSubstring(h_seq_i, hNode, opt::k-1, contigSeq); 
 				// everything including t_seq_i and after
 				string after_t = getSubstring(t_seq_i, tNode, opt::k+opt::max_deletions, contigSeq); 
 
 				// try substitution 
-				unsigned char best_sub_base; 
-				unsigned best_sub_count=0; 
 				for (const unsigned char sub_base : bases_array[draft_char]) {
+					std::cout << "trying starting with: " << sub_base << std::endl; 
 					//reset the temporary values
 					temp_fhVal = fhVal; 
 					temp_rhVal = rhVal; 
@@ -854,7 +778,8 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 					NTMC64_changelast(draft_char, sub_base, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal); 
 
 					// only do verification of substition if it is found in bloom filter
-					if (bloom.contains(hVal)) {
+					if (bloom.contains(hVal) || opt::mode == 2) {
+						std::cout << "found start: " << sub_base << std::endl; 
 						// reset temporary values 
 						temp_h_seq_i = h_seq_i; 
 						temp_t_seq_i = t_seq_i; 
@@ -880,47 +805,122 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 						if (opt::verbose)
 							std::cout << "\t\tsub: " << sub_base << " check_present: " 
 								<< check_present << std::endl; 
-						// if the subset verification is good, then we only do substitutions from now on
-						if (check_present>=((float) opt::k / opt::edit_threshold)) {
-							substitutions_only = true;
-							if (check_present > best_sub_count) {
+						if (check_present >= ((float) opt::k / opt::edit_threshold)) {
+							// update the best substitution
+							if (check_present > best_num_support) {
+								best_edit_type = 1;
 								best_sub_base = sub_base; 
-								best_sub_count = check_present; 
+								best_num_support = check_present; 
 							}
-						} else if (!substitutions_only) {
-							if (tryIndels(draft_char, sub_base, charIn, num_deletions,
-									h_seq_i, t_seq_i, hNode, tNode,
-									fhVal, rhVal, hVal, before_t, after_t, 
-									contigSeq, bloom)) {
-								made_indel = true; 
-								break; 
+							// if we aren't exhaustively trying all edit combinations, 
+							// 	then just do substitutions from now on
+							if (opt::mode == 0 || opt::mode == 1) {
+								continue;
+							}
+						}
+						// if we are exhaustively trying all edit combinations or 
+						// 	havent found a good substitution yet, then try indels
+						if (opt::mode == 2 || best_edit_type != 1) {
+							if (tryIndels(draft_char, sub_base, charIn, num_deletions, h_seq_i, t_seq_i,
+									      	hNode, tNode,
+									fhVal, rhVal, hVal, before_t, after_t, contigSeq, bloom,
+									best_edit_type, best_indel, best_num_support)) {
+								if (opt::mode == 0 || opt::mode == 1)
+									break;
 							}
 						}
 					}
-
 				}
-				// went through the possibilities of changing the last base and the indels associated
-				// 	now we should finalize whatever change we made
-				if (substitutions_only) {
-					// apply the change to the actual contigSequence
-					if (tNode->node_type == 0) {
-						contigSeq[t_seq_i] = best_sub_base; 
-						sRec subst; 
-						subst.draft_char = draft_char;
-						subst.pos = t_seq_i; 
-						subst.sub_base = best_sub_base; 
-						subst.num_support = best_sub_count;
-						substitution_record.push(subst); 
-					} else if (tNode->node_type == 1)
-						tNode->c = best_sub_base;
-					// make sure we change our current hash to match it
-					NTMC64_changelast(draft_char, best_sub_base, opt::k, opt::h, fhVal, rhVal, hVal); 
-					if (opt::verbose) 
-						std::cout << "\tt_seq_i: " << t_seq_i << " SUB: " << best_sub_base
-							<< " check_present: " << best_sub_count << std::endl;
-				} else if (!made_indel) {
-					if (opt::verbose) 
-						std::cout << "\tt_seq_i: " << t_seq_i << " FIX NOT FOUND" << std::endl; 
+
+				bool skipped_repeat = false;
+				string prev_insertion;
+				// make our edit
+				switch (best_edit_type) {
+					case 1: // SUBSTITUTION MADE
+						// apply the change to the actual contigSequence
+						if (tNode->node_type == 0) {
+							contigSeq[t_seq_i] = best_sub_base; 
+							sRec subst; 
+							subst.draft_char = draft_char;
+							subst.pos = t_seq_i; 
+							subst.sub_base = best_sub_base; 
+							subst.num_support = best_num_support;
+							substitution_record.push(subst); 
+						} else if (tNode->node_type == 1)
+							tNode->c = best_sub_base;
+						// make sure we change our current hash to match it
+						NTMC64_changelast(draft_char, best_sub_base, opt::k, opt::h, fhVal, rhVal, hVal); 
+						if (opt::verbose) 
+							std::cout << "\tt_seq_i: " << t_seq_i << " SUB: " << best_sub_base
+								<< " check_present: " << best_num_support << std::endl;
+						break;
+					case 2: // INSERTION MADE
+						// check if we need to check the insertion 
+						// 	or low complexity and make that check before preceding
+						prev_insertion = getPrevInsertion(tNode);
+						if (prev_insertion.size()+best_indel.size() >= opt::k) {
+							std::cout << "\tprev_insertion: " << prev_insertion << std::endl;
+							RopeLink *to_remove;
+							if (isRepeatInsertion(prev_insertion)){
+								std::cout << "\t\t is a repeat insertion" << std::endl;
+								if (tNode != nullptr && tNode->node_type == 0) tNode = tNode->left; 	
+								while (tNode != nullptr && tNode->node_type == 1) {
+									to_remove = tNode; 
+									tNode = tNode->left; 
+									removeRopeLink(to_remove); 
+								}
+								NTMC64(findAcceptedKmer(h_seq_i, t_seq_i,
+										       	hNode, tNode, contigSeq).c_str(), 
+										opt::k, opt::h, fhVal, rhVal, hVal); 
+								skipped_repeat=true;
+							}
+							for (unsigned j=0; j<best_indel.size(); j++) {
+								prev_insertion += best_indel[j]; 
+								std::cout << "\tnew_insertion: " << prev_insertion << std::endl; 
+								if (isRepeatInsertion(prev_insertion)) {
+									std::cout << "\t\t is a repeat insertion" << std::endl; 
+									if (tNode != nullptr && tNode->node_type == 0) 
+										tNode = tNode->left; 	
+									while (tNode != nullptr && tNode->node_type == 1) {
+										to_remove = tNode; 
+										tNode = tNode->left; 
+										removeRopeLink(to_remove); 
+									}
+									NTMC64(findAcceptedKmer(h_seq_i, t_seq_i, 
+												hNode, tNode, contigSeq).c_str(),
+											opt::k, opt::h, fhVal, rhVal, hVal); 
+									skipped_repeat=true;
+								}	
+							}
+						}
+						// if we didn't skip this region for a repeat, then make this insertion
+						if (!skipped_repeat) {
+							// make the insertion
+							for (int j=best_indel.size()-1; j>=0; j--) {
+								makeCharacterInsertion(tNode, t_seq_i, 
+										best_indel[j], best_num_support);
+							}
+							NTMC64_changelast(draft_char, best_indel[0], 
+									opt::k, opt::h, fhVal, rhVal, hVal); 
+							if (opt::verbose) 
+								std::cout << "\tt_seq_i: " << t_seq_i 
+									<< " INS: " << best_indel << " check_present: " 
+									<< best_num_support << std::endl; 
+						}
+						break;
+					case 3: // DELETION MADE
+						if (opt::verbose)
+							std::cout << "\tt_seq_i: " << t_seq_i 
+								<< " DEL: " << best_indel << " check_present: "	
+								<< best_num_support << std::endl;
+						makeDeletion(tNode, t_seq_i, best_indel.size(), best_num_support); 
+						NTMC64_changelast(draft_char, after_t.at(best_indel.size()), 
+								opt::k, opt::h, fhVal, rhVal, hVal); 
+						break;
+					case 0:
+						if (opt::verbose)
+							std::cout << "\tt_seq_i: " << t_seq_i << " FIX NOT FOUND" << std::endl; 
+						break;
 				}
 			}
 		}
@@ -1052,6 +1052,9 @@ int main (int argc, char ** argv) {
 			case 'y':
 				arg >> opt::edit_threshold;
 				break;
+			case 'm':
+				arg >> opt::mode; 
+				break;
 			case 'v':
 				arg >> opt::verbose; 
 				break;
@@ -1125,7 +1128,8 @@ int main (int argc, char ** argv) {
 			<< "_z" << opt::min_contig_len
 			<< "_r" << bloom_basename
 			<< "_i" << opt::max_insertions
-			<< "_d" << opt::max_deletions;
+			<< "_d" << opt::max_deletions
+			<< "_m" << opt::mode;
 		opt::outfile_prefix = outfile_name.str(); 
 	}
 
@@ -1139,6 +1143,7 @@ int main (int argc, char ** argv) {
 		<< "\n -r " << bloom_basename
 		<< "\n -i " << opt::max_insertions
 		<< "\n -d " << opt::max_deletions
+		<< "\n -m " << opt::mode
 		<< "\n -v " << opt::verbose
 		<< std::endl; 
 
