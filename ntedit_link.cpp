@@ -437,9 +437,9 @@ string findAcceptedKmer(unsigned& h_seq_i, unsigned& t_seq_i,
 }
 
 /* Get the previous insertion (aka continuous string of character nodes) starting at this node tNode. */
-string getPrevInsertion(RopeLink *tNode) {
+string getPrevInsertion(unsigned t_seq_i, RopeLink *tNode) {
 	// if we just finished the insertion
-	if (tNode != nullptr && tNode->node_type == 0) {
+	if (tNode != nullptr && tNode->node_type == 0 && t_seq_i == tNode->s_pos) {
 		tNode = tNode->left; 
 	}
 	string prev_insertion;
@@ -855,7 +855,7 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 					case 2: // INSERTION MADE
 						// check if we need to check the insertion 
 						// 	or low complexity and make that check before preceding
-						prev_insertion = getPrevInsertion(tNode);
+						prev_insertion = getPrevInsertion(t_seq_i, tNode);
 						if (prev_insertion.size()+best_indel.size() >= opt::k) {
 							std::cout << "\tprev_insertion: " << prev_insertion << std::endl;
 							RopeLink *to_remove;
