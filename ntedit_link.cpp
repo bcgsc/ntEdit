@@ -396,7 +396,7 @@ string findAcceptedKmer(unsigned& h_seq_i, unsigned& t_seq_i,
 			RopeLink*& hNode, RopeLink *& tNode, const string& contigSeq) {
 	// temporary values
 	string kmer_str; 	
-	RopeLink * curr_node = hNode;
+	RopeLink * curr_node = tNode;
 	RopeLink * new_hNode, * new_tNode;
 	unsigned i=t_seq_i; 
 	while (i<contigSeq.size() && curr_node != nullptr) {
@@ -405,6 +405,7 @@ string findAcceptedKmer(unsigned& h_seq_i, unsigned& t_seq_i,
 		if (isAcceptedBase(toupper(c))) {
 			string kmer_str; 
 			kmer_str += c; 
+			std::cout << "starting kmer: " << kmer_str << " " << i << std::endl; 
 			new_hNode = curr_node; 
 			unsigned j=i; 
 			increment(j, curr_node); 
@@ -416,15 +417,18 @@ string findAcceptedKmer(unsigned& h_seq_i, unsigned& t_seq_i,
 					break;
 				} 
 				kmer_str += c;
+				std::cout << kmer_str << std::endl; 
 			        if (kmer_str.size() == opt::k) break;	
 				increment(j, curr_node); 
 			}
+			std::cout << "finished looking for kmer starting here: " << kmer_str << std::endl; 
 			// you found a good kmer so return it and adjust
 			if (kmer_str.size() == opt::k) {
 				h_seq_i = i; 
 				t_seq_i = j; 
 				hNode = new_hNode;
 				tNode = curr_node;
+				std::cout << "set everything: " << h_seq_i << " " << t_seq_i << " " << kmer_str << std::endl; 
 				return kmer_str; 				
 			}
 		}
@@ -861,23 +865,29 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 							RopeLink *to_remove;
 							if (isRepeatInsertion(prev_insertion)){
 								std::cout << "\t\t is a repeat insertion" << std::endl;
-								if (tNode != nullptr && tNode->node_type == 0) tNode = tNode->left; 	
+								if (tNode != nullptr && tNode->node_type == 0 
+										&& t_seq_i == tNode->s_pos)
+								       	tNode = tNode->left;
 								while (tNode != nullptr && tNode->node_type == 1) {
 									to_remove = tNode; 
+									std::cout << to_remove->node_type << " " << to_remove->c << std::endl; 
 									tNode = tNode->left; 
 									removeRopeLink(to_remove); 
 								}
 								NTMC64(findAcceptedKmer(h_seq_i, t_seq_i,
 										       	hNode, tNode, contigSeq).c_str(), 
-										opt::k, opt::h, fhVal, rhVal, hVal); 
+										opt::k, opt::h, fhVal, rhVal, hVal);
+							        std::cout << "\tremoved prev_insertion: " << h_seq_i
+									<< " " << t_seq_i << std::endl; 	
 								skipped_repeat=true;
 							}
-							for (unsigned j=0; j<best_indel.size(); j++) {
+							for (unsigned j=0; j<best_indel.size() && !skipped_repeat; j++) {
 								prev_insertion += best_indel[j]; 
 								std::cout << "\tnew_insertion: " << prev_insertion << std::endl; 
 								if (isRepeatInsertion(prev_insertion)) {
 									std::cout << "\t\t is a repeat insertion" << std::endl; 
-									if (tNode != nullptr && tNode->node_type == 0) 
+									if (tNode != nullptr && tNode->node_type == 0
+											&& t_seq_i == tNode->s_pos) 
 										tNode = tNode->left; 	
 									while (tNode != nullptr && tNode->node_type == 1) {
 										to_remove = tNode; 
