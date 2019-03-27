@@ -2,7 +2,7 @@
 
 # ntEdit
 
-## Scalable genome assembly polishing
+## Scalable genome sequence polishing
 ## 2/2019
 ## email: rwarren [at] bcgsc [dot] ca
 
@@ -55,9 +55,10 @@ rwarren@bcgsc.ca
 ------------
 
 <pre>
-René L Warren, Lauren Coombe, Hamid Mohamadi, Jessica Zhang, Barry Jaquish, Nathalie Isabel, Steven JM Jones, Jean Bousquet, Joerg Bohlmann and Inanç Birol
-ntEdit: scalable genome assembly polishing
-TBD
+ntEdit: scalable genome sequence polishing
+Rene L Warren, Lauren Coombe, Hamid Mohamadi, Jessica Zhang, Barry Jaquish, Nathalie Isabel, Steven JM Jones, Jean Bousquet, Joerg Bohlmann, Inanc Birol
+bioRxiv 2019; 565374; doi: https://doi.org/10.1101/565374
+
 </pre>
 
 The experimental data described in our paper can be downloaded here: http://www.bcgsc.ca/downloads/btl/ntedit/
