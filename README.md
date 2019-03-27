@@ -160,9 +160,9 @@ Sequence reads are first shredded into kmers using ntHits, keeping track of kmer
 ### License
 -------
 
-LINKS Copyright (c) 2018-2019 British Columbia Cancer Agency Branch.  All rights reserved.
+ntEdit Copyright (c) 2018-2019 British Columbia Cancer Agency Branch.  All rights reserved.
 
-LINKS is released under the GNU General Public License v3
+ntEdit is released under the GNU General Public License v3
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
