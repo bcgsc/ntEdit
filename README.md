@@ -95,7 +95,7 @@ If not specifying a hard threshold (-c), and relying instead on ntCard* to ident
 
 nthits -k 50 -t 48 --outbloom --solid @reads.in 
 
-NOTE: THIS WILL WORK WELL WITH ntEdit ONLY IF YOU HAVE SUFFICIENT READ COVERAGE (>40X), OTHERWISE SET KMER COVERAGE TO -c1
+NOTE: THIS WILL WORK WELL WITH ntEdit ONLY IF YOU HAVE SUFFICIENT READ COVERAGE (>30X), OTHERWISE SET KMER COVERAGE TO -c2 (>=20X) or -c 1 (<20X).
 
 
 *Bioinformatics. 2017 May 1; 33(9): 1324–1330.
