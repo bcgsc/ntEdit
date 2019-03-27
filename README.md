@@ -81,13 +81,29 @@ Jessica Zhang
 -------
 
 1. Running nthits (please see nthits documentation)
-nthits -c <kmer coverage threshold> -k <kmer length> -j <number of threads> reads
+nthits -c <kmer coverage threshold> -k <kmer length> -t <number of threads> reads
 eg.
-./nthits -c 1 --outbloom --solid -k 25 -j 48 Sim_100_300_1.fq Sim_100_300_2.fq
+nthits -c 2 --outbloom -p solidBF -k 25 -t 48 Sim_100_300_1.fq Sim_100_300_2.fq
 or
-./nthits -c 1 --outbloom --solid -k 25 -j 48 @reads.in
+nthits -c 2 --outbloom -p solidBF -k 25 -t 48 @reads.in
 
-Where @reads.in is a file listing the path to all fastq files
+Where @reads.in is a file listing the path to all read fastq files to kmerize
+note the options --outbloom and -p that must be set when using ntHits with ntEdit. 
+
+If not specifying a hard threshold (-c), and relying instead on ntCard* to identify the error kmer coverage, please run with the --solid:
+
+nthits -k 50 -t 48 --outbloom --solid @reads.in 
+
+NOTE: THIS WILL WORK WELL WITH ntEdit ONLY IF YOU HAVE SUFFICIENT READ COVERAGE (>40X), OTHERWISE SET KMER COVERAGE TO -c1
+
+
+*Bioinformatics. 2017 May 1; 33(9): 1324–1330.
+Published online 2017 Jan 5. doi: 10.1093/bioinformatics/btw832
+PMCID: PMC5408799
+PMID: 28453674
+ntCard: a streaming algorithm for cardinality estimation in genomics data
+Hamid Mohamadi, Hamza Khan and Inanc Birol
+
 
 
 2. Running ntEdit (see complete usage below)
@@ -116,7 +132,6 @@ e.g. ./ntedit -f ecoliWithMismatches001Indels0001.fa -r solidBF_k25.bf -k 25 -b 
 
 	--help,		display this message and exit 
 	--version,	output version information and exit
-Report bugs to rwarren@bcgsc.ca
 
 </pre>
 
@@ -131,14 +146,19 @@ Go to ./demo
 
 run:
 -------------------------------------
-./runme.sh (../ntedit -f ecoliWithMismatches001Indels0001.fa.gz -r solidBF_k25.bf -k 25 -b ntEditEcolik25)
+./runme.sh
 
-ntEdit will polish an E. coli genome sequence with substitution error ~0.001 and indels ~0.0001 using pre-made nthits Bloom filter
+(../ntedit -f ecoliWithMismatches001Indels0001.fa.gz -k 25 -r solidBF_k25.bf -d 5 -i 4 -b ntEditEcolik25)
+
+ntEdit will polish an E. coli genome sequence with substitution error ~0.001 and indels ~0.0001 using pre-made ntHits Bloom filter
 
 Expected files will be:
-ntEditEcolik25.log
 ntEditEcolik25_changes.tsv
 ntEditEcolik25_edited.fa
+
+Compare with:
+nteditk25_changes.tsv
+nteditk25_edited.fa
 
 
 ### How it works
