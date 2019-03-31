@@ -82,6 +82,7 @@ Jessica Zhang
 -------
 
 1. Running nthits (please see nthits documentation)
+<pre>
 nthits -c <kmer coverage threshold> -k <kmer length> -t <number of threads> reads
 eg.
 nthits -c 2 --outbloom -p solidBF -k 25 -t 48 Sim_100_300_1.fq Sim_100_300_2.fq
@@ -97,21 +98,22 @@ nthits -k 50 -t 48 --outbloom --solid @reads.in
 
 NOTE: THIS WILL WORK WELL WITH ntEdit ONLY IF YOU HAVE SUFFICIENT READ COVERAGE (>30X), OTHERWISE SET KMER COVERAGE TO -c2 (>=20X) or -c 1 (<20X).
 
-
 *Bioinformatics. 2017 May 1; 33(9): 1324–1330.
 Published online 2017 Jan 5. doi: 10.1093/bioinformatics/btw832
 PMCID: PMC5408799
 PMID: 28453674
 ntCard: a streaming algorithm for cardinality estimation in genomics data
 Hamid Mohamadi, Hamza Khan and Inanc Birol
-
+</pre>
 
 
 2. Running ntEdit (see complete usage below)
+<pre>
 ./ntedit -f <fasta file to polish> -k <kmer length> -r <Bloom filter from nthits> -b <base output name> -t <threads>
+
 eg.
 ./ntedit -f ecoliWithMismatches001Indels0001.fa -r solidBF_k25.bf -k 25 -b ntEditEcolik25 -t 48
-
+</pre>
 
 ### Running ntEdit
 -------------
