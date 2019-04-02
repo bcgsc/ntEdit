@@ -1,9 +1,7 @@
-CPPFLAGS= -O3 -std=c++11 -fopenmp -lz 
+CXXFLAGS=-O3 -std=c++11 -fopenmp
+LDLIBS=-lz
 
 all: ntedit
-
-ntedit:
-	g++ $(CPPFLAGS) -o ntedit ntedit.cpp 
 
 clean: 
 	rm ntedit
