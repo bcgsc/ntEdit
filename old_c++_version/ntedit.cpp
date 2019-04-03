@@ -533,24 +533,47 @@ int tryIndels(const unsigned char draft_char, const unsigned char index_char, un
 				if (opt::verbose) std::cout << "\t\t\tprev insertion: " << edits[t_seq_i].first.indel;
 				edits[t_seq_i].first.indel.insert(edits[t_seq_i].first.indel.size()-num_indel_back, insertion_bases); 
 				if (edits[t_seq_i].first.indel.size() >= opt::k) {
-					if (isRepeatInsertion(edits[t_seq_i].first.indel)) {
-						// reset so that we can jump over it
-						edits[t_seq_i].first.indel.clear();		
-						insertion_bases = ""; 
-						//num_indel_front=0; 
+					string prev_insertion = edits[t_seq_i].first.indel.substr(0, opt::k); 
+					// check if the k-sized insertion is a repeat
+					if (isRepeatInsertion(prev_insertion)) {
+						edits[t_seq_i].first.indel.clear(); 
+						insertion_bases=""; 
 						num_indel_back = 0; 
 						add_on_end.clear(); 
-						// skip over this bad one and move on
-						if (opt::verbose) std::cout 
-							<< "\t\tremoved and jumped over low complexity this repeat insertion at: "
-						       	<< t_seq_i << std::endl; 
+						if (opt::verbose) std::cout
+							<< "\t\tremoved and jumpted over low complexity insertion at: " 
+							<< t_seq_i << std::endl; 
 						h_seq_i = findFirstAcceptedKmer(t_seq_i, contigSeq); 
-						t_seq_i = h_seq_i+opt::k-1;
-						if (h_seq_i < seq_len && t_seq_i < seq_len) {
-							NTMC64(contigSeq.substr(h_seq_i, opt::k).c_str(), opt::k, opt::h, fhVal, rhVal, hVal); 
-							charIn=contigSeq.at(t_seq_i); 
+						t_seq_i = h_seq_i + opt::k-1; 
+						if (h_seq_i <seq_len && t_seq_i < seq_len) {
+							NTMC64(contigSeq.substr(h_seq_i, opt::k).c_str(), opt::k, opt::h,
+									fhVal, rhVal, hVal); 
+							charIn = contigSeq.at(t_seq_i); 
 						}
 						return num_indel_back; 
+					}
+					// add each character after and check if it is a repeat
+					for (unsigned w=opt::k+1; w<edits[t_seq_i].first.indel.size(); w++) {
+						prev_insertion += edits[t_seq_i].first.indel[w]; 
+						if (isRepeatInsertion(prev_insertion)) {
+							// reset so that we can jump over it
+							edits[t_seq_i].first.indel.clear();		
+							insertion_bases = ""; 
+							//num_indel_front=0; 
+							num_indel_back = 0; 
+							add_on_end.clear(); 
+							// skip over this bad one and move on
+							if (opt::verbose) std::cout 
+								<< "\t\tremoved and jumped over low complexity insertion at: "
+							       	<< t_seq_i << std::endl; 
+							h_seq_i = findFirstAcceptedKmer(t_seq_i, contigSeq); 
+							t_seq_i = h_seq_i+opt::k-1;
+							if (h_seq_i < seq_len && t_seq_i < seq_len) {
+								NTMC64(contigSeq.substr(h_seq_i, opt::k).c_str(), opt::k, opt::h, fhVal, rhVal, hVal); 
+								charIn=contigSeq.at(t_seq_i); 
+							}
+							return num_indel_back; 
+						}
 					}
 				}
 				if (opt::verbose) std::cout << " new insertion: " << edits[t_seq_i].first.indel << std::endl; 

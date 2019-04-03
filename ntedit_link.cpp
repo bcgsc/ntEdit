@@ -191,248 +191,238 @@ struct sRec {
 	unsigned num_support;
 };
 
-/* START: RopeLink Structure and Functions -- todo: abstract this into its own class. */
-struct RopeLink {
-	RopeLink *left, *right; // left== refers to parent; right== refers to following
-	int node_type=-1; // -1==unset; 0==position; 1==character;
-	size_t s_pos; // start position of a position node
-	size_t e_pos; // end position of a position node
-	unsigned char c; // character for a character node
-	unsigned num_support=0; // check_present for an insertion/deletion
+struct seqNode {
+	int node_type=-1; // -1=unset; 0=position; 1=character
+	size_t s_pos; 
+	size_t e_pos;
+	unsigned char c;
+	unsigned num_support;
 };
-
-/* Creates a position RopeLink at <node> with parent <left> and s_pos <s_pos> and e_pos <e_pos>. */
-void createPositionRopeLink(RopeLink *& node, RopeLink *& left, size_t s_pos, size_t e_pos) {
-	RopeLink * tmp = (struct RopeLink* ) malloc(sizeof(struct RopeLink)); 
-	tmp->node_type = 0; 
-	tmp->left = left;
-	if (left != nullptr) left->right = tmp;
-	tmp->right = nullptr;
-	tmp->s_pos = s_pos; 
-	tmp->e_pos = e_pos;
-
-	node = tmp; 
-}
-
-/* Creates a character RopeLink at <node> with parent <left> and character <c>. */
-void createCharacterRopeLink(RopeLink *& node, RopeLink *& left, unsigned char c) {
-	RopeLink *tmp = (struct RopeLink* ) malloc(sizeof(struct RopeLink)); 
-	tmp->node_type = 1;
-	tmp->left = left; 
-	if (left != nullptr) left->right = tmp;
-	tmp->right = nullptr; 
-	tmp->c = c; 
-
-	node = tmp; 
-}
-
-/* Removes a RopeLink and adjusts the parent and next node pointers. */
-void removeRopeLink(RopeLink *& to_remove) {
-	RopeLink * prev_node = to_remove->left; 
-	if (prev_node != nullptr) {
-		prev_node->right = to_remove->right; 
-	}
-	RopeLink * next_node = to_remove->right; 
-	if (next_node != nullptr) {
-		next_node->left = prev_node; 
-	}
-	to_remove->left = nullptr; 
-	to_remove->right = nullptr;
-	to_remove->node_type = -1; 	
-
-	free(to_remove); 
-}
 
 /* Makes a character insertion RIGHT BEFORE <insert_pos> by creating a character node holding <c> with <num_support> 
  * 	- sets <node> to your insertion node (the node that holds the character <c>). */
-void makeCharacterInsertion(RopeLink *& node, int insert_pos, unsigned char c, unsigned num_support) {
-	RopeLink *insertion_node = nullptr; 
-	RopeLink *prev_node = nullptr; 
-	RopeLink *next_node = nullptr; 
-	if (node->node_type == 0) {
-		if (insert_pos <= node->s_pos) {
-			// insertion occurs at the beginning of this node 
-			// 	which means we've made an insertion/deletion or edit at this area
-			//		BEFORE: .... <------> original position node <-------> .....
-			//		AFTER: ..... <----> insertion_node <--------> original position node <------> ....
-			prev_node = node->left; 
-			createCharacterRopeLink(insertion_node, prev_node, c); 
-			next_node = node; 
-			insertion_node->right = next_node; 
-			if (next_node != nullptr) next_node->left = insertion_node; 
-		} else {
-			// insertion occurs after the beginning of this node and in the middle of the position node
-			// 	BEFORE: ......<---------> original position node <------> .....
-			// 	AFTER:  ..... <--> part 1 of position node <--> insertion_node <--> part 2 of position node <---> ...
-			size_t tmp_epos = node->e_pos; 
-			RopeLink *tmp_right_flank = node->right;
-			prev_node = node;
-			prev_node->e_pos = insert_pos-1; 
-			createCharacterRopeLink(insertion_node, prev_node, c); 
-			createPositionRopeLink(next_node, insertion_node, insert_pos, tmp_epos); 
-			next_node->right = tmp_right_flank; 
-			if (tmp_right_flank != nullptr) tmp_right_flank->left = next_node;
-		}
-	} else if (node->node_type == 1) {
-		// make a character insertion before a character
-		// 	BEFORE: .... <-----> original character node <----> ....
-		// 	AFTER: .... <------> insertion_node <----> original character node <----> .....
-		prev_node = node->left; 
-		next_node = node;
-		createCharacterRopeLink(insertion_node, prev_node, c); 
-		insertion_node->right = next_node; 
-		if (next_node != nullptr) next_node->left = insertion_node; 
+void makeInsertion(unsigned& t_node_index, int insert_pos, string insertion_bases, unsigned num_support, vector<seqNode>& newSeq) {
+	seqNode orig_node = newSeq[t_node_index]; 
+	vector<seqNode> to_insert; 
+	for (unsigned i=0; i<insertion_bases.size(); i++) {
+		seqNode insertion_node; 
+		insertion_node.node_type = 1; 
+		insertion_node.c = insertion_bases[i];
+		insertion_node.num_support = num_support;
+		to_insert.push_back(insertion_node); 
 	}
-	insertion_node->num_support = num_support; 
-	// adjust our tNode
-	node = insertion_node;
+	if (orig_node.node_type == 0) {
+		if (insert_pos <= orig_node.s_pos) {
+			// gather nodes following this insertion
+			vector<seqNode> reappend; 
+			unsigned i=t_node_index; 
+			while (i<newSeq.size() && newSeq[i].node_type != -1) {
+				reappend.push_back(newSeq[i]); 
+				newSeq[i].node_type = -1;
+				i++;
+			}
+			// make insertion
+			for (unsigned i=0; i<to_insert.size(); i++) {
+				if (t_node_index+i < newSeq.size()) newSeq[t_node_index+i] = to_insert[i]; 
+				else newSeq.push_back(to_insert[i]);
+			}
+			// reappend
+			for (unsigned i=0; i<reappend.size(); i++) {
+				std::cout << "node index to reappend: " << t_node_index+to_insert.size()+i
+					<< " reappend[i]: " << reappend[i].node_type 
+					<< " " << reappend[i].c << " " << reappend[i].s_pos << " " << reappend[i].e_pos
+					<< std::endl; 
+				if (t_node_index+to_insert.size()+i < newSeq.size())
+					newSeq[t_node_index+to_insert.size()+i] = reappend[i]; 
+				else newSeq.push_back(reappend[i]);
+			}
+		} else {
+			seqNode after_node; 
+			after_node.node_type = 0; 
+			after_node.s_pos = insert_pos;
+			after_node.e_pos = orig_node.e_pos;
+			newSeq[t_node_index].e_pos = insert_pos-1;
+			for (unsigned i=0; i<to_insert.size(); i++) {
+				if (t_node_index+i+1 < newSeq.size()) newSeq[t_node_index+i+1] = to_insert[i];
+				else newSeq.push_back(to_insert[i]);
+			}
+			if (t_node_index+to_insert.size()+1 < newSeq.size()) 
+				newSeq[t_node_index+to_insert.size()+1] = after_node;
+			else newSeq.push_back(after_node);
+			t_node_index++;
+		}
+	} else if (orig_node.node_type == 1) {
+		// gather the nodes following this insertion
+		unsigned i=t_node_index;
+		vector<seqNode> reappend;
+		while (i < newSeq.size() && newSeq[i].node_type != -1) {
+			reappend.push_back(newSeq[i]); 
+			newSeq[i].node_type = -1;
+			i++;
+		}
+		// make the insertion
+		for (unsigned i=0; i<to_insert.size(); i++) {
+			if (t_node_index+i < newSeq.size()) newSeq[t_node_index+i] = to_insert[i];
+			else newSeq.push_back(to_insert[i]);
+		}
+		// push all of the insertions back
+		for (unsigned i=0; i<reappend.size(); i++) {
+			if (t_node_index+to_insert.size()+i < newSeq.size()) 
+				newSeq[t_node_index+to_insert.size()+i] = reappend[i]; 
+			else newSeq.push_back(reappend[i]);
+		}
+	}
+	std::cout << "newSeq.size(): " << newSeq.size() << std::endl; 
 }
 
-/* Makes a deletion by deleting the characters starting and including <delete_pos> of size <num_del>. */
-void makeDeletion(RopeLink *&node, unsigned& delete_pos, unsigned num_del, unsigned num_support) {
-	RopeLink * tmp_right_node = node->right;
-	// making a deletion from a position node
-	if (node->node_type == 0) {
-		// save the old end position and set it to the new one
-		size_t tmp_epos = node->e_pos; 
-		unsigned leftover_del=0; 
-		// deletion occurs at the beginning of this node
-		if (delete_pos <= node->s_pos) {
-			if (delete_pos+num_del <= node->e_pos)  {
-				// deletion occurs at the beginning of the node and is kept within the node
-				node->s_pos = delete_pos+num_del; 
-				node->num_support = num_support;
-				delete_pos += num_del;
+/* Make a deletion starting and including <pos> of length <num_del> with support <num_support> in seqNode structure.
+ * 	- sets the t_node_index and pos to the position right after the deletion */
+void makeDeletion(unsigned& t_node_index, unsigned& pos, unsigned num_del, unsigned num_support, 
+		vector<seqNode>& newSeq) {
+	seqNode orig_node = newSeq[t_node_index]; 
+	if (orig_node.node_type == 0) {
+		unsigned leftover_del=0;
+		if (pos <= orig_node.s_pos) {
+			if (pos+num_del <= orig_node.e_pos) {
+				// we are deleting off the beginning of a position node
+				newSeq[t_node_index].s_pos = pos+num_del; 
+				newSeq[t_node_index].num_support = num_support;
+				pos = newSeq[t_node_index].s_pos;
 				return;
 			} else {
-				// deletion occurs at the beginning of the node and goes past the current node
-				leftover_del = delete_pos+num_del-node->e_pos;
-				// deletion removed this entire node
-				RopeLink *to_remove = node; 
-				node = node->right; 
-				removeRopeLink(to_remove); 
+				// we deleted the entire position node and are moving on
+				leftover_del = pos+num_del-orig_node.e_pos; 
+				pos = orig_node.e_pos+1; 
+				// overwite the following onto this one
+				unsigned i=t_node_index+1;
+				while (i < newSeq.size() && newSeq[i].node_type != -1) {
+					newSeq[i-1] = newSeq[i]; 
+					newSeq[i].node_type = -1;
+					i++;
+				}
 			}
 		} else {
-			if (delete_pos+num_del <= node->e_pos) {
-				// deletion occurs starting in the middle of the node and is kept within the node
-				node->e_pos = delete_pos-1; 
-				RopeLink *split_node = nullptr; 
-				createPositionRopeLink(split_node, node, delete_pos+num_del, tmp_epos); 
-				split_node->num_support = num_support;
-				node = node->right; 
-				delete_pos += num_del; 
+			if (pos+num_del <= orig_node.e_pos) {
+				// we are deleting in the middle of a position node
+				seqNode split_node; 
+				split_node.node_type = 0; 
+				split_node.s_pos = pos+num_del; 
+				split_node.e_pos = orig_node.e_pos; 
+				split_node.num_support = num_support;
+				newSeq[t_node_index].e_pos = pos-1;
+				pos = split_node.s_pos;
+				t_node_index++; 
+				if (t_node_index < newSeq.size()) newSeq[t_node_index] = split_node; 
+				else newSeq.push_back(split_node);
 				return;
 			} else {
-				// deletion occurs starting in the middle of the node and continues past the node
-				leftover_del = delete_pos+num_del-node->e_pos; 
-				delete_pos = node->e_pos+1; 
-				node->e_pos = delete_pos-1; 
-				node = node->right; 
+				// deleted from the middle of a position node past the end of it
+				leftover_del = pos+num_del-orig_node.e_pos;
+				newSeq[t_node_index].e_pos = pos-1;
+				pos = orig_node.e_pos+1;
+				t_node_index++; 
 			}
 		}
-		// if there are still deletions to finish continue because it has continued past this node
+		if (leftover_del>0) {
+			// pass the deletion to the next seqNode
+			if (t_node_index < newSeq.size() && newSeq[t_node_index].node_type != -1) {
+				if (newSeq[t_node_index].node_type == 0) pos = newSeq[t_node_index].s_pos;
+				makeDeletion(t_node_index, pos, leftover_del, num_support, newSeq); 
+			}
+		}
+	} else if (orig_node.node_type == 1) {
+		unsigned i=t_node_index; 
+		unsigned leftover_del = num_del;
+		// delete all the characters as possible
+		while (i < newSeq.size() && newSeq[i].node_type == 1 && leftover_del > 0) {
+			newSeq[i].node_type = -1; 
+			leftover_del--; 
+			i++; 
+		}
+		//overwrite what comes after the characters
+		unsigned j=t_node_index;
+		while (i < newSeq.size() && newSeq[i].node_type != -1) {
+			newSeq[j] = newSeq[i];
+			newSeq[i].node_type = -1;	
+			i++;
+			j++;
+		}
+		// deal with whatever is left
 		if (leftover_del > 0) {
-			if (node != nullptr) {
-				if (node->node_type == 0) delete_pos = node->s_pos; 
-				else if (node->node_type == 1) delete_pos = tmp_epos++; 
-				makeDeletion(node, delete_pos, leftover_del, num_support); 
+			// pass the deletion to the next seqNode
+			if (t_node_index < newSeq.size() && newSeq[t_node_index].node_type != -1) {
+				if (newSeq[t_node_index].node_type == 0) pos = newSeq[t_node_index].s_pos; 
+				makeDeletion(t_node_index, pos, leftover_del, num_support, newSeq); 
 			}
 		}
-	// we're making a deletion from a character node
-	} else if (node->node_type == 1) {
-		// delete this node
-		RopeLink *to_remove = node; 
-		node = node->right; 
-		removeRopeLink(to_remove); 
-		num_del--; 
-		if (node != nullptr && num_del > 0) {
-			if (node->node_type == 0) {
-				delete_pos = node->s_pos; 
-				makeDeletion(node, delete_pos, num_del, num_support); 
-			} else if (node->node_type == 1) {
-				makeDeletion(node, delete_pos, num_del, num_support); 
-			}
-		} 
 	}
 }
 
-/* Starts at root and removes all of the nodes following it. */
-void cleanRopeLinks(RopeLink *&master_root) {
-	RopeLink * to_remove;
-	do {
-		to_remove = master_root; 
-		master_root = master_root->right; 
-		removeRopeLink(to_remove); 
-	} while (master_root != nullptr); 
-}
-/* END: RopeLink Struct and Functions */
-
-/* Returns the character at pos based on the RopeLink structure. */
-unsigned char getCharacter(unsigned pos, RopeLink *node, const string& contigSeq) {
-	if (node->node_type == 0) return contigSeq.at(pos); 
-	else if (node->node_type == 1) return node->c; 
+/* Returns the character at pos based on the seqNode structure. */
+unsigned char getCharacter(unsigned& pos, seqNode node, const string& contigSeq) {
+	if (node.node_type == 0) return contigSeq.at(pos); 
+	else if (node.node_type == 1) return node.c; 
 	unsigned char c;
 	return c; 
 }
 
-/* Increments the position and adjusts the node accordingly based on RopeLink structure. */
-void increment(unsigned& pos, RopeLink *& node) {
-	if (node->node_type == 0) {
+/* Increments the position and adjusts the node accordingly based on seqNode structure. */
+void increment(unsigned& pos, unsigned& node_index, vector<seqNode>& newSeq) {
+	seqNode node = newSeq[node_index];
+	if (node.node_type == 0) {
 		pos++; 
-		if (pos > node->e_pos) {
-			node = node->right; 
-			if (node != nullptr && node->node_type == 0 && pos < node->s_pos)
-				pos = node->s_pos;
+		if (pos > node.e_pos) {
+			node_index++; 
+			if (node_index < newSeq.size() && newSeq[node_index].node_type == 0) pos = newSeq[node_index].s_pos; 		
 		} 
-	} else if (node->node_type == 1) {
-		node = node->right; 
-		if (node != nullptr && node->node_type == 0 && pos < node->s_pos)
-			pos = node->s_pos;
+	} else if (node.node_type == 1) {
+		node_index++; 
+		if (node_index < newSeq.size() && newSeq[node_index].node_type == 0) pos = newSeq[node_index].s_pos;
 	}
 }
 
 /* Find the first accepted kmer (contains only ATGC characters) starting anywhere, based on the RopeLink structure. */
 string findAcceptedKmer(unsigned& h_seq_i, unsigned& t_seq_i,
-			RopeLink*& hNode, RopeLink *& tNode, const string& contigSeq) {
+			unsigned& h_node_index, unsigned& t_node_index,
+			const string& contigSeq, vector<seqNode>& newSeq) {
 	// temporary values
-	string kmer_str; 	
-	RopeLink * curr_node = tNode;
-	RopeLink * new_hNode, * new_tNode;
+	string kmer_str; 
+	seqNode curr_node = newSeq[t_node_index];
+	unsigned temp_t_node_index = t_node_index;	
+	unsigned temp_h_node_index;
 	unsigned i=t_seq_i; 
-	while (i<contigSeq.size() && curr_node != nullptr) {
+	while (i<contigSeq.size() && temp_t_node_index < newSeq.size() && newSeq[temp_t_node_index].node_type != -1) {
 		unsigned char c; 
 		c = getCharacter(i, curr_node, contigSeq); 
 		if (isAcceptedBase(toupper(c))) {
 			string kmer_str; 
 			kmer_str += c; 
-			std::cout << "starting kmer: " << kmer_str << " " << i << std::endl; 
-			new_hNode = curr_node; 
+			temp_h_node_index=temp_t_node_index;
 			unsigned j=i; 
-			increment(j, curr_node); 
+			increment(j, temp_t_node_index, newSeq); 
 			// continue until you cant
-			while (j<contigSeq.size() && curr_node != nullptr) {
+			while (j<contigSeq.size() && temp_t_node_index < newSeq.size() 
+					&& newSeq[temp_t_node_index].node_type != -1) {
+				curr_node = newSeq[temp_t_node_index];
 				c = getCharacter(j, curr_node, contigSeq); 
 				if (!isAcceptedBase(toupper(c))) {
 					i=j; 
 					break;
 				} 
 				kmer_str += c;
-				std::cout << kmer_str << std::endl; 
 			        if (kmer_str.size() == opt::k) break;	
-				increment(j, curr_node); 
+				increment(j, temp_t_node_index, newSeq); 
 			}
-			std::cout << "finished looking for kmer starting here: " << kmer_str << std::endl; 
 			// you found a good kmer so return it and adjust
 			if (kmer_str.size() == opt::k) {
 				h_seq_i = i; 
 				t_seq_i = j; 
-				hNode = new_hNode;
-				tNode = curr_node;
-				std::cout << "set everything: " << h_seq_i << " " << t_seq_i << " " << kmer_str << std::endl; 
+				h_node_index = temp_h_node_index;
+				t_node_index = temp_t_node_index;
 				return kmer_str; 				
 			}
 		}
-		increment(i, curr_node); 
+		increment(i, temp_t_node_index, newSeq); 
 	}
 
 	h_seq_i = contigSeq.length(); 
@@ -440,34 +430,38 @@ string findAcceptedKmer(unsigned& h_seq_i, unsigned& t_seq_i,
 	return ""; 
 }
 
-/* Get the previous insertion (aka continuous string of character nodes) starting at this node tNode. */
-string getPrevInsertion(unsigned t_seq_i, RopeLink *tNode) {
+/* Get the previous insertion (aka continuous string of character nodes) starting at t_node_index. */
+string getPrevInsertion(unsigned t_seq_i, unsigned t_node_index, vector<seqNode>& newSeq) {
 	// if we just finished the insertion
-	if (tNode != nullptr && tNode->node_type == 0 && t_seq_i == tNode->s_pos) {
-		tNode = tNode->left; 
+	if (t_node_index < newSeq.size() && newSeq[t_node_index].node_type == 0 && t_seq_i == newSeq[t_node_index].s_pos) {
+		t_node_index--; 
 	}
 	string prev_insertion;
-	while (tNode != nullptr && tNode->node_type == 1) {
-		prev_insertion += tNode->c; 
-		tNode = tNode->left;
+	while (t_node_index < newSeq.size() && newSeq[t_node_index].node_type == 1) {
+		prev_insertion += newSeq[t_node_index].c; 
+		t_node_index--;
 	}
 	return prev_insertion;
 }
 
 /* Write the edits and new draft contig into respective files. */
-void writeEditsToFile(FILE* dfout, FILE* rfout, const string& contigHdr, const string& contigSeq,
-		RopeLink *& root, queue<sRec>& substitution_record) {
+void writeEditsToFile(FILE* dfout, FILE* rfout, 
+		const string& contigHdr, const string& contigSeq,
+		vector<seqNode>& newSeq, queue<sRec>& substitution_record) {
 	fprintf(dfout, ">%s\n", contigHdr.c_str()); 
-	RopeLink * curr_node = root;
+//	std::cout << contigHdr << " " << contigSeq.size() << std::endl; 
+	unsigned node_index = 0;
 	string insertion_bases=""; 
 	int num_support=-1; 
 	unsigned char draft_char;
 	unsigned pos; 
 	// track a deletion
 	string deleted_bases="";
-	while (curr_node != nullptr) {
-		if (curr_node->node_type == 0) {
-			draft_char = contigSeq.at(curr_node->s_pos);
+	seqNode curr_node = newSeq[node_index];
+//	std::cout << newSeq.size() << std::endl; 
+	while (node_index < newSeq.size() && curr_node.node_type != -1) {
+		if (curr_node.node_type == 0) {
+			draft_char = contigSeq.at(curr_node.s_pos);
 			// log an insertion if it occured before this
 			if (!insertion_bases.empty()) {
 				fprintf(rfout, "%s\t%d\t%c\t%c%s\t%d\n",
@@ -476,7 +470,7 @@ void writeEditsToFile(FILE* dfout, FILE* rfout, const string& contigHdr, const s
 				num_support = -1; 
 			}
 			// log all the substitutions up to this point
-			while (!substitution_record.empty() && substitution_record.front().pos <= curr_node->e_pos){
+			while (!substitution_record.empty() && substitution_record.front().pos <= curr_node.e_pos){
 				fprintf(rfout, "%s\t%d\t%c\t%c\t%d\n",
 						contigHdr.c_str(), substitution_record.front().pos+1,
 						substitution_record.front().draft_char,
@@ -484,100 +478,192 @@ void writeEditsToFile(FILE* dfout, FILE* rfout, const string& contigHdr, const s
 						substitution_record.front().num_support);
 				substitution_record.pop();
 			} 
-			fprintf(dfout, "%s", contigSeq.substr(curr_node->s_pos, (curr_node->e_pos-curr_node->s_pos+1)).c_str()); 
-			pos = curr_node->e_pos+1; 
-		} else if (curr_node->node_type == 1) {
-			insertion_bases += curr_node->c; 
-			if (num_support==-1) num_support = curr_node->num_support; 
-			fprintf(dfout, "%c", curr_node->c); 
+			std::cout << curr_node.s_pos << " " << curr_node.e_pos << std::endl; 
+			fprintf(dfout, "%s", contigSeq.substr(curr_node.s_pos, (curr_node.e_pos-curr_node.s_pos+1)).c_str()); 
+			pos = curr_node.e_pos+1; 
+		} else if (curr_node.node_type == 1) {
+			insertion_bases += curr_node.c; 
+			if (num_support==-1) num_support = curr_node.num_support; 
+			fprintf(dfout, "%c", curr_node.c); 
 		}
-		curr_node = curr_node->right; 
-		if (curr_node != nullptr && curr_node->node_type == 0 && curr_node->s_pos != pos) {
-			// print out the deletion
-			fprintf(rfout, "%s\t%d\t%c\t%c%s\t%d\n", 
-					contigHdr.c_str(), pos+1, contigSeq.at(pos), '-', 
-					contigSeq.substr(pos, (curr_node->s_pos-pos)).c_str(), curr_node->num_support); 
+		node_index++; 
+		if (node_index<newSeq.size()) {
+			curr_node = newSeq[node_index];
+			std::cout << "newSeq.size(): " << newSeq.size() 
+				<< " node_index: " << node_index << " newSeq[node_index].node_type: " 
+				<< curr_node.node_type << std::endl;
+			if (curr_node.node_type == 0 && curr_node.s_pos != pos) {
+				std::cout << "deletion at pos: " << pos << std::endl; 
+				// print out the deletion
+				fprintf(rfout, "%s\t%d\t%c\t%c%s\t%d\n", 
+						contigHdr.c_str(), pos+1, contigSeq.at(pos), '-', 
+						contigSeq.substr(pos, (curr_node.s_pos-pos)).c_str(), curr_node.num_support); 
+			}
 		}
 	}
 	fprintf(dfout, "\n");
 }
 
-/* Roll ntHash using the Rope Data structure. */
+/* Roll ntHash using the seqNode structure. */
 bool roll(unsigned& h_seq_i, unsigned& t_seq_i, 
-		RopeLink *& hNode, RopeLink *&tNode,
-		uint64_t& fhVal, uint64_t& rhVal, uint64_t *&hVal,
-		const string& contigSeq, unsigned char& charIn) {
+		unsigned& h_node_index, unsigned& t_node_index,
+		const string& contigSeq, vector<seqNode>& newSeq, 
+		unsigned char & charOut, unsigned char& charIn) {
 
 	// quit if h_seq_i is out of scope
-	if (h_seq_i >= contigSeq.size() || hNode == nullptr) return false;
+	if (h_seq_i >= contigSeq.size() || h_node_index >= newSeq.size()) return false;
+	charOut = getCharacter(h_seq_i, newSeq[h_node_index], contigSeq); 
+	increment(h_seq_i, h_node_index, newSeq); 
+	// debugging
+//	std::cout << h_seq_i << " " << newSeq[h_node_index].node_type << " " << newSeq[h_node_index].s_pos 
+//		<< " " << newSeq[h_node_index].e_pos << std::endl; 
 
-	unsigned char charOut = getCharacter(h_seq_i, hNode, contigSeq); 
-	increment(h_seq_i, hNode); 
-	if (hNode == nullptr) return false; 
-
-	increment(t_seq_i, tNode); 
-	if (t_seq_i >= contigSeq.size() || tNode == nullptr) return false; 
-	charIn = getCharacter(t_seq_i, tNode, contigSeq); 
+	increment(t_seq_i, t_node_index, newSeq); 
+	if (t_seq_i >= contigSeq.size() || t_node_index >= newSeq.size()) return false; 
+	charIn = getCharacter(t_seq_i, newSeq[t_node_index], contigSeq); 
 
 	// roll the hash
-	NTMC64(charOut, charIn, opt::k, opt::h, fhVal, rhVal, hVal); 
+//	NTMC64(charOut, charIn, opt::k, opt::h, fhVal, rhVal, hVal); 
 	return true;
 }
 
-/* Returns a substring using the RopeLink structure starting at <start_pos> of length <length>. */
-string getSubstring(unsigned start_pos, RopeLink *sNode, int length, const string& contigSeq) {
-	string substring; 
-	substring.reserve(length);
-	stringstream ss(substring); 
-	unsigned i=start_pos;
-	int len = length; 
-	while (len > 0 && i < contigSeq.size() &&  sNode != nullptr) {
-		if (sNode->node_type == 0) {
-			if (i < sNode->s_pos) i = sNode->s_pos;
-			ss << contigSeq.at(i); 
-			len--;
-			i++; 
-			if (i > sNode->e_pos) sNode = sNode->right; 
-		} else if (sNode->node_type == 1) {
-			ss << sNode->c;
-			len--;	
-			sNode = sNode->right;
-		}
+/* Accept the edit */
+void makeEdit(unsigned char& draft_char, unsigned& best_edit_type, unsigned char& best_sub_base, string& best_indel,
+		unsigned& best_num_support, queue<sRec>& substitution_record,
+		unsigned& h_seq_i, unsigned& t_seq_i, unsigned& h_node_index, unsigned& t_node_index, 
+		uint64_t& fhVal, uint64_t& rhVal, uint64_t *hVal, 
+		string& contigSeq, vector<seqNode>& newSeq) {
+	bool skipped_repeat = false;
+	string prev_insertion;
+	// make our edit
+	seqNode tNode = newSeq[t_node_index];
+	switch (best_edit_type) {
+		case 1: // SUBSTITUTION MADE
+			// apply the change to the actual contigSequence
+			if (tNode.node_type == 0) {
+				contigSeq[t_seq_i] = best_sub_base; 
+				sRec subst; 
+				subst.draft_char = draft_char;
+				subst.pos = t_seq_i; 
+				subst.sub_base = best_sub_base; 
+				subst.num_support = best_num_support;
+				substitution_record.push(subst); 
+			} else if (tNode.node_type == 1)
+				newSeq[t_node_index].c = best_sub_base;
+			// make sure we change our current hash to match it
+			NTMC64_changelast(draft_char, best_sub_base, opt::k, opt::h, fhVal, rhVal, hVal); 
+			if (opt::verbose) 
+				std::cout << "\tt_seq_i: " << t_seq_i << " SUB: " << best_sub_base
+					<< " check_present: " << best_num_support << std::endl;
+			break;
+		case 2: // INSERTION MADE
+			// check if we need to check the insertion 
+			// 	or low complexity and make that check before preceding
+			prev_insertion = getPrevInsertion(t_seq_i, t_node_index, newSeq);
+			if (prev_insertion.size()+best_indel.size() >= opt::k) {
+				// check if the original previous insertion was a low complexity repeat
+				if (isRepeatInsertion(prev_insertion)) {
+					unsigned j=1;
+					if (newSeq[t_node_index].node_type == 0 && t_seq_i == newSeq[t_node_index].s_pos) 
+						j=0;
+					for (unsigned i=prev_insertion.size(); i>0; i--) {
+						if (t_node_index+j < newSeq.size() && newSeq[t_node_index+j].node_type != -1) {
+							newSeq[t_node_index-i] = newSeq[t_node_index+j]; 
+							newSeq[t_node_index+j].node_type == -1;
+							j++;
+						} else {
+							newSeq[t_node_index-i].node_type = -1; 
+						}
+					}
+					NTMC64(findAcceptedKmer(h_seq_i, t_seq_i, h_node_index, t_node_index,
+								contigSeq, newSeq).c_str(),
+							opt::k, opt::h, fhVal, rhVal, hVal); 
+					skipped_repeat=true;
+				} else {
+				// check the rest of the insertion with the extra insertion base(s) for low complexity
+					for (unsigned w=0; w<best_indel.size(); w++) {
+						prev_insertion += best_indel[w];
+						if (isRepeatInsertion(prev_insertion)) {
+							unsigned j=1; 
+							if (newSeq[t_node_index].node_type == 0 
+									&& t_seq_i == newSeq[t_node_index].s_pos) 
+								j=0;
+							for (unsigned i=prev_insertion.size()-w; i>0; i--) {
+								if (t_node_index+j < newSeq.size() 
+										&& newSeq[t_node_index+j].node_type != -1) {
+									newSeq[t_node_index-i] = newSeq[t_node_index+j]; 
+									newSeq[t_node_index+j].node_type == -1;
+									j++;
+								} else {
+									newSeq[t_node_index-i].node_type = -1; 
+								}
+							}
+							NTMC64(findAcceptedKmer(h_seq_i, t_seq_i, h_node_index, t_node_index,
+										contigSeq, newSeq).c_str(),
+									opt::k, opt::h, fhVal, rhVal, hVal); 
+							skipped_repeat=true;
+						}
+					}
+				}
+			}
+			// if we didn't skip this region for a repeat, then make this insertion
+			if (!skipped_repeat) {
+				makeInsertion(t_node_index, t_seq_i, best_indel, best_num_support, newSeq); 
+				NTMC64_changelast(draft_char, best_indel[0], opt::k, opt::h, fhVal, rhVal, hVal); 
+				if (opt::verbose) 
+					std::cout << "\tt_seq_i: " << t_seq_i 
+//						<< " " << t_node_index	
+						<< " INS: " << best_indel << " check_present: " 
+						<< best_num_support << std::endl;
+			}
+			break;
+		case 3: // DELETION MADE
+			if (opt::verbose)
+				std::cout << "\tt_seq_i: " << t_seq_i 
+					<< " DEL: " << best_indel << " check_present: "	
+					<< best_num_support << std::endl;
+			makeDeletion(t_node_index, t_seq_i, best_indel.size(), best_num_support, newSeq); 
+			NTMC64_changelast(draft_char, getCharacter(t_seq_i, newSeq[t_node_index], contigSeq), 
+					opt::k, opt::h, fhVal, rhVal, hVal); 
+			break;
+		case 0:
+			if (opt::verbose)	
+				std::cout << "\tt_seq_i: " << t_seq_i << " FIX NOT FOUND" << std::endl; 
+			break;
 	}
-	return ss.str(); 
 }
 
 /* Try a deletion in ntEdit. */
 int tryDeletion(const unsigned char draft_char, unsigned num_deletions,
 		unsigned& h_seq_i, unsigned& t_seq_i, 
-		RopeLink *&hNode, RopeLink *&tNode,
+		unsigned& h_node_index, unsigned& t_node_index,
 		uint64_t& fhVal, uint64_t& rhVal, uint64_t *hVal, 
-		string& before_t, string& after_t, BloomFilter& bloom) {
+		const string& contigSeq, vector<seqNode>& newSeq, BloomFilter& bloom, 
+		string& deleted_bases) {
 
 	// set temporary values
 	uint64_t temp_fhVal = fhVal, temp_rhVal = rhVal;
-	unsigned temp_h_seq_i = 0, temp_t_seq_i = opt::k-1; 
-	RopeLink *temp_hNode = hNode, *temp_tNode = tNode; 
-	string deleted_bases; 
+	unsigned temp_h_seq_i = h_seq_i, temp_t_seq_i = t_seq_i; 
+	unsigned temp_h_node_index = h_node_index, temp_t_node_index = t_node_index;
+	unsigned char charOut, charIn;
 
-	// make the subsetstring we are iterating on
-	string deletion_substring; 
-	deletion_substring.reserve((2*opt::k)-1-num_deletions); 
-	stringstream ss(deletion_substring); 
-	ss << before_t << after_t.substr(num_deletions); 
-	deletion_substring = ss.str();
-	deleted_bases = after_t.substr(0, num_deletions); 
-	NTMC64_changelast(draft_char, deletion_substring.at(temp_t_seq_i), opt::k, opt::h, temp_fhVal, temp_rhVal, hVal); 
+	// make the deletion
+	for (unsigned i=0; i<num_deletions; i++) {
+		deleted_bases += getCharacter(temp_t_seq_i, newSeq[temp_t_node_index], contigSeq); 
+		increment(temp_t_seq_i, temp_t_node_index, newSeq); 
+	}
+	NTMC64_changelast(draft_char, getCharacter(temp_t_seq_i, newSeq[temp_t_node_index], contigSeq),
+			       opt::k, opt::h, temp_fhVal, temp_rhVal, hVal); 
 
 	// verify the deletion with a subset
 	unsigned check_present=0; 
 	if (bloom.contains(hVal)) check_present++; // check for changing the kmer after deletion
-	for (unsigned k=1; k<=(opt::k-2) && temp_h_seq_i<deletion_substring.size() 
-			&& ++temp_t_seq_i <deletion_substring.size(); k++) {
-		NTMC64(deletion_substring.at(temp_h_seq_i), deletion_substring.at(temp_t_seq_i), opt::k, opt::h,
-				temp_fhVal, temp_rhVal, hVal); 
-		temp_h_seq_i++; 
-		if (k%3 == 0 && bloom.contains(hVal)) check_present++;
+	for (unsigned k=1; k<=(opt::k-2) && temp_h_seq_i<contigSeq.size(); k++) {
+		if (roll(temp_h_seq_i, temp_t_seq_i, temp_h_node_index, temp_t_node_index,
+					contigSeq, newSeq, charOut, charIn)) {
+			NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
+			if (k%3 == 0 && bloom.contains(hVal)) check_present++; 
+		}			
 	}
 	
 	if (opt::verbose)
@@ -590,52 +676,59 @@ int tryDeletion(const unsigned char draft_char, unsigned num_deletions,
 
 /* Try indel combinations starting with index_char. */
 bool tryIndels(const unsigned char draft_char, const unsigned char index_char, 
-		unsigned char& charIn,
 		unsigned& num_deletions,
 		unsigned& h_seq_i, unsigned& t_seq_i,
-		RopeLink *&hNode, RopeLink *& tNode,
+		unsigned& h_node_index, unsigned& t_node_index,
 		uint64_t& fhVal, uint64_t& rhVal, uint64_t *hVal,
-		string& before_t, string& after_t, const string& contigSeq, 
+		const string& contigSeq, vector<seqNode>& newSeq,
 		BloomFilter& bloom, unsigned& best_edit_type, string& best_indel, unsigned& best_num_support) {
 
 	// initialize temporary values
 	uint64_t temp_fhVal, temp_rhVal; 
-	unsigned temp_h_seq_i, temp_t_seq_i; 
+	unsigned temp_h_seq_i, temp_t_seq_i, temp_h_node_index, temp_t_node_index;
 	unsigned temp_best_num_support=0;
 	string temp_best_indel; 
 	unsigned temp_best_edit_type=0;
+	unsigned char charIn, charOut;
 
 
 	// try all of the combinations of indels starting with our index_char
 	for (unsigned i=0; i<num_tries[opt::max_insertions]; i++) {
 		// gather the insertion bases
-		string insertion_bases = multi_possible_bases[index_char][i]; 
-
-		// subset string
-		string subset_str; 
-		subset_str.reserve((2*opt::k)-1+insertion_bases.size()); 
-		stringstream ss(subset_str); 
-		ss << before_t << insertion_bases << after_t; 
-		subset_str = ss.str();
-		//std::cout << subset_str << std::endl; 
+		string insertion_bases = multi_possible_bases[index_char][i];
+		insertion_bases+=draft_char;
 
 		// set temporary values
 		temp_fhVal = fhVal;
 		temp_rhVal = rhVal;
-		temp_h_seq_i = 0; 
-		temp_t_seq_i = opt::k-1; 
+		temp_h_seq_i = h_seq_i; 
+		temp_t_seq_i = t_seq_i; 
+		temp_h_node_index = h_node_index;
+		temp_t_node_index = t_node_index;
 		
 		// change the last base
 		NTMC64_changelast(draft_char, index_char, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal); 
 		unsigned check_present=0; 
-		for (unsigned k=1; k<=opt::k-1 && temp_h_seq_i<subset_str.size()
-				&& ++temp_t_seq_i<subset_str.size(); k++) {
-			NTMC64(subset_str.at(temp_h_seq_i), subset_str.at(temp_t_seq_i), opt::k, opt::h, 
-					temp_fhVal, temp_rhVal, hVal);
-			temp_h_seq_i++; 
-			if (k%3 == 1 && bloom.contains(hVal))
-				check_present++; 
+		unsigned k=1;
+		// check subset with the insertion
+		for (; k<=insertion_bases.size()-1 && temp_h_seq_i < contigSeq.size(); k++) {
+			NTMC64(getCharacter(temp_h_seq_i, newSeq[temp_h_node_index], contigSeq), insertion_bases[k],
+					opt::k, opt::h, temp_fhVal, temp_rhVal, hVal); 
+//			std::cout << getCharacter(temp_h_seq_i, newSeq[temp_h_node_index], contigSeq) 
+//				<< " " << insertion_bases[k] 
+//				<< " " << hVal[0] << std::endl; 
+			increment(temp_h_seq_i, temp_h_node_index, newSeq); 
+			if (k%3 == 1 && bloom.contains(hVal)) check_present++; 
 		}
+		// check subset after insertion
+		for (; k<=opt::k-1 && temp_h_seq_i<contigSeq.size(); k++) {
+			if (roll(temp_h_seq_i, temp_t_seq_i, temp_h_node_index, temp_t_node_index,
+						contigSeq, newSeq, charOut, charIn)) {
+				NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
+				if (k%3 == 1 && bloom.contains(hVal)) check_present++; 
+			}
+		}
+		insertion_bases.pop_back(); 
 		if (opt::verbose)
 			std::cout << "\t\tinserting: " << insertion_bases << " check_present: " << check_present << std::endl;
 		// if the insertion is good, store the insertion accordingly 
@@ -658,18 +751,20 @@ bool tryIndels(const unsigned char draft_char, const unsigned char index_char,
 		}
 
 		if (num_deletions <= opt::max_deletions) {
+			string deleted_bases;
 			unsigned del_support = tryDeletion(draft_char, num_deletions, h_seq_i, t_seq_i, 
-								hNode, tNode, fhVal, rhVal, hVal, before_t, after_t, bloom);
+								h_node_index, t_node_index,
+								fhVal, rhVal, hVal, contigSeq, newSeq, bloom, deleted_bases);
 			if (del_support > 0) {
 				if (opt::mode == 0) {
 					best_edit_type = 3;
-					best_indel = after_t.substr(0, num_deletions); 
+					best_indel = deleted_bases;
 					best_num_support = del_support;
 					return true;
 				} else if (opt::mode == 1 || opt::mode == 2) {
 					if (del_support > temp_best_num_support) {
 						temp_best_edit_type = 3;
-						temp_best_indel = after_t.substr(0, num_deletions);
+						temp_best_indel = deleted_bases;
 						temp_best_num_support = del_support;
 					}
 				}
@@ -697,7 +792,7 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 	// initialize values for hashing
 	uint64_t fhVal, rhVal;
 	uint64_t* hVal;
-	unsigned char charIn, draft_char; 
+	unsigned char charIn, charOut, draft_char; 
 	hVal = new uint64_t[opt::h]; 
 
 
@@ -713,20 +808,32 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 		NTMC64(contigSeq.substr(h_seq_i, opt::k).c_str(), opt::k, opt::h, fhVal, rhVal, hVal); 
 		charIn=contigSeq.at(t_seq_i); 
 	} 	
-	
-	// initialize our master root
-	RopeLink * master_root = nullptr;
-	RopeLink * null_parent = nullptr;
-	createPositionRopeLink(master_root, null_parent, 0, seqLen-1); 
-	// pointers to nodes for h_seq_i and t_seq_i
-	RopeLink * hNode = master_root;
-	RopeLink * tNode = master_root;
+
+	// compressed string
+//	vector<seqNode> newSeq(contigSeq.size()/4); 
+	vector<seqNode> newSeq;
+	newSeq.reserve(contigSeq.size()/4); 
+	// initialize our first node
+	seqNode root;
+	root.node_type = 0;
+	root.s_pos = 0; 
+	root.e_pos = seqLen-1; 	
+//	newSeq[0] = root;
+	newSeq.push_back(root); 
+	std::cout << "newSeq.size(): " << newSeq.size() 
+		<< "newSeq[0].node_type: " << newSeq[0].node_type << std::endl;
+//		<< "newSeq[1].node_type: " << newSeq[1].node_type << std::endl; 
+	// h_seq_i and t_seq_i node pointers
+	unsigned h_node_index = 0;
+	unsigned t_node_index = 0; 
 
 	bool continue_edit = true;
 	do {
 		if (h_seq_i+opt::k-1 >= seqLen) break;
 		if (opt::verbose) 
-			std::cout << h_seq_i << " " << t_seq_i << " " << charIn << " " << hVal[0] << hVal[1] << hVal[2] << std::endl;
+			std::cout << h_seq_i << " " << t_seq_i << " " << charIn 
+				<< " " << h_node_index << " " << t_node_index
+				<< " " << hVal[0] << hVal[1] << hVal[2] << std::endl;
 
 		if (!bloom.contains(hVal)) {
 			// make temporary value holders
@@ -734,18 +841,19 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 			uint64_t temp_rhVal = rhVal; 
 			unsigned temp_h_seq_i = h_seq_i; 
 			unsigned temp_t_seq_i = t_seq_i; 
-			RopeLink* temp_hNode = hNode;
-			RopeLink* temp_tNode = tNode;
+			unsigned temp_h_node_index = h_node_index;
+			unsigned temp_t_node_index = t_node_index;
 
 			// set draft char if we choose to make an edit later
-			draft_char = toupper(charIn); 
+			draft_char = toupper(charIn);	
 
 			// confirm missing by checking subset
 			unsigned check_missing=0; 
 			bool do_not_fix = false; 
 			for (unsigned k=1; k<=opt::k && temp_h_seq_i<seqLen; k++) {
-				if (roll(temp_h_seq_i, temp_t_seq_i, temp_hNode, temp_tNode,
-							temp_fhVal, temp_rhVal, hVal, contigSeq, charIn)) {
+				if (roll(temp_h_seq_i, temp_t_seq_i, temp_h_node_index, temp_t_node_index,
+							contigSeq, newSeq, charOut, charIn)) {
+					NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
 					if (!isAcceptedBase(toupper(charIn))) {
 						do_not_fix = true; 
 						break;
@@ -764,18 +872,11 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 				unsigned char best_sub_base; 
 				unsigned best_num_support=0; 
 				
-				// everything before t_seq_i
-				string before_t = getSubstring(h_seq_i, hNode, opt::k-1, contigSeq); 
-				// everything including t_seq_i and after
-				string after_t = getSubstring(t_seq_i, tNode, opt::k+opt::max_deletions, contigSeq); 
-
 				// try substitution 
 				for (const unsigned char sub_base : bases_array[draft_char]) {
 					//reset the temporary values
 					temp_fhVal = fhVal; 
 					temp_rhVal = rhVal; 
-					temp_hNode = hNode; 
-					temp_tNode = tNode;
 
 					// hash the substitution change
 					NTMC64_changelast(draft_char, sub_base, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal); 
@@ -783,26 +884,30 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 					// only do verification of substition if it is found in bloom filter
 					if (bloom.contains(hVal) || opt::mode == 2) {
 						// reset temporary values 
+						temp_h_node_index = h_node_index;
+						temp_t_node_index = t_node_index;
 						temp_h_seq_i = h_seq_i; 
 						temp_t_seq_i = t_seq_i; 
 
 						// change the substitution 
-						if (temp_tNode->node_type == 0) contigSeq.at(temp_t_seq_i) = sub_base; 
-						else if (temp_tNode->node_type == 1) temp_tNode->c = sub_base;
+						if (newSeq[t_node_index].node_type == 0) contigSeq.at(temp_t_seq_i) = sub_base; 
+						else if (newSeq[t_node_index].node_type == 1) newSeq[t_node_index].c = sub_base;
 
 						// check the subset to see if this substition is good
 						unsigned check_present=0; 
 						for (unsigned k=1; k<=opt::k && temp_h_seq_i < seqLen 
 								&& temp_t_seq_i<seqLen; k++) {
-							if (roll(temp_h_seq_i, temp_t_seq_i, temp_hNode, temp_tNode,
-									temp_fhVal, temp_rhVal, hVal, contigSeq, charIn)) {
+							if (roll(temp_h_seq_i, temp_t_seq_i, temp_h_node_index, temp_t_node_index,
+									contigSeq, newSeq, charOut, charIn)) {
+								NTMC64(charOut, charIn, opt::k, opt::h,
+										temp_fhVal, temp_rhVal, hVal); 
 								if (k%3 == 1 && bloom.contains(hVal)) check_present++; 
 							} else break;
 						}
 
 						// revert the substitution
-						if (tNode->node_type == 0) contigSeq.at(t_seq_i) = draft_char; 
-						else if (tNode->node_type == 1) tNode->c = draft_char; 
+						if (newSeq[t_node_index].node_type == 0) contigSeq.at(t_seq_i) = draft_char; 
+						else if (newSeq[t_node_index].node_type == 1) newSeq[t_node_index].c = draft_char; 
 
 						if (opt::verbose)
 							std::cout << "\t\tsub: " << sub_base << " check_present: " 
@@ -823,10 +928,11 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 						// if we are exhaustively trying all edit combinations or 
 						// 	havent found a good substitution yet, then try indels
 						if (opt::mode == 2 || best_edit_type != 1) {
-							if (tryIndels(draft_char, sub_base, charIn, num_deletions, h_seq_i, t_seq_i,
-									      	hNode, tNode,
-									fhVal, rhVal, hVal, before_t, after_t, contigSeq, bloom,
-									best_edit_type, best_indel, best_num_support)) {
+							if (tryIndels(draft_char, sub_base, num_deletions,
+										h_seq_i, t_seq_i,
+										h_node_index, t_node_index,
+										fhVal, rhVal, hVal, contigSeq, newSeq, bloom,
+										best_edit_type, best_indel, best_num_support)) {
 								if (opt::mode == 0 || opt::mode == 1)
 									break;
 							}
@@ -834,114 +940,22 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 					}
 				}
 
-				bool skipped_repeat = false;
-				string prev_insertion;
-				// make our edit
-				switch (best_edit_type) {
-					case 1: // SUBSTITUTION MADE
-						// apply the change to the actual contigSequence
-						if (tNode->node_type == 0) {
-							contigSeq[t_seq_i] = best_sub_base; 
-							sRec subst; 
-							subst.draft_char = draft_char;
-							subst.pos = t_seq_i; 
-							subst.sub_base = best_sub_base; 
-							subst.num_support = best_num_support;
-							substitution_record.push(subst); 
-						} else if (tNode->node_type == 1)
-							tNode->c = best_sub_base;
-						// make sure we change our current hash to match it
-						NTMC64_changelast(draft_char, best_sub_base, opt::k, opt::h, fhVal, rhVal, hVal); 
-						if (opt::verbose) 
-							std::cout << "\tt_seq_i: " << t_seq_i << " SUB: " << best_sub_base
-								<< " check_present: " << best_num_support << std::endl;
-						break;
-					case 2: // INSERTION MADE
-						// check if we need to check the insertion 
-						// 	or low complexity and make that check before preceding
-						prev_insertion = getPrevInsertion(t_seq_i, tNode);
-						if (prev_insertion.size()+best_indel.size() >= opt::k) {
-							std::cout << "\tprev_insertion: " << prev_insertion << std::endl;
-							RopeLink *to_remove;
-							if (isRepeatInsertion(prev_insertion)){
-								std::cout << "\t\t is a repeat insertion" << std::endl;
-								if (tNode != nullptr && tNode->node_type == 0 
-										&& t_seq_i == tNode->s_pos)
-								       	tNode = tNode->left;
-								while (tNode != nullptr && tNode->node_type == 1) {
-									to_remove = tNode; 
-									std::cout << to_remove->node_type << " " << to_remove->c << std::endl; 
-									tNode = tNode->left; 
-									removeRopeLink(to_remove); 
-								}
-								NTMC64(findAcceptedKmer(h_seq_i, t_seq_i,
-										       	hNode, tNode, contigSeq).c_str(), 
-										opt::k, opt::h, fhVal, rhVal, hVal);
-							        std::cout << "\tremoved prev_insertion: " << h_seq_i
-									<< " " << t_seq_i << std::endl; 	
-								skipped_repeat=true;
-							}
-							for (unsigned j=0; j<best_indel.size() && !skipped_repeat; j++) {
-								prev_insertion += best_indel[j]; 
-								std::cout << "\tnew_insertion: " << prev_insertion << std::endl; 
-								if (isRepeatInsertion(prev_insertion)) {
-									std::cout << "\t\t is a repeat insertion" << std::endl; 
-									if (tNode != nullptr && tNode->node_type == 0
-											&& t_seq_i == tNode->s_pos) 
-										tNode = tNode->left; 	
-									while (tNode != nullptr && tNode->node_type == 1) {
-										to_remove = tNode; 
-										tNode = tNode->left; 
-										removeRopeLink(to_remove); 
-									}
-									NTMC64(findAcceptedKmer(h_seq_i, t_seq_i, 
-												hNode, tNode, contigSeq).c_str(),
-											opt::k, opt::h, fhVal, rhVal, hVal); 
-									skipped_repeat=true;
-								}	
-							}
-						}
-						// if we didn't skip this region for a repeat, then make this insertion
-						if (!skipped_repeat) {
-							// make the insertion
-							for (int j=best_indel.size()-1; j>=0; j--) {
-								makeCharacterInsertion(tNode, t_seq_i, 
-										best_indel[j], best_num_support);
-							}
-							NTMC64_changelast(draft_char, best_indel[0], 
-									opt::k, opt::h, fhVal, rhVal, hVal); 
-							if (opt::verbose) 
-								std::cout << "\tt_seq_i: " << t_seq_i 
-									<< " INS: " << best_indel << " check_present: " 
-									<< best_num_support << std::endl; 
-						}
-						break;
-					case 3: // DELETION MADE
-						if (opt::verbose)
-							std::cout << "\tt_seq_i: " << t_seq_i 
-								<< " DEL: " << best_indel << " check_present: "	
-								<< best_num_support << std::endl;
-						makeDeletion(tNode, t_seq_i, best_indel.size(), best_num_support); 
-						NTMC64_changelast(draft_char, after_t.at(best_indel.size()), 
-								opt::k, opt::h, fhVal, rhVal, hVal); 
-						break;
-					case 0:
-						if (opt::verbose)
-							std::cout << "\tt_seq_i: " << t_seq_i << " FIX NOT FOUND" << std::endl; 
-						break;
-				}
+				makeEdit(draft_char, best_edit_type, best_sub_base, best_indel, best_num_support, 
+						substitution_record, h_seq_i, t_seq_i, h_node_index, t_node_index,
+						fhVal, rhVal, hVal, contigSeq, newSeq);
 			}
 		}
 		// roll and skip over non-ATGC containing kmers
 		int target_t_seq_i = -1; 
 		do {
-			if (roll(h_seq_i, t_seq_i, hNode, tNode, fhVal, rhVal, hVal, contigSeq, charIn)) {
+			if (roll(h_seq_i, t_seq_i, h_node_index, t_node_index, contigSeq, newSeq, charOut, charIn)) {
 				if (!isAcceptedBase(toupper(charIn))) target_t_seq_i = t_seq_i + opt::k; 
+				NTMC64(charOut, charIn, opt::k, opt::h, fhVal, rhVal, hVal); 
 			} else {
 				continue_edit = false;
 				break;
 			}
-		} while (target_t_seq_i >= 0 && t_seq_i != target_t_seq_i); 
+		} while (target_t_seq_i >= 0 && t_seq_i != target_t_seq_i);
 	} while (continue_edit); 
 
 	// clean allocated memory for hash
@@ -951,14 +965,8 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 #pragma omp critical(write)
 	{
 		// write this to file	
-		writeEditsToFile(dfout, rfout, contigHdr, contigSeq, master_root, substitution_record); 
+		writeEditsToFile(dfout, rfout, contigHdr, contigSeq, newSeq, substitution_record); 
 	}
-
-	// clean allocated memory for RopeLink
-	cleanRopeLinks(master_root);
-	master_root = nullptr;
-	tNode = nullptr; 
-	hNode = nullptr;
 }	
 
 /* Read the contigs from the file and polish each contig. */
