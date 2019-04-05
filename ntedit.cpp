@@ -25,12 +25,12 @@
 KSEQ_INIT(gzFile, gzread)
 
 static const char VERSION_MESSAGE[] = 
-	PROGRAM " Version 1.1.0\n"
+	PROGRAM " Version 1.2.0\n"
 	"Written by Rene Warren, Hamid Mohamadi, and Jessica Zhang.\n"
-	"Copyright 2018 Canada's Michael smith Genome Science Centre\n";
+	"Copyright 2018, 2019 Canada's Michael smith Genome Science Centre\n";
 
 static const char USAGE_MESSAGE[] = 
-	"Usage: " PROGRAM " v1.1.0\n" 
+	"Usage: " PROGRAM " v1.2.0\n" 
 	"\n"
 	"Scalable genome assembly polishing.\n"
 	"\n"
@@ -228,10 +228,6 @@ void makeInsertion(unsigned& t_node_index, int insert_pos, string insertion_base
 			}
 			// reappend
 			for (unsigned i=0; i<reappend.size(); i++) {
-				std::cout << "node index to reappend: " << t_node_index+to_insert.size()+i
-					<< " reappend[i]: " << reappend[i].node_type 
-					<< " " << reappend[i].c << " " << reappend[i].s_pos << " " << reappend[i].e_pos
-					<< std::endl; 
 				if (t_node_index+to_insert.size()+i < newSeq.size())
 					newSeq[t_node_index+to_insert.size()+i] = reappend[i]; 
 				else newSeq.push_back(reappend[i]);
@@ -272,7 +268,6 @@ void makeInsertion(unsigned& t_node_index, int insert_pos, string insertion_base
 			else newSeq.push_back(reappend[i]);
 		}
 	}
-	std::cout << "newSeq.size(): " << newSeq.size() << std::endl; 
 }
 
 /* Make a deletion starting and including <pos> of length <num_del> with support <num_support> in seqNode structure.
@@ -449,7 +444,6 @@ void writeEditsToFile(FILE* dfout, FILE* rfout,
 		const string& contigHdr, const string& contigSeq,
 		vector<seqNode>& newSeq, queue<sRec>& substitution_record) {
 	fprintf(dfout, ">%s\n", contigHdr.c_str()); 
-//	std::cout << contigHdr << " " << contigSeq.size() << std::endl; 
 	unsigned node_index = 0;
 	string insertion_bases=""; 
 	int num_support=-1; 
@@ -458,7 +452,6 @@ void writeEditsToFile(FILE* dfout, FILE* rfout,
 	// track a deletion
 	string deleted_bases="";
 	seqNode curr_node = newSeq[node_index];
-//	std::cout << newSeq.size() << std::endl; 
 	while (node_index < newSeq.size() && curr_node.node_type != -1) {
 		if (curr_node.node_type == 0) {
 			draft_char = contigSeq.at(curr_node.s_pos);
@@ -478,7 +471,6 @@ void writeEditsToFile(FILE* dfout, FILE* rfout,
 						substitution_record.front().num_support);
 				substitution_record.pop();
 			} 
-			std::cout << curr_node.s_pos << " " << curr_node.e_pos << std::endl; 
 			fprintf(dfout, "%s", contigSeq.substr(curr_node.s_pos, (curr_node.e_pos-curr_node.s_pos+1)).c_str()); 
 			pos = curr_node.e_pos+1; 
 		} else if (curr_node.node_type == 1) {
@@ -489,11 +481,7 @@ void writeEditsToFile(FILE* dfout, FILE* rfout,
 		node_index++; 
 		if (node_index<newSeq.size()) {
 			curr_node = newSeq[node_index];
-			std::cout << "newSeq.size(): " << newSeq.size() 
-				<< " node_index: " << node_index << " newSeq[node_index].node_type: " 
-				<< curr_node.node_type << std::endl;
 			if (curr_node.node_type == 0 && curr_node.s_pos != pos) {
-				std::cout << "deletion at pos: " << pos << std::endl; 
 				// print out the deletion
 				fprintf(rfout, "%s\t%d\t%c\t%c%s\t%d\n", 
 						contigHdr.c_str(), pos+1, contigSeq.at(pos), '-', 
@@ -514,16 +502,11 @@ bool roll(unsigned& h_seq_i, unsigned& t_seq_i,
 	if (h_seq_i >= contigSeq.size() || h_node_index >= newSeq.size()) return false;
 	charOut = getCharacter(h_seq_i, newSeq[h_node_index], contigSeq); 
 	increment(h_seq_i, h_node_index, newSeq); 
-	// debugging
-//	std::cout << h_seq_i << " " << newSeq[h_node_index].node_type << " " << newSeq[h_node_index].s_pos 
-//		<< " " << newSeq[h_node_index].e_pos << std::endl; 
 
 	increment(t_seq_i, t_node_index, newSeq); 
 	if (t_seq_i >= contigSeq.size() || t_node_index >= newSeq.size()) return false; 
 	charIn = getCharacter(t_seq_i, newSeq[t_node_index], contigSeq); 
 
-	// roll the hash
-//	NTMC64(charOut, charIn, opt::k, opt::h, fhVal, rhVal, hVal); 
 	return true;
 }
 
@@ -713,10 +696,7 @@ bool tryIndels(const unsigned char draft_char, const unsigned char index_char,
 		// check subset with the insertion
 		for (; k<=insertion_bases.size()-1 && temp_h_seq_i < contigSeq.size(); k++) {
 			NTMC64(getCharacter(temp_h_seq_i, newSeq[temp_h_node_index], contigSeq), insertion_bases[k],
-					opt::k, opt::h, temp_fhVal, temp_rhVal, hVal); 
-//			std::cout << getCharacter(temp_h_seq_i, newSeq[temp_h_node_index], contigSeq) 
-//				<< " " << insertion_bases[k] 
-//				<< " " << hVal[0] << std::endl; 
+					opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
 			increment(temp_h_seq_i, temp_h_node_index, newSeq); 
 			if (k%3 == 1 && bloom.contains(hVal)) check_present++; 
 		}
@@ -820,9 +800,6 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 	root.e_pos = seqLen-1; 	
 //	newSeq[0] = root;
 	newSeq.push_back(root); 
-	std::cout << "newSeq.size(): " << newSeq.size() 
-		<< "newSeq[0].node_type: " << newSeq[0].node_type << std::endl;
-//		<< "newSeq[1].node_type: " << newSeq[1].node_type << std::endl; 
 	// h_seq_i and t_seq_i node pointers
 	unsigned h_node_index = 0;
 	unsigned t_node_index = 0; 
@@ -988,7 +965,7 @@ void readAndCorrect(BloomFilter& bloom) {
 	fprintf(rfout, 
 		"ID\tbpPosition+1\tOriginalBase\tNewBase Support %d-mer (out of %d)\tAlternateNewBase\tAlt.Support %d-mers\n",
 			opt::k, 
-			(opt::k / 3),
+			((opt::k / 3)+1),
 			opt::k); 
 
 #pragma omp parallel shared(seq,dfout,rfout)
