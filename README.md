@@ -18,7 +18,9 @@ We expect ntEdit to have additional applications in fast mapping of simple nucle
 ### Implementation and requirements
 -------------------------------
 
-ntEdit v1.1.0 is written in C++. 
+ntEdit v1.2.0 is written in C++. 
+
+(We compiled with gcc 5.5.0)
 
 
 ### Install
@@ -131,11 +133,29 @@ e.g. ./ntedit -f ecoliWithMismatches001Indels0001.fa -r solidBF_k25.bf -k 25 -b 
 	-d,	maximum number of deletions bases to try, range 0-5, [default=5]
 	-x,	k/x ratio for the number of kmers that should be missing, [default=5.000]
 	-y, 	k/y ratio for the number of editted kmers that should be present, [default=9.000]
+	-c,	cap for the number of base insertions that can be made at one position, [default=k*1.5]
+	-m,	mode of editing, range 0-2, [default=0]
+			0: best substitution, or first good indel
+			1: best substitution, or best indel
+			2: best edit overall (suggestion that you reduce i and d for performance)
 	-v,	verbose mode (-v 1 = yes, default = 0, no)
 
 	--help,		display this message and exit 
 	--version,	output version information and exit
 
+</pre>
+
+### ntEdit Modes
+------------
+<pre>
+Mode 0: (default)
+	ntEdit will try to substitute the last base of an incorrect k-mer with a different ATGC base. If that k-mer is found in the bloom filter and has enough subset support, ntEdit will then try the other substitution bases and then choose the best substitution fix. However, if the substituion was not found, then ntEdit will try all indels of max length (-i) and (-d) starting with that substitution base and make edit based on the first accepted indel. 
+
+Mode 1: 
+	ntEdit will try to substitute the last base of an incorrect k-mer with a different ATGC base. If that k-mer is found in the bloom filter and has enough subset support, ntEdit will then try the other substitution bases and then choose the best substitution fix. However, if the substitution was nto found,t hen ntEdit will try all indels of max length (-i) and (-d) starting witht hat substitution base and make edit based on the best accepted indel. 
+
+Mode 2: 
+	ntEdit will choose the best substitution or indel for each incorrect k-mer. Since this can be very computationally expensive because ntEdit tries every combination possible, it is recommended that you reduce (-i) and (-d). 
 </pre>
 
 
@@ -183,7 +203,11 @@ Sequence reads are first shredded into kmers using ntHits, keeping track of kmer
 ### License
 -------
 
+<<<<<<< HEAD
 ntEdit Copyright (c) 2018-2019 British Columbia Cancer Agency Branch.  All rights reserved.
+=======
+LINKS Copyright (c) 2018, 2019 British Columbia Cancer Agency Branch.  All rights reserved.
+>>>>>>> dev
 
 ntEdit is released under the GNU General Public License v3
 
