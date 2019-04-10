@@ -30,10 +30,9 @@ static const char VERSION_MESSAGE[] =
 	"Copyright 2018, 2019 Canada's Michael smith Genome Science Centre\n";
 
 static const char USAGE_MESSAGE[] = 
-	"Usage: " PROGRAM " v1.2.0\n" 
+	PROGRAM " v1.2.0\n" 
 	"\n"
-	"Scalable genome assembly polishing.\n"
-	"\n"
+	"Scalable genome sequence polishing.\n"
 	"\n"
 	" Options:\n"
 	"	-t,	number of threads [default=1]\n"
@@ -46,6 +45,7 @@ static const char USAGE_MESSAGE[] =
 	"	-d,	maximum number of deletions bases to try, range 0-5, [default=5]\n"
 	"	-x,	k/x ratio for the number of kmers that should be missing, [default=5.000]\n"
 	"	-y, 	k/y ratio for the number of editted kmers that should be present, [default=9.000]\n"
+	"	-c,	cap for the number of base insertions that can be made at one position, [default=k*1.5]\n"
 	"	-m,	mode of editing, range 0-2, [default=0]\n"
 	"			0: best substitution, or first good indel\n"
 	"			1: best substitution, or best indel\n"
@@ -54,7 +54,7 @@ static const char USAGE_MESSAGE[] =
 	"\n"
 	"	--help,		display this message and exit \n"
 	"	--version,	output version information and exit\n"
-	"Report bugs to rwarren@bcgsc.ca\n"; 
+	"\n"; 
 
 using namespace std; 
 
@@ -69,12 +69,13 @@ namespace opt {
 	unsigned max_deletions=5;
 	float edit_threshold=9.0000; 
 	float missing_threshold=5.0000;
+	unsigned insertion_cap=opt::k*1.5;
 	string outfile_prefix; 
 	int mode=0; 
 	int verbose=0; 
 }
 
-static const char shortopts[] = "t:f:s:k:z:b:r:v:d:i:x:y:m:"; 
+static const char shortopts[] = "t:f:s:k:z:b:r:v:d:i:x:y:m:c:"; 
 
 enum { OPT_HELP = 1, OPT_VERSION }; 
 
@@ -85,6 +86,7 @@ static const struct option longopts[] = {
 	{"minimum_contig_length",	required_argument, NULL, 'z'},
 	{"maximum_insertions",	required_argument, NULL, 'i'},
 	{"maximum_deletions", required_argument, NULL, 'd'},
+	{"insertion_cap",	required_argument, NULL ,'c'},
 	{"edit_threshold",	required_argument, NULL, 'y'},
 	{"missing_threshold",	required_argument, NULL, 'x'},
 	{"bloom_filename", required_argument, NULL, 'r'},
@@ -124,6 +126,25 @@ static inline void assert_readable(const string& path) {
 /* Checks if the base is ATGC. */
 bool isAcceptedBase(unsigned char C) {
 	return (C=='A' || C=='T' || C=='G' || C=='C'); 
+}
+
+char RC(unsigned char C) {
+	switch (C) {
+		case 'A': 
+		case 'a':
+			return 'T';
+		case 'T':
+		case 't':
+			return 'A';
+		case 'G':
+		case 'g':
+			return 'C';
+		case 'C':
+		case 'c': 
+			return 'G';
+		default: 
+			return 'N';
+	}
 }
 
 /* Find the first only ATGC kmer starting at the beginning of a sequence.
@@ -426,14 +447,15 @@ string findAcceptedKmer(unsigned& h_seq_i, unsigned& t_seq_i,
 }
 
 /* Get the previous insertion (aka continuous string of character nodes) starting at t_node_index. */
-string getPrevInsertion(unsigned t_seq_i, unsigned t_node_index, vector<seqNode>& newSeq) {
+string getPrevInsertion(unsigned t_seq_i, unsigned t_node_index, vector<seqNode>& newSeq) { 
+	string prev_insertion;
 	// if we just finished the insertion
-	if (t_node_index < newSeq.size() && newSeq[t_node_index].node_type == 0 && t_seq_i == newSeq[t_node_index].s_pos) {
+	if ((t_node_index < newSeq.size() && newSeq[t_node_index].node_type == 0 && t_seq_i == newSeq[t_node_index].s_pos)
+			|| newSeq[t_node_index].node_type == 1) {
 		t_node_index--; 
 	}
-	string prev_insertion;
 	while (t_node_index < newSeq.size() && newSeq[t_node_index].node_type == 1) {
-		prev_insertion += newSeq[t_node_index].c; 
+		prev_insertion += RC(newSeq[t_node_index].c); 
 		t_node_index--;
 	}
 	return prev_insertion;
@@ -504,6 +526,7 @@ bool roll(unsigned& h_seq_i, unsigned& t_seq_i,
 	increment(h_seq_i, h_node_index, newSeq); 
 
 	increment(t_seq_i, t_node_index, newSeq); 
+	// quit if t_seq_i is out of scope
 	if (t_seq_i >= contigSeq.size() || t_node_index >= newSeq.size()) return false; 
 	charIn = getCharacter(t_seq_i, newSeq[t_node_index], contigSeq); 
 
@@ -544,8 +567,8 @@ void makeEdit(unsigned char& draft_char, unsigned& best_edit_type, unsigned char
 			// 	or low complexity and make that check before preceding
 			prev_insertion = getPrevInsertion(t_seq_i, t_node_index, newSeq);
 			if (prev_insertion.size()+best_indel.size() >= opt::k) {
-				// check if the original previous insertion was a low complexity repeat
-				if (isRepeatInsertion(prev_insertion)) {
+				// check if the original previous insertion was a low complexity repeat or we have reached our hard cap
+				if (isRepeatInsertion(prev_insertion) || prev_insertion.size()+best_indel.size() >= opt::insertion_cap) {
 					unsigned j=1;
 					if (newSeq[t_node_index].node_type == 0 && t_seq_i == newSeq[t_node_index].s_pos) 
 						j=0;
@@ -565,7 +588,7 @@ void makeEdit(unsigned char& draft_char, unsigned& best_edit_type, unsigned char
 				} else {
 				// check the rest of the insertion with the extra insertion base(s) for low complexity
 					for (unsigned w=0; w<best_indel.size(); w++) {
-						prev_insertion += best_indel[w];
+						prev_insertion.insert(prev_insertion.begin(),RC(best_indel[w]));
 						if (isRepeatInsertion(prev_insertion)) {
 							unsigned j=1; 
 							if (newSeq[t_node_index].node_type == 0 
@@ -1044,6 +1067,9 @@ int main (int argc, char ** argv) {
 				break;
 			case 'y':
 				arg >> opt::edit_threshold;
+				break;
+			case 'c':
+				arg >> opt::insertion_cap;
 				break;
 			case 'm':
 				arg >> opt::mode; 

@@ -113,16 +113,16 @@ e.g. ./ntedit -f ecoliWithMismatches001Indels0001.fa -r solidBF_k25.bf -k 25 -b 
 	-i,	maximum number of insertion bases to try, range 0-5, [default=4]
 	-d,	maximum number of deletions bases to try, range 0-5, [default=5]
 	-x,	k/x ratio for the number of kmers that should be missing, [default=5.000]
-	-m,	mode of editing, range 0-2, [default=0]
-			0: best substitution, or first good indel starting from substitution base
-			1: best substitution, or best indel starting from substitution base
-			2: best edit overall (suggest that you reduce i and d for performance)
 	-y, 	k/y ratio for the number of editted kmers that should be present, [default=9.000]
+	-c,	cap for the number of base insertions that can be made at one position, [default=k*1.5]
+	-m,	mode of editing, range 0-2, [default=0]
+			0: best substitution, or first good indel
+			1: best substitution, or best indel
+			2: best edit overall (suggestion that you reduce i and d for performance)
 	-v,	verbose mode (-v 1 = yes, default = 0, no)
 
 	--help,		display this message and exit 
 	--version,	output version information and exit
-Report bugs to rwarren@bcgsc.ca
 
 </pre>
 
