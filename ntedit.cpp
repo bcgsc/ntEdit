@@ -46,6 +46,7 @@ static const char USAGE_MESSAGE[] =
 	"	-x,	k/x ratio for the number of kmers that should be missing, [default=5.000]\n"
 	"	-y, 	k/y ratio for the number of editted kmers that should be present, [default=9.000]\n"
 	"	-c,	cap for the number of base insertions that can be made at one position, [default=k*1.5]\n"
+	"	-j,	when checking subset of kmers, check every jth kmer, [default=3]\n"
 	"	-m,	mode of editing, range 0-2, [default=0]\n"
 	"			0: best substitution, or first good indel\n"
 	"			1: best substitution, or best indel\n"
@@ -70,12 +71,13 @@ namespace opt {
 	float edit_threshold=9.0000; 
 	float missing_threshold=5.0000;
 	unsigned insertion_cap=opt::k*1.5;
+	unsigned jump=3;
 	string outfile_prefix; 
 	int mode=0; 
 	int verbose=0; 
 }
 
-static const char shortopts[] = "t:f:s:k:z:b:r:v:d:i:x:y:m:c:"; 
+static const char shortopts[] = "t:f:s:k:z:b:r:v:d:i:x:y:m:c:j:"; 
 
 enum { OPT_HELP = 1, OPT_VERSION }; 
 
@@ -89,6 +91,7 @@ static const struct option longopts[] = {
 	{"insertion_cap",	required_argument, NULL ,'c'},
 	{"edit_threshold",	required_argument, NULL, 'y'},
 	{"missing_threshold",	required_argument, NULL, 'x'},
+	{"jump",	required_argument, NULL, 'j'},
 	{"bloom_filename", required_argument, NULL, 'r'},
 	{"outfile_prefix", required_argument, NULL, 'b'},
 	{"mode", required_argument, NULL, 'm'},
@@ -668,7 +671,7 @@ int tryDeletion(const unsigned char draft_char, unsigned num_deletions,
 		if (roll(temp_h_seq_i, temp_t_seq_i, temp_h_node_index, temp_t_node_index,
 					contigSeq, newSeq, charOut, charIn)) {
 			NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
-			if (k%3 == 0 && bloom.contains(hVal)) check_present++; 
+			if (k%opt::jump == 0 && bloom.contains(hVal)) check_present++; 
 		}			
 	}
 	
@@ -715,20 +718,20 @@ bool tryIndels(const unsigned char draft_char, const unsigned char index_char,
 		// change the last base
 		NTMC64_changelast(draft_char, index_char, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal); 
 		unsigned check_present=0; 
-		unsigned k=1;
+		unsigned k=0;
 		// check subset with the insertion
-		for (; k<=insertion_bases.size()-1 && temp_h_seq_i < contigSeq.size(); k++) {
-			NTMC64(getCharacter(temp_h_seq_i, newSeq[temp_h_node_index], contigSeq), insertion_bases[k],
+		for (; k<insertion_bases.size()-1 && temp_h_seq_i < contigSeq.size(); k++) {
+			NTMC64(getCharacter(temp_h_seq_i, newSeq[temp_h_node_index], contigSeq), insertion_bases[k+1],
 					opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
 			increment(temp_h_seq_i, temp_h_node_index, newSeq); 
-			if (k%3 == 1 && bloom.contains(hVal)) check_present++; 
+			if (k%opt::jump == 0 && bloom.contains(hVal)) check_present++; 
 		}
 		// check subset after insertion
-		for (; k<=opt::k-1 && temp_h_seq_i<contigSeq.size(); k++) {
+		for (; k<opt::k-1 && temp_h_seq_i<contigSeq.size(); k++) {
 			if (roll(temp_h_seq_i, temp_t_seq_i, temp_h_node_index, temp_t_node_index,
 						contigSeq, newSeq, charOut, charIn)) {
 				NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
-				if (k%3 == 1 && bloom.contains(hVal)) check_present++; 
+				if (k%opt::jump == 0 && bloom.contains(hVal)) check_present++; 
 			}
 		}
 		insertion_bases.pop_back(); 
@@ -850,7 +853,7 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 			// confirm missing by checking subset
 			unsigned check_missing=0; 
 			bool do_not_fix = false; 
-			for (unsigned k=1; k<=opt::k && temp_h_seq_i<seqLen; k++) {
+			for (unsigned k=0; k<opt::k && temp_h_seq_i<seqLen; k++) {
 				if (roll(temp_h_seq_i, temp_t_seq_i, temp_h_node_index, temp_t_node_index,
 							contigSeq, newSeq, charOut, charIn)) {
 					NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
@@ -858,7 +861,7 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 						do_not_fix = true; 
 						break;
 					}
-					if (k%3 == 1 && !bloom.contains(hVal)) check_missing++; 
+					if (k%opt::jump == 0 && !bloom.contains(hVal)) check_missing++; 
 				} else break;
 			}
 
@@ -895,13 +898,13 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 
 						// check the subset to see if this substition is good
 						unsigned check_present=0; 
-						for (unsigned k=1; k<=opt::k && temp_h_seq_i < seqLen 
+						for (unsigned k=0; k<opt::k && temp_h_seq_i < seqLen 
 								&& temp_t_seq_i<seqLen; k++) {
 							if (roll(temp_h_seq_i, temp_t_seq_i, temp_h_node_index, temp_t_node_index,
 									contigSeq, newSeq, charOut, charIn)) {
 								NTMC64(charOut, charIn, opt::k, opt::h,
 										temp_fhVal, temp_rhVal, hVal); 
-								if (k%3 == 1 && bloom.contains(hVal)) check_present++; 
+								if (k%opt::jump == 0 && bloom.contains(hVal)) check_present++; 
 							} else break;
 						}
 
@@ -988,7 +991,7 @@ void readAndCorrect(BloomFilter& bloom) {
 	fprintf(rfout, 
 		"ID\tbpPosition+1\tOriginalBase\tNewBase Support %d-mer (out of %d)\tAlternateNewBase\tAlt.Support %d-mers\n",
 			opt::k, 
-			((opt::k / 3)+1),
+			((opt::k / opt::jump)+1),
 			opt::k); 
 
 #pragma omp parallel shared(seq,dfout,rfout)
@@ -1073,6 +1076,9 @@ int main (int argc, char ** argv) {
 				break;
 			case 'm':
 				arg >> opt::mode; 
+				break;
+			case 'j':
+				arg >> opt::jump;
 				break;
 			case 'v':
 				arg >> opt::verbose; 
