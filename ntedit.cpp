@@ -501,7 +501,7 @@ void writeEditsToFile(FILE* dfout, FILE* rfout,
 			fprintf(dfout, "%c", curr_node.c); 
 		}
 		node_index++; 
-		if (node_index<newSeq.size()) {
+		if (node_index<newSeq.size() && pos<contigSeq.size()) {
 			curr_node = newSeq[node_index];
 			if (curr_node.node_type == 0 && curr_node.s_pos != pos) {
 				// print out the deletion
@@ -859,7 +859,10 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 						break;
 					}
 					if (k%3 == 1 && !bloom.contains(hVal)) check_missing++; 
-				} else break;
+				} else {
+					do_not_fix = true;
+					break;
+				}
 			}
 
 			if (opt::verbose) 
@@ -1011,7 +1014,7 @@ void readAndCorrect(BloomFilter& bloom) {
 				break; 
 			else {
 				unsigned seq_len = contigSeq.length();
-				if (opt::verbose) std::cout << contigName << std::endl; 
+				/*if (opt::verbose)*/ std::cout << contigName << std::endl; 
 				if (seq_len >= opt::min_contig_len) {
 					kmerizeAndCorrect(contigName, contigSeq, seq_len, bloom, dfout, rfout); 
 				}
