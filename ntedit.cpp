@@ -1165,6 +1165,8 @@ int main (int argc, char ** argv) {
 		<< "\n -r " << bloom_basename
 		<< "\n -i " << opt::max_insertions
 		<< "\n -d " << opt::max_deletions
+		<< "\n -x " << opt::missing_threshold
+		<< "\n -y " << opt::edit_threshold
 		<< "\n -m " << opt::mode
 		<< "\n -v " << opt::verbose
 		<< std::endl; 
