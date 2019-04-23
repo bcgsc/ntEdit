@@ -1014,7 +1014,7 @@ void readAndCorrect(BloomFilter& bloom) {
 				break; 
 			else {
 				unsigned seq_len = contigSeq.length();
-				/*if (opt::verbose)*/ std::cout << contigName << std::endl; 
+				if (opt::verbose) std::cout << contigName << std::endl; 
 				if (seq_len >= opt::min_contig_len) {
 					kmerizeAndCorrect(contigName, contigSeq, seq_len, bloom, dfout, rfout); 
 				}
