@@ -43,6 +43,8 @@ static const char USAGE_MESSAGE[] =
 	"	-z,	minimum contig length [default=100]\n"
 	"	-i,	maximum number of insertion bases to try, range 0-5, [default=4]\n"
 	"	-d,	maximum number of deletions bases to try, range 0-5, [default=5]\n"
+	"	-X,	ratio for the number of kmers in the k subset that should be missing to attempt fix, [default=0.5]\n"
+	"	-Y,	ratio for the number of kmer in the k subset that should be present to accept an edit, [default=0.5]\n"
 	"	-x,	k/x ratio for the number of kmers that should be missing, [default=5.000]\n"
 	"	-y, 	k/y ratio for the number of editted kmers that should be present, [default=9.000]\n"
 	"	-c,	cap for the number of base insertions that can be made at one position, [default=k*1.5]\n"
@@ -70,6 +72,9 @@ namespace opt {
 	unsigned max_deletions=5;
 	float edit_threshold=9.0000; 
 	float missing_threshold=5.0000;
+	float edit_ratio=0.5;
+	float missing_ratio=0.5;
+	bool use_ratio=false;
 	unsigned insertion_cap=opt::k*1.5;
 	unsigned jump=3;
 	string outfile_prefix; 
@@ -77,7 +82,7 @@ namespace opt {
 	int verbose=0; 
 }
 
-static const char shortopts[] = "t:f:s:k:z:b:r:v:d:i:x:y:m:c:j:"; 
+static const char shortopts[] = "t:f:s:k:z:b:r:v:d:i:X:Y:x:y:m:c:j:"; 
 
 enum { OPT_HELP = 1, OPT_VERSION }; 
 
@@ -91,6 +96,8 @@ static const struct option longopts[] = {
 	{"insertion_cap",	required_argument, NULL ,'c'},
 	{"edit_threshold",	required_argument, NULL, 'y'},
 	{"missing_threshold",	required_argument, NULL, 'x'},
+	{"edit_ratio",	required_argument, NULL, 'Y'},
+	{"missing_ratio",	required_argument, NULL, 'X'},
 	{"jump",	required_argument, NULL, 'j'},
 	{"bloom_filename", required_argument, NULL, 'r'},
 	{"outfile_prefix", required_argument, NULL, 'b'},
@@ -677,7 +684,8 @@ int tryDeletion(const unsigned char draft_char, unsigned num_deletions,
 	
 	if (opt::verbose)
 		std::cout << "\t\tdeleting: " << deleted_bases << " check_present: " << check_present << std::endl; 
-	if (check_present >= ((float) opt::k / opt::edit_threshold)) {
+	if ((!opt::use_ratio && check_present >= ((float) opt::k / opt::edit_threshold)) 
+			|| (opt::use_ratio && check_present >= (1+(opt::k / opt::jump))*opt::edit_ratio)) {
 		return check_present;
 	} 
 	return 0;
@@ -738,7 +746,8 @@ bool tryIndels(const unsigned char draft_char, const unsigned char index_char,
 		if (opt::verbose)
 			std::cout << "\t\tinserting: " << insertion_bases << " check_present: " << check_present << std::endl;
 		// if the insertion is good, store the insertion accordingly 
-		if (check_present >= ((float) opt::k / opt::edit_threshold)) {
+		if ((!opt::use_ratio && check_present >= ((float) opt::k / opt::edit_threshold))
+				|| (opt::use_ratio && check_present >= (opt::k / opt::jump)*opt::edit_ratio)) {
 			if (opt::mode == 0) {
 				// if we are in default mode, we just accept this first good insertion and return
 				best_edit_type = 2; 
@@ -870,7 +879,9 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 
 			if (opt::verbose) 
 				std::cout << "\tcheck_missing: " << check_missing << std::endl; 
-			if (!do_not_fix && check_missing>=((float) opt::k / opt::missing_threshold)) {
+			if (!do_not_fix && ((!opt::use_ratio && check_missing>=((float) opt::k / opt::missing_threshold))
+						|| (opt::use_ratio 
+							&& check_missing >= ((opt::k / opt::jump) * opt::missing_ratio)))) {
 				// recorders
 				unsigned num_deletions=1;
 				unsigned best_edit_type=0; // 0=no edit made; 1=substitution; 2=insertion; 3=deletions
@@ -918,7 +929,9 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 						if (opt::verbose)
 							std::cout << "\t\tsub: " << sub_base << " check_present: " 
 								<< check_present << std::endl; 
-						if (check_present >= ((float) opt::k / opt::edit_threshold)) {
+						if ((!opt::use_ratio && check_present >= ((float) opt::k / opt::edit_threshold))
+							       || (opt::use_ratio 
+								       && check_present >= ((opt::k / opt::jump))*opt::edit_ratio)) {
 							// update the best substitution
 							if (check_present > best_num_support) {
 								best_edit_type = 1;
@@ -1074,6 +1087,14 @@ int main (int argc, char ** argv) {
 			case 'y':
 				arg >> opt::edit_threshold;
 				break;
+			case 'X':
+				arg >> opt::missing_ratio; 
+				opt::use_ratio=true;
+				break;
+			case 'Y':
+				arg >> opt::edit_ratio;
+				opt::use_ratio=true;
+				break;
 			case 'c':
 				arg >> opt::insertion_cap;
 				break;
@@ -1162,20 +1183,37 @@ int main (int argc, char ** argv) {
 	}
 
 	// print parameters: 
-	std::cout << "Running: " << PROGRAM
-		<< "\n -t " << opt::nthreads
-		<< "\n -f " << draft_basename
-		<< "\n -k " << opt::k
-		<< "\n -z " << opt::min_contig_len
-		<< "\n -b " << opt::outfile_prefix
-		<< "\n -r " << bloom_basename
-		<< "\n -i " << opt::max_insertions
-		<< "\n -d " << opt::max_deletions
-		<< "\n -x " << opt::missing_threshold
-		<< "\n -y " << opt::edit_threshold
-		<< "\n -m " << opt::mode
-		<< "\n -v " << opt::verbose
-		<< std::endl; 
+	if (opt::use_ratio) {
+		std::cout << "Running: " << PROGRAM
+			<< "\n -t " << opt::nthreads
+			<< "\n -f " << draft_basename
+			<< "\n -k " << opt::k
+			<< "\n -z " << opt::min_contig_len
+			<< "\n -b " << opt::outfile_prefix
+			<< "\n -r " << bloom_basename
+			<< "\n -i " << opt::max_insertions
+			<< "\n -d " << opt::max_deletions
+			<< "\n -X " << opt::missing_ratio
+			<< "\n -Y " << opt::edit_ratio
+			<< "\n -m " << opt::mode
+			<< "\n -v " << opt::verbose
+			<< std::endl; 
+	} else {
+		std::cout << "Running: " << PROGRAM
+			<< "\n -t " << opt::nthreads
+			<< "\n -f " << draft_basename
+			<< "\n -k " << opt::k
+			<< "\n -z " << opt::min_contig_len
+			<< "\n -b " << opt::outfile_prefix
+			<< "\n -r " << bloom_basename
+			<< "\n -i " << opt::max_insertions
+			<< "\n -d " << opt::max_deletions
+			<< "\n -x " << opt::missing_threshold
+			<< "\n -y " << opt::edit_threshold
+			<< "\n -m " << opt::mode
+			<< "\n -v " << opt::verbose
+			<< std::endl; 
+	}
 
 	// Threading information 
 	omp_set_num_threads(opt::nthreads); 
