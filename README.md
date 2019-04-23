@@ -203,11 +203,7 @@ Sequence reads are first shredded into kmers using ntHits, keeping track of kmer
 ### License
 -------
 
-<<<<<<< HEAD
 ntEdit Copyright (c) 2018-2019 British Columbia Cancer Agency Branch.  All rights reserved.
-=======
-LINKS Copyright (c) 2018, 2019 British Columbia Cancer Agency Branch.  All rights reserved.
->>>>>>> dev
 
 ntEdit is released under the GNU General Public License v3
 
