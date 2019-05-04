@@ -58,7 +58,8 @@ rwarren@bcgsc.ca
 
 <pre>
 ntEdit: scalable genome sequence polishing
-Rene L Warren, Lauren Coombe, Hamid Mohamadi, Jessica Zhang, Barry Jaquish, Nathalie Isabel, Steven JM Jones, Jean Bousquet, Joerg Bohlmann, Inanc Birol. 2019. Bioinformatics (accepted issue TBD)
+Rene L Warren, Lauren Coombe, Hamid Mohamadi, Jessica Zhang, Barry Jaquish, Nathalie Isabel, Steven JM Jones, Jean Bousquet, Joerg Bohlmann, Inanc Birol. 
+2019. Bioinformatics (accepted issue TBD)
 bioRxiv 2019; 565374; doi: https://doi.org/10.1101/565374
 
 </pre>
@@ -70,7 +71,7 @@ Thank you for using, developing and promoting this free software.
 ### Credits
 -------
 
-ntEdit (concept and prototype):
+ntEdit (concept, algorithm design and prototype):
 Rene Warren
 
 nthits / nthash / BloomFilter.pm:
