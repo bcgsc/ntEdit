@@ -58,7 +58,8 @@ rwarren@bcgsc.ca
 
 <pre>
 ntEdit: scalable genome sequence polishing
-Rene L Warren, Lauren Coombe, Hamid Mohamadi, Jessica Zhang, Barry Jaquish, Nathalie Isabel, Steven JM Jones, Jean Bousquet, Joerg Bohlmann, Inanc Birol
+Rene L Warren, Lauren Coombe, Hamid Mohamadi, Jessica Zhang, Barry Jaquish, Nathalie Isabel, Steven JM Jones, Jean Bousquet, Joerg Bohlmann, Inanc Birol. 
+2019. Bioinformatics (accepted issue TBD)
 bioRxiv 2019; 565374; doi: https://doi.org/10.1101/565374
 
 </pre>
@@ -70,33 +71,33 @@ Thank you for using, developing and promoting this free software.
 ### Credits
 -------
 
-ntEdit:
+ntEdit (concept, algorithm design and prototype):
 Rene Warren
 
 nthits / nthash / BloomFilter.pm:
-Hamid Mohamadi (recursive/ntHash)
+Hamid Mohamadi
 
-C++ implementation
+C++ implementation:
 Jessica Zhang
 
 
 ### How to run in a pipeline
 -------
 
-1. Running nthits (please see nthits documentation)
+1. Running nthits (please see nthits documentation : https://github.com/bcgsc/ntHits)
 <pre>
-nthits -c <kmer coverage threshold> -k <kmer length> -t <number of threads> reads
+nthits -c <kmer coverage threshold> -b <Bloom filter bit size> -k <kmer length> -t <number of threads> reads
 eg.
-nthits -c 2 --outbloom -p solidBF -k 25 -t 48 Sim_100_300_1.fq Sim_100_300_2.fq
+nthits -c 2 --outbloom -p solidBF -b 36 -k 25 -t 48 Sim_100_300_1.fq Sim_100_300_2.fq
 or
-nthits -c 2 --outbloom -p solidBF -k 25 -t 48 @reads.in
+nthits -c 2 --outbloom -p solidBF -b 36 -k 25 -t 48 @reads.in
 
 Where @reads.in is a file listing the path to all read fastq files to kmerize
 note the options --outbloom and -p that must be set when using ntHits with ntEdit. 
 
 If not specifying a hard threshold (-c), and relying instead on ntCard* to identify the error kmer coverage, please run with the --solid:
 
-nthits -k 50 -t 48 --outbloom --solid @reads.in 
+nthits -b 36 -k 50 -t 48 --outbloom --solid @reads.in 
 
 NOTE: THIS WILL WORK WELL WITH ntEdit ONLY IF YOU HAVE SUFFICIENT READ COVERAGE (>30X), OTHERWISE SET KMER COVERAGE TO -c2 (>=20X) or -c 1 (<20X).
 
@@ -157,6 +158,8 @@ Mode 1:
 Mode 2: 
 	ntEdit will choose the best substitution or indel for each incorrect k-mer. Since this can be very computationally expensive because ntEdit tries every combination possible, it is recommended that you reduce (-i) and (-d). 
 </pre>
+
+*We recommend running ntEdit in Mode 1 (or 0)
 
 
 ### Test data
