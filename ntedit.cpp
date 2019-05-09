@@ -989,7 +989,7 @@ void readAndCorrect(BloomFilter& bloom) {
 	FILE* rfout = fopen(r_filename.c_str(), "w");
 
 	fprintf(rfout, 
-		"ID\tbpPosition+1\tOriginalBase\tNewBase Support %d-mer (out of %d)\tAlternateNewBase\tAlt.Support %d-mers\n",
+		"ID\tbpPosition+1\tOriginalBase\tNewBase\tSupport %d-mer (out of %d)\tAlternateNewBase\tAlt.Support %d-mers\n",
 			opt::k, 
 			((opt::k / 3)+1),
 			opt::k); 
