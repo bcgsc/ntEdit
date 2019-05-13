@@ -198,7 +198,7 @@ Sequence reads are first shredded into kmers using ntHits, keeping track of kmer
 
 |Output files|                    Description|
 |---|---|
-|_changes.tsv                 | tab-separated file; ID      bpPosition+1    OriginalBase    NewBase Support 25-mers (out of k/3)   AlternateNewBase   Alt.Support k-mers   eg. U00096.3_MG1655_k12     117     A       T       9|
+|_changes.tsv                 | tab-separated file; ID      bpPosition+1    OriginalBase    NewBase Support k-mers (out of k/3)   AlternateNewBase   Alt.Support k-mers   eg. U00096.3_MG1655_k12     117     A       T       9|
 |_edited.fa                   | fasta file; contains the polished genome assembly |
 
 
