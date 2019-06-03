@@ -48,7 +48,10 @@ make ntedit
 ### Documentation
 -------------
 
-Refer to the README.md file on how to run ntEdit and our manuscript for information about the software and its performance 
+Refer to the README.md file on how to install and run ntEdit.
+Our [manuscript](http://dx.doi.org/10.1093/bioinformatics/btz400) contains information about the software and its performance.
+Additionaly, this [ISMB2019 poster](https://warrenlr.github.io/papers/ntedit_ismb2019.pdf) contains additional information, benchmarks and results. 
+
 Questions or comments?  We would love to hear from you!
 rwarren@bcgsc.ca
 
