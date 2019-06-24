@@ -94,13 +94,33 @@ or
 nthits -c 2 --outbloom -p solidBF -b 36 -k 25 -t 48 @reads.in
 
 Where @reads.in is a file listing the path to all read fastq files to kmerize
-note the options --outbloom and -p that must be set when using ntHits with ntEdit. 
+note the options --outbloom and -p must be set when using ntHits with ntEdit. 
 
 If not specifying a hard threshold (-c), and relying instead on ntCard* to identify the error kmer coverage, please run with the --solid:
 
 nthits -b 36 -k 50 -t 48 --outbloom --solid @reads.in 
 
 NOTE: THIS WILL WORK WELL WITH ntEdit ONLY IF YOU HAVE SUFFICIENT READ COVERAGE (>30X), OTHERWISE SET KMER COVERAGE TO -c2 (>=20X) or -c 1 (<20X).
+
+
+Summary/Guidelines for running ntHits:
+
+A) Coverage <20X
+nthits -c 1 --outbloom -p solidBF -b 36 -k 40 -t 48 @reads.in
+
+B) Coverage 20-30X
+nthits -c 2 --outbloom -p solidBF -b 36 -k 40 -t 48 @reads.in
+
+C) Coverage >30X
+nthits -b 36 -k 40 -t 48 --outbloom --solid @reads.in
+
+Where @reads.in is a file listing the path to all read fastq files to kmerize
+
+-c sets a hard coverage threshold for reporting kmers (-c n : keeping kmers with coverage > n)
+--solid will output non-error kmers, as determined by ntCard. Use this option only when you don't wish to set the threshold (-c) manually.
+--outbloom simply outputs the coverage-thresholded kmers in a Bloom filter, whether it's from using -c or --solid.
+-b is the Bloom filter bit size.  Use -b 36 to keep the Bloom filter false positive rate low (~0.0005).
+
 
 *Bioinformatics. 2017 May 1; 33(9): 1324–1330.
 Published online 2017 Jan 5. doi: 10.1093/bioinformatics/btw832
