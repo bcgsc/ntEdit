@@ -25,12 +25,12 @@
 KSEQ_INIT(gzFile, gzread)
 
 static const char VERSION_MESSAGE[] = 
-	PROGRAM " Version 1.2.0\n"
+	PROGRAM " Version 1.2.2b\n"
 	"Written by Rene Warren, Hamid Mohamadi, and Jessica Zhang.\n"
 	"Copyright 2018, 2019 Canada's Michael smith Genome Science Centre\n";
 
 static const char USAGE_MESSAGE[] = 
-	PROGRAM " v1.2.0\n" 
+	PROGRAM " v1.2.2b\n" 
 	"\n"
 	"Scalable genome sequence polishing.\n"
 	"\n"
@@ -511,7 +511,7 @@ void writeEditsToFile(FILE* dfout, FILE* rfout,
 			fprintf(dfout, "%c", curr_node.c); 
 		}
 		node_index++; 
-		if (node_index<newSeq.size() && pos<contigSeq.size()) {
+		if (node_index<newSeq.size()) {
 			curr_node = newSeq[node_index];
 			if (curr_node.node_type == 0 && curr_node.s_pos != pos) {
 				// print out the deletion
