@@ -18,7 +18,7 @@ We expect ntEdit to have additional applications in fast mapping of simple nucle
 ### Implementation and requirements
 -------------------------------
 
-ntEdit v1.2.0 is written in C++. 
+ntEdit v1.2 is written in C++. 
 
 (We compiled with gcc 5.5.0)
 
