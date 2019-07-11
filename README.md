@@ -124,7 +124,7 @@ Where @reads.in is a file listing the path to all read fastq files to kmerize
 
 *About ntCard
 We recommend that you run ntCard independently on your short read data, and plot the kmer coverage distribution.
-Ideally, you may select a coverage threshold cutoff (nthits -c) based on the that histogram.
+Ideally, you may select a coverage threshold cutoff (nthits -c) based on that histogram.
 
 https://github.com/bcgsc/ntCard
 Bioinformatics. 2017 May 1; 33(9): 1324–1330.
