@@ -122,7 +122,12 @@ Where @reads.in is a file listing the path to all read fastq files to kmerize
 -b is the Bloom filter bit size.  Use -b 36 to keep the Bloom filter false positive rate low (~0.0005).
 
 
-*Bioinformatics. 2017 May 1; 33(9): 1324–1330.
+*About ntCard
+We recommend that you run ntCard independently on your short read data, and plot the kmer coverage distribution.
+Ideally, you may select a coverage threshold cutoff (nthits -c) based on the that histogram.
+
+https://github.com/bcgsc/ntCard
+Bioinformatics. 2017 May 1; 33(9): 1324–1330.
 Published online 2017 Jan 5. doi: 10.1093/bioinformatics/btw832
 PMCID: PMC5408799
 PMID: 28453674
