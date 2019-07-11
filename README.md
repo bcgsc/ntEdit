@@ -26,7 +26,7 @@ ntEdit v1.2 is written in C++.
 ### Install
 -------
 
-Clone this directory and enter this directory.
+Clone and enter the ntEdit directory.
 <pre>
 https://github.com/bcgsc/ntEdit.git
 cd ntEdit
