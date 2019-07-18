@@ -1,0 +1,129 @@
+#!/usr/bin/make -f
+# Pipeline for the ARCS program
+# Written by Jeffrey Tse
+#Default Parameters
+
+#ntHits := /home/ntHits/nthits
+
+bin=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
+
+allreads:=$(wildcard $(reads)*)
+##$(info Read files that are found: $(allreads))
+
+#required params
+#reads=reads
+#draft=draft
+#k=k
+
+#optional params
+#common params
+b=$(draft)_k$k
+t=1
+
+#ntHits params
+p=$(reads)
+cutoff=5
+
+#ntEdit params
+z=100
+i=4
+d=5
+x=5.000
+y=9.000
+c=$(shell echo $$(($k*(1)))) #k*1.5 to be
+m=0
+v=0
+
+SHELL=bash -e -o pipefail
+ifeq ($(shell zsh -e -o pipefail -c 'true' 2>/dev/null; echo $$?), 0)
+#Set pipefail to ensure that all commands of a pipe succeed.
+SHELL=zsh -e -o pipefail
+# Report run time and memory usage with zsh.
+export REPORTTIME=1
+export TIMEFMT=time user=%U system=%S elapsed=%E cpu=%P memory=%M job=%J
+endif
+
+# Record run time and memory usage in a file using GNU time.
+ifdef time
+ifneq ($(shell command -v gtime),)
+gtime=command gtime -v -o $@.time
+else
+gtime=command time -v -o $@.time
+endif
+endif
+
+
+.PHONY: all version help check ntedit-nthits
+.DELETE_ON_ERROR:
+.PRECIOUS: $(draft)_edited.fa %.bf
+
+all: help 
+# Help
+help:
+	@echo "Usage: ./arcs-make ntedit-nthits [OPTION=VALUE]..."
+	@echo ""
+	@echo "Options:"
+	@echo "	f	Draft genome assembly (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED"
+	@echo "	r	Bloom filter file (generated from ntHits), REQUIRED"
+	@echo "	k	kmer size, REQUIRED"
+	@echo "	t	number of threads [default=1]"
+	@echo "	b	output file prefix, OPTIONAL"
+	@echo ""
+	@echo "Options specific to ntHits:"
+	@echo "	p	the prefix for output file name (bloom filter), OPTIONAL"
+	@echo "	--outbloom	output the most frequent k-mers in a Bloom filter"
+	@echo "	--solid	output the solid k-mers (non-errornous k-mers)"
+	@echo " cutoff	the maximum coverage of kmer in output in bloom filter"
+	@echo ""
+	@echo "Options specific to ntEdit:"
+	@echo "	z	minimum contig length [default=100]"
+	@echo "	i	maximum number of insertion bases to try, range 0-5, [default=4]"
+	@echo "	d	maximum number of deletions bases to try, range 0-5, [default=5]"
+	@echo "	x	k/x ratio for the number of kmers that should be missing, [default=5.000]"
+	@echo "	y	k/y ratio for the number of editted kmers that should be present, [default=9.000]"
+	@echo "	c	cap for the number of base insertions that can be made at one position, [default=k*1.5]"
+	@echo "	m	mode of editing, range 0-2, [default=0]"
+	@echo "			0: best substitution, or first good indel"
+	@echo "			1: best substitution, or best indel"
+	@echo "			2: best edit overall (suggestion that you reduce i and d for performance)"
+	@echo "	v	verbose mode (-v 1 = yes, default = 0, no)"
+	@echo ""
+	@echo "Example : ./ntedit-make ntedit-nthits draft=myDraft reads=myReads k=64"
+	@echo "To ensure that the pipeline runs correctly, make sure that the following tools are in your PATH: ntedit, nthits"
+
+# Version
+version:
+	@echo "ntedit-make version no"
+
+clean:
+	rm -f *.amb *.ann *.bwt *.pac *.sa *.dist.gv *.fai *.bed *.molecule.tsv *.sortbx.bam
+
+#Run ntEdit
+ntedit-nthits: check $(draft)_k$k_edited.fa
+
+check:
+ifndef draft
+	$(error draft is not defined)
+endif
+ifndef reads
+	$(error reads is not defined)
+else
+	$(info read files that are found: $(allreads))	
+endif
+ifndef k
+	$(error kmer size is not defined)
+endif
+
+# Create a .fa file that is soft linked to .fasta 
+%.fa: %.fasta
+	ln -s $^ $@
+
+# Create a .fq.gz file that is soft linked to .fastq.gz 
+##%.fq: %.fastq
+##	ln -s $^ $@
+
+$(reads)_k$k.bf: $(allreads)
+	nthits -c $c --outbloom -p $p -k $k $^
+
+$(draft)_k$k_edited.fa: $p_k$k.bf $(draft).fa
+	ntedit -r $< -f $(word 2,$^) -k $k -b $b -t $t -z $z -i $i -d $d -x $x -y $y -c $c -m $m -v $v
