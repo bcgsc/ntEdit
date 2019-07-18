@@ -55,12 +55,13 @@ endif
 
 .PHONY: all version help check ntedit-nthits
 .DELETE_ON_ERROR:
-.PRECIOUS: $(draft)_edited.fa %.bf
+.PRECIOUS: $(draft)_edited.fa %.tsv %.bf
 
 all: help 
 # Help
 help:
-	@echo "Usage: ./arcs-make ntedit-nthits [OPTION=VALUE]..."
+	@echo ""
+	@echo "Usage: ./ntedit-make ntedit-nthits [OPTION=VALUE]..."
 	@echo ""
 	@echo "Options:"
 	@echo "	f	Draft genome assembly (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED"
