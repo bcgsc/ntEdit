@@ -111,7 +111,6 @@ ifndef k
 endif
 
 $p_k$k.bf: $(allreads)
-	echo $(cap)
 ifeq ($(solid),true)
 	$(gtimeNthits) nthits --solid --outbloom -p$p -k$k -t$t $^
 else
