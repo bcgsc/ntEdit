@@ -1,34 +1,28 @@
 #!/usr/bin/make -f
-# Pipeline for the ntEdit program
+# Pipeline for the ntedit
 # Written by Talha Murathan Goktas
 
 allreads:=$(wildcard $(reads)*)
+draftPrefix = $(basename $(draft))
 
-#required params
-#reads=reads
-#draft=draft
-#k=k
-
-#optional params
-#common params
-b=$(draft)_k$k
+#common parameters
+b=$(draftPrefix)_k$k
 t=1
 
-#ntHits params
+#ntHits parameters
 p=$(reads)
 cutoff=-1
 solid=false
 
-#ntEdit params
+#ntEdit parameters
 z=100
 i=4
 d=5
 x=5.000
 y=9.000
-cap=$(shell echo $$(( $(k)*2 )))
+cap=$(shell echo $$(( $(k)*3/2 )))
 m=0
 v=0
-##c = $(shell echo $((shell expr $(k) * 1.5):-= ))
 
 SHELL=bash -e -o pipefail
 ifeq ($(shell zsh -e -o pipefail -c 'true' 2>/dev/null; echo $$?), 0)
@@ -53,7 +47,7 @@ endif
 
 .PHONY: all version help check ntedit
 .DELETE_ON_ERROR:
-.PRECIOUS: $(draft)_edited.fa %.tsv %.bf
+.PRECIOUS: $(draftPrefix)_edited.fa %.tsv %.bf
 
 all: help 
 # Help
@@ -63,7 +57,7 @@ help:
 	@echo ""
 	@echo "Options:"
 	@echo "	draft	Draft genome assembly (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED"
-	@echo "	reads	read name [reads]. Accepatble file formats: fastq, fasta, gz, bz, zip, REQUIRED"
+	@echo "	reads	read name [reads]. Acceptable file formats: fastq, fasta, gz, bz, zip, REQUIRED"
 	@echo "	time	logs time and memory usage to file for main steps (Set to 1 to enable logging)"
 	@echo "	k	kmer size, REQUIRED"
 	@echo "	t	number of threads [default=1]"
@@ -71,8 +65,8 @@ help:
 	@echo ""
 	@echo "Options specific to ntHits:"
 	@echo "	p	the prefix for output file name (bloom filter)"
-	@echo "	solid	output the solid k-mers (non-errornous k-mers)"
-	@echo "	cutoff	the maximum coverage of kmer in output in bloom filter"
+	@echo "	solid	output the solid k-mers (non-erroneous k-mers)"
+	@echo "	cutoff	the maximum coverage of kmers in output bloom filter"
 	@echo ""
 	@echo "Options specific to ntEdit:"
 	@echo "	z	minimum contig length [default=100]"
@@ -85,23 +79,23 @@ help:
 	@echo "			0: best substitution, or first good indel"
 	@echo "			1: best substitution, or best indel"
 	@echo "			2: best edit overall (suggestion that you reduce i and d for performance)"
-	@echo "	v	verbose mode (-v 1 = yes, default = 0, no)"
+	@echo "	v	verbose mode (1 = yes, default = 0, no)"
 	@echo ""
 	@echo "Example:	Files in directory are myDraft.fa myReads1.fq myReads2.fq"
-	@echo "		./ntedit-make ntedit draft=myDraft reads=myReads k=64 c=2 or"
-	@echo "		./ntedit-make ntedit draft=myDraft reads=myReads k=64 solid=true"
+	@echo "		./ntedit-make ntedit draft=myDraft.fa reads=myReads k=64 c=2 or"
+	@echo "		./ntedit-make ntedit draft=myDraft.fa reads=myReads k=64 solid=true"
 	@echo "To ensure that the pipeline runs correctly, make sure that the following tools are in your PATH: ntedit, nthits"
 	@echo "We suggest you to set the cutoff parameter yourself or set solid=true to set it automatically."
 
 # Version
 version:
-	@echo "ntedit-make version no"
+	@echo "ntedit-make version no 1.1"
 
 clean:
 	rm -f *.amb *.ann *.bwt *.pac *.sa *.dist.gv *.fai *.bed *.molecule.tsv *.sortbx.bam
 
 #Run ntEdit
-ntedit: check $(draft)_k$k_edited.fa
+ntedit: check $(draftPrefix)_k$k_edited.fa
 
 check:
 ifndef draft
@@ -110,26 +104,19 @@ endif
 ifndef reads
 	$(error reads is not defined)
 else
-	$(info read files that are found: $(allreads))	
+	$(info read files that are found: $(allreads))
 endif
 ifndef k
 	$(error kmer size is not defined)
 endif
 
-# Create a .fa file that is soft linked to .fasta 
-%.fa: %.fasta
-	ln -s $^ $@
-
-# Create a .fq.gz file that is soft linked to .fastq.gz 
-##%.fq: %.fastq
-##	ln -s $^ $@
-
-$(reads)_k$k.bf: $(allreads)
+$p_k$k.bf: $(allreads)
+	echo $(cap)
 ifeq ($(solid),true)
 	$(gtimeNthits) nthits --solid --outbloom -p$p -k$k -t$t $^
 else
 	$(gtimeNthits) nthits -c$(cutoff) --outbloom -p$p -k$k -t$t $^
 endif
 
-$(draft)_k$k_edited.fa: $p_k$k.bf $(draft).fa
+$(draftPrefix)_k$k_edited.fa: $p_k$k.bf $(draft)
 	$(gtimeNtedit) ntedit -r $< -f $(word 2,$^) -k $k -b $b -t $t -z $z -i $i -d $d -x $x -y $y -c $(cap) -m $m -v $v
