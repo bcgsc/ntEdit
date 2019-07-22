@@ -1,14 +1,8 @@
 #!/usr/bin/make -f
-# Pipeline for the ARCS program
-# Written by Jeffrey Tse
-#Default Parameters
-
-#ntHits := /home/ntHits/nthits
-
-bin=$(dir $(realpath $(firstword $(MAKEFILE_LIST))))
+# Pipeline for the ntEdit program
+# Written by Talha Murathan Goktas
 
 allreads:=$(wildcard $(reads)*)
-##$(info Read files that are found: $(allreads))
 
 #required params
 #reads=reads
@@ -22,7 +16,8 @@ t=1
 
 #ntHits params
 p=$(reads)
-cutoff=5
+cutoff=-1
+solid=false
 
 #ntEdit params
 z=100
@@ -30,9 +25,10 @@ i=4
 d=5
 x=5.000
 y=9.000
-c=$(shell echo $$(($k*(1)))) #k*1.5 to be
+cap=$(shell echo $$(( $(k)*2 )))
 m=0
 v=0
+##c = $(shell echo $((shell expr $(k) * 1.5):-= ))
 
 SHELL=bash -e -o pipefail
 ifeq ($(shell zsh -e -o pipefail -c 'true' 2>/dev/null; echo $$?), 0)
@@ -46,14 +42,16 @@ endif
 # Record run time and memory usage in a file using GNU time.
 ifdef time
 ifneq ($(shell command -v gtime),)
-gtime=command gtime -v -o $@.time
+gtimeNtedit=command gtime -v -o ntedit_k$k.time
+gtimeNthits=command gtime -v -o nthits_k$k.time
 else
-gtime=command time -v -o $@.time
+gtimeNtedit=command time -v -o ntedit_k$k.time
+gtimeNthits=command time -v -o nthits_k$k.time
 endif
 endif
 
 
-.PHONY: all version help check ntedit-nthits
+.PHONY: all version help check ntedit
 .DELETE_ON_ERROR:
 .PRECIOUS: $(draft)_edited.fa %.tsv %.bf
 
@@ -61,20 +59,20 @@ all: help
 # Help
 help:
 	@echo ""
-	@echo "Usage: ./ntedit-make ntedit-nthits [OPTION=VALUE]..."
+	@echo "Usage: ./ntedit-make ntedit [OPTION=VALUE]..."
 	@echo ""
 	@echo "Options:"
-	@echo "	f	Draft genome assembly (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED"
-	@echo "	r	Bloom filter file (generated from ntHits), REQUIRED"
+	@echo "	draft	Draft genome assembly (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED"
+	@echo "	reads	read name [reads]. Accepatble file formats: fastq, fasta, gz, bz, zip, REQUIRED"
+	@echo "	time	logs time and memory usage to file for main steps (Set to 1 to enable logging)"
 	@echo "	k	kmer size, REQUIRED"
 	@echo "	t	number of threads [default=1]"
 	@echo "	b	output file prefix, OPTIONAL"
 	@echo ""
 	@echo "Options specific to ntHits:"
-	@echo "	p	the prefix for output file name (bloom filter), OPTIONAL"
-	@echo "	--outbloom	output the most frequent k-mers in a Bloom filter"
-	@echo "	--solid	output the solid k-mers (non-errornous k-mers)"
-	@echo " cutoff	the maximum coverage of kmer in output in bloom filter"
+	@echo "	p	the prefix for output file name (bloom filter)"
+	@echo "	solid	output the solid k-mers (non-errornous k-mers)"
+	@echo "	cutoff	the maximum coverage of kmer in output in bloom filter"
 	@echo ""
 	@echo "Options specific to ntEdit:"
 	@echo "	z	minimum contig length [default=100]"
@@ -82,15 +80,18 @@ help:
 	@echo "	d	maximum number of deletions bases to try, range 0-5, [default=5]"
 	@echo "	x	k/x ratio for the number of kmers that should be missing, [default=5.000]"
 	@echo "	y	k/y ratio for the number of editted kmers that should be present, [default=9.000]"
-	@echo "	c	cap for the number of base insertions that can be made at one position, [default=k*1.5]"
+	@echo "	cap	cap for the number of base insertions that can be made at one position, [default=k*1.5]"
 	@echo "	m	mode of editing, range 0-2, [default=0]"
 	@echo "			0: best substitution, or first good indel"
 	@echo "			1: best substitution, or best indel"
 	@echo "			2: best edit overall (suggestion that you reduce i and d for performance)"
 	@echo "	v	verbose mode (-v 1 = yes, default = 0, no)"
 	@echo ""
-	@echo "Example : ./ntedit-make ntedit-nthits draft=myDraft reads=myReads k=64"
+	@echo "Example:	Files in directory are myDraft.fa myReads1.fq myReads2.fq"
+	@echo "		./ntedit-make ntedit draft=myDraft reads=myReads k=64 c=2 or"
+	@echo "		./ntedit-make ntedit draft=myDraft reads=myReads k=64 solid=true"
 	@echo "To ensure that the pipeline runs correctly, make sure that the following tools are in your PATH: ntedit, nthits"
+	@echo "We suggest you to set the cutoff parameter yourself or set solid=true to set it automatically."
 
 # Version
 version:
@@ -100,7 +101,7 @@ clean:
 	rm -f *.amb *.ann *.bwt *.pac *.sa *.dist.gv *.fai *.bed *.molecule.tsv *.sortbx.bam
 
 #Run ntEdit
-ntedit-nthits: check $(draft)_k$k_edited.fa
+ntedit: check $(draft)_k$k_edited.fa
 
 check:
 ifndef draft
@@ -124,7 +125,11 @@ endif
 ##	ln -s $^ $@
 
 $(reads)_k$k.bf: $(allreads)
-	nthits -c $c --outbloom -p $p -k $k $^
+ifeq ($(solid),true)
+	$(gtimeNthits) nthits --solid --outbloom -p$p -k$k -t$t $^
+else
+	$(gtimeNthits) nthits -c$(cutoff) --outbloom -p$p -k$k -t$t $^
+endif
 
 $(draft)_k$k_edited.fa: $p_k$k.bf $(draft).fa
-	ntedit -r $< -f $(word 2,$^) -k $k -b $b -t $t -z $z -i $i -d $d -x $x -y $y -c $c -m $m -v $v
+	$(gtimeNtedit) ntedit -r $< -f $(word 2,$^) -k $k -b $b -t $t -z $z -i $i -d $d -x $x -y $y -c $(cap) -m $m -v $v
