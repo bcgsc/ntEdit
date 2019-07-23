@@ -1,9 +1,9 @@
 #!/usr/bin/make -f
-# Pipeline for the ntedit
+# Pipeline for ntedit
 # Written by Talha Murathan Goktas
 
 allreads:=$(wildcard $(reads)*)
-draftPrefix = $(basename $(draft))
+draftPrefix=$(basename $(draft))
 
 #common parameters
 b=$(draftPrefix)_k$k
@@ -82,17 +82,10 @@ help:
 	@echo "	v	verbose mode (1 = yes, default = 0, no)"
 	@echo ""
 	@echo "Example:	Files in directory are myDraft.fa myReads1.fq myReads2.fq"
-	@echo "		./ntedit-make ntedit draft=myDraft.fa reads=myReads k=64 c=2 or"
+	@echo "		./ntedit-make ntedit draft=myDraft.fa reads=myReads k=64 cutoff=2 or"
 	@echo "		./ntedit-make ntedit draft=myDraft.fa reads=myReads k=64 solid=true"
 	@echo "To ensure that the pipeline runs correctly, make sure that the following tools are in your PATH: ntedit, nthits"
 	@echo "We suggest you to set the cutoff parameter yourself or set solid=true to set it automatically."
-
-# Version
-version:
-	@echo "ntedit-make version no 1.1"
-
-clean:
-	rm -f *.amb *.ann *.bwt *.pac *.sa *.dist.gv *.fai *.bed *.molecule.tsv *.sortbx.bam
 
 #Run ntEdit
 ntedit: check $(draftPrefix)_k$k_edited.fa

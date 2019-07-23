@@ -187,6 +187,52 @@ Mode 2:
 
 *We recommend running ntEdit in Mode 1 (or 0)
 
+### ntedit-make
+------------
+You can run nthits-ntedit pipeline with a makefile.
+<pre>
+	* This make file REQUIRES draft genome, read files(#>=1) and k value. It will automatically run ntEdit after ntHits to output the final polished scaffold file. 
+	* If you submit more than one read files, specify their prefix with "reads=prefix" and make sure that they are all in acceptable formats(fastq, fasta, gz, bz, zip).
+	* You are suggested to specify cutoff parameter yourself or define solid=true in your command to set it automatically.
+	
+Example:	Files in directory are myDraft.fa myReads1.fq myReads2.fq
+		./ntedit-make ntedit draft=myDraft.fa reads=myReads k=64 cutoff=2 or
+		./ntedit-make ntedit draft=myDraft.fa reads=myReads k=64 solid=true
+
+
+	Usage: ./ntedit-make ntedit [OPTION=VALUE]...
+
+Options:
+	draft	Draft genome assembly (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED
+	reads	read name [reads]. Acceptable file formats: fastq, fasta, gz, bz, zip, REQUIRED
+	time	logs time and memory usage to file for main steps (Set to 1 to enable logging)
+	k	kmer size, REQUIRED
+	t	number of threads [default=1]
+	b	output file prefix, OPTIONAL
+
+Options specific to ntHits:
+	p	the prefix for output file name (bloom filter)
+	solid	output the solid k-mers (non-erroneous k-mers)
+	cutoff	the maximum coverage of kmers in output bloom filter
+
+Options specific to ntEdit:
+	z	minimum contig length [default=100]
+	i	maximum number of insertion bases to try, range 0-5, [default=4]
+	d	maximum number of deletions bases to try, range 0-5, [default=5]
+	x	k/x ratio for the number of kmers that should be missing, [default=5.000]
+	y	k/y ratio for the number of editted kmers that should be present, [default=9.000]
+	cap	cap for the number of base insertions that can be made at one position, [default=k*1.5]
+	m	mode of editing, range 0-2, [default=0]
+			0: best substitution, or first good indel
+			1: best substitution, or best indel
+			2: best edit overall (suggestion that you reduce i and d for performance)
+	v	verbose mode (1 = yes, default = 0, no)
+
+
+To ensure that the pipeline runs correctly, make sure that the following tools are in your PATH: ntedit, nthits
+We suggest you to set the cutoff parameter yourself or define solid=true in your command to set it automatically.
+
+</pre>
 
 ### Test data
 ---------
