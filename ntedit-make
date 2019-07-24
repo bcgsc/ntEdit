@@ -45,7 +45,7 @@ endif
 endif
 
 
-.PHONY: all version help check ntedit
+.PHONY: all help check ntedit
 .DELETE_ON_ERROR:
 .PRECIOUS: $(draftPrefix)_edited.fa %.tsv %.bf
 
@@ -84,8 +84,10 @@ help:
 	@echo "Example:	Files in directory are myDraft.fa myReads1.fq myReads2.fq"
 	@echo "		./ntedit-make ntedit draft=myDraft.fa reads=myReads k=64 cutoff=2 or"
 	@echo "		./ntedit-make ntedit draft=myDraft.fa reads=myReads k=64 solid=true"
+	@echo ""
+	@echo "Make sure your read files are the only files in your directory, starting with "reads" prefix."
 	@echo "To ensure that the pipeline runs correctly, make sure that the following tools are in your PATH: ntedit, nthits"
-	@echo "We suggest you to set the cutoff parameter yourself or set solid=true to set it automatically."
+	@echo "We suggest either specifying the cutoff parameter or defining solid=true in your command to set it automatically"
 
 #Run ntEdit
 ntedit: check $(draftPrefix)_k$k_edited.fa

@@ -4,19 +4,16 @@
 # https://aka.ms/yaml
 
 trigger:
-- add_makefile
+- master
 
 pool:
   vmImage: 'ubuntu-latest'
 
 steps:
+- script: echo Hello, world!
+  displayName: 'Run a one-line script'
 
 - script: |
-    sudo apt-get update -qq
-    sudo apt-get install -qq gcc g++ libopenmpi-dev libgtest-dev
-  displayName: 'Install dependencies'
-- script: |
-    make ntedit
-  displayName: 'Compiling ntedit'
-
-
+    echo Add other tasks to build, test, and deploy your project.
+    echo See https://aka.ms/yaml
+  displayName: 'Run a multi-line script'
