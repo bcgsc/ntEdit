@@ -57,7 +57,7 @@ help:
 	@echo ""
 	@echo "Options:"
 	@echo "	draft	draft genome assembly. Must be specified with exact FILE NAME. Ex: draft=myDraft.fa (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED"
-	@echo "	reads	reads. Must be specified with the PREFIX. Ex: reads=myRead where the file is myRead.fq.gz (fastq, fasta, gz, bz, zip), REQUIRED"
+	@echo "	reads	prefix of reads file(s). All files in the working directory with the specified prefix will be used for polishing (fastq, fasta, gz, bz, zip), REQUIRED"
 	@echo "	time	logs time and memory usage to file for main steps (Set to 1 to enable logging)"
 	@echo "	k	kmer size, REQUIRED"
 	@echo "	t	number of threads [default=1]"
