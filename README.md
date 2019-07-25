@@ -190,7 +190,7 @@ Mode 2:
 ### ntedit-make
 ------------
 The ntEdit pipeline can be run with a Makefile (`ntedit-make`), which will run ntHits, then ntEdit for you.
- - Inputs: Read file(s), draft genome to be polished, k-mer size (`k`)
+ - Inputs: Read file(s), draft genome to be polished, k-mer size (`k`).
  - Outputs: Polished scaffolds in FASTA format.
  - If you submit more than one read file, ensure each file has the same prefix (ex. myReads1.fq.gz, myReads2.fq.gz, ...) and specify the prefix with "reads=prefix". Ensure each read file is in an acceptable format (fastq, fasta, gz, bz, zip).
  - We suggest either specifying the cutoff parameter or defining solid=true in your command to set it automatically.
@@ -199,8 +199,8 @@ Example usage:
  - Draft genome to be polished: myDraft.fa
  - Input reads: myReads1.fq, myReads2.fq
 <pre>
-		./ntedit-make ntedit draft=myDraft.fa reads=myReads k=64 cutoff=2   or
-		./ntedit-make ntedit draft=myDraft.fa reads=myReads k=64 solid=true
+	./ntedit-make ntedit draft=myDraft.fa reads=myReads k=64 cutoff=2   or
+	./ntedit-make ntedit draft=myDraft.fa reads=myReads k=64 solid=true
 </pre>
 
 For more information about usage:
