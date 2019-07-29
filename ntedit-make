@@ -11,7 +11,6 @@ t=1
 
 #ntHits parameters
 p=$(reads)
-cutoff=-1
 solid=false
 
 #ntEdit parameters
@@ -66,7 +65,7 @@ help:
 	@echo "Options specific to ntHits:"
 	@echo "	p	the prefix for output file name (bloom filter)"
 	@echo "	solid	output the solid k-mers (non-erroneous k-mers)"
-	@echo "	cutoff	the maximum coverage of kmers in output bloom filter"
+	@echo "	cutoff	the maximum coverage of kmers in output bloom filter, REQUIRED or set solid=true"
 	@echo ""
 	@echo "Options specific to ntEdit:"
 	@echo "	z	minimum contig length [default=100]"
@@ -87,7 +86,7 @@ help:
 	@echo ""
 	@echo "Make sure your read files all have the same prefix, as indicated by 'reads=<prefix>'. The makefile will use all files in the current working directory with this prefix for polishing."
 	@echo "To ensure that the pipeline runs correctly, make sure that the following tools are in your PATH: ntedit, nthits"
-	@echo "We suggest either specifying the cutoff parameter or defining solid=true in your command to set it automatically"
+	@echo "You must either specify the cutoff parameter or define solid=true in your command to set it automatically"
 
 #Run ntEdit
 ntedit: check $(draftPrefix)_k$k_edited.fa
@@ -103,6 +102,11 @@ else
 endif
 ifndef k
 	$(error kmer size is not defined)
+endif
+ifndef cutoff 
+ifneq ($(solid),true)
+	$(error set cutoff parameter or define solid=true to set automatically)
+endif
 endif
 
 $p_k$k.bf: $(allreads)
