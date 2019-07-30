@@ -1,8 +1,5 @@
 #https://aka.ms/yaml
 
-trigger:
-- add_azure-pipeline
-
 pool:
   vmImage: 'ubuntu-latest'
 
