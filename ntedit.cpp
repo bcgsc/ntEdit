@@ -22,6 +22,7 @@
 #include "lib/nthash.hpp"
 #include "lib/BloomFilter.hpp"
 
+// NOLINTNEXTLINE
 KSEQ_INIT(gzFile, gzread)
 
 static const char VERSION_MESSAGE[] = 
@@ -222,21 +223,21 @@ struct sRec {
 
 struct seqNode {
 	int node_type=-1; // -1=unset; 0=position; 1=character
-	size_t s_pos; 
-	size_t e_pos;
-	unsigned char c;
-	unsigned num_support;
+	size_t s_pos = 0; 
+	size_t e_pos = 0;
+	unsigned char c = 0;
+	unsigned num_support = 0;
 };
 
 /* Makes a character insertion RIGHT BEFORE <insert_pos> by creating a character node holding <c> with <num_support> 
  * 	- sets <node> to your insertion node (the node that holds the character <c>). */
 void makeInsertion(unsigned& t_node_index, int insert_pos, std::string insertion_bases, unsigned num_support, std::vector<seqNode>& newSeq) {
 	seqNode orig_node = newSeq[t_node_index]; 
-	std::vector<seqNode> to_insert; 
-	for (unsigned i=0; i<insertion_bases.size(); i++) {
+	std::vector<seqNode> to_insert;
+	for (char insertion_base : insertion_bases) {
 		seqNode insertion_node; 
 		insertion_node.node_type = 1; 
-		insertion_node.c = insertion_bases[i];
+		insertion_node.c = insertion_base;
 		insertion_node.num_support = num_support;
 		to_insert.push_back(insertion_node); 
 	}
@@ -385,7 +386,7 @@ unsigned char getCharacter(unsigned& pos, seqNode node, const string& contigSeq)
 	if (node.node_type == 0) {
 		return contigSeq.at(pos); 
 	}
-	else if (node.node_type == 1) {
+	if (node.node_type == 1) {
 		return node.c;
 	} 
 	unsigned char c;
@@ -472,10 +473,14 @@ std::string getPrevInsertion(unsigned t_seq_i, unsigned t_node_index, vector<seq
 }
 
 /* Write the edits and new draft contig into respective files. */
-void writeEditsToFile(FILE* dfout, FILE* rfout, 
+// void writeEditsToFile(FILE* dfout, FILE* rfout, 
+// 		const std::string& contigHdr, const std::string& contigSeq,
+// 		std::vector<seqNode>& newSeq, std::queue<sRec>& substitution_record) {
+void writeEditsToFile(std::ofstream& dfout, std::ofstream& rfout, 
 		const std::string& contigHdr, const std::string& contigSeq,
 		std::vector<seqNode>& newSeq, std::queue<sRec>& substitution_record) {
-	fprintf(dfout, ">%s\n", contigHdr.c_str()); 
+	//fprintf(dfout, ">%s\n", contigHdr.c_str());
+	dfout << ">" << contigHdr.c_str() << "\n";
 	unsigned node_index = 0;
 	std::string insertion_bases=""; 
 	int num_support=-1; 
@@ -489,39 +494,49 @@ void writeEditsToFile(FILE* dfout, FILE* rfout,
 			draft_char = contigSeq.at(curr_node.s_pos);
 			// log an insertion if it occured before this
 			if (!insertion_bases.empty()) {
-				fprintf(rfout, "%s\t%d\t%c\t%c%s\t%d\n",
-						contigHdr.c_str(), pos+1, draft_char,'+', insertion_bases.c_str(), num_support); 
+				// fprintf(rfout, "%s\t%d\t%c\t%c%s\t%d\n",
+				// 		contigHdr.c_str(), pos+1, draft_char,'+', insertion_bases.c_str(), num_support);
+				rfout << contigHdr.c_str() << "\t" <<  pos+1 << "\t" << draft_char << "\t+" << 
+				insertion_bases.c_str() << "\t" << num_support << "\n";
 				insertion_bases = "";  
 				num_support = -1; 
 			}
 			// log all the substitutions up to this point
 			while (!substitution_record.empty() && substitution_record.front().pos <= curr_node.e_pos){
-				fprintf(rfout, "%s\t%d\t%c\t%c\t%d\n",
-						contigHdr.c_str(), substitution_record.front().pos+1,
-						substitution_record.front().draft_char,
-						substitution_record.front().sub_base,
-						substitution_record.front().num_support);
+				// fprintf(rfout, "%s\t%d\t%c\t%c\t%d\n",
+				// 		contigHdr.c_str(), substitution_record.front().pos+1,
+				// 		substitution_record.front().draft_char,
+				// 		substitution_record.front().sub_base,
+				// 		substitution_record.front().num_support);
+				rfout << contigHdr.c_str() << "\t" << substitution_record.front().pos+1 << "\t"
+				<< substitution_record.front().draft_char << "\t" << substitution_record.front().sub_base << "\t"
+				<< substitution_record.front().num_support << "\n";
 				substitution_record.pop();
 			} 
-			fprintf(dfout, "%s", contigSeq.substr(curr_node.s_pos, (curr_node.e_pos-curr_node.s_pos+1)).c_str()); 
+			//fprintf(dfout, "%s", contigSeq.substr(curr_node.s_pos, (curr_node.e_pos-curr_node.s_pos+1)).c_str()); 
+			dfout << contigSeq.substr(curr_node.s_pos, (curr_node.e_pos-curr_node.s_pos+1)).c_str();
 			pos = curr_node.e_pos+1; 
 		} else if (curr_node.node_type == 1) {
 			insertion_bases += curr_node.c; 
 			if (num_support==-1) num_support = curr_node.num_support; 
-			fprintf(dfout, "%c", curr_node.c); 
+			//fprintf(dfout, "%c", curr_node.c);
+			dfout << curr_node.c;
 		}
 		node_index++; 
 		if (node_index<newSeq.size()) {
 			curr_node = newSeq[node_index];
 			if (curr_node.node_type == 0 && curr_node.s_pos != pos) {
 				// print out the deletion
-				fprintf(rfout, "%s\t%d\t%c\t%c%s\t%d\n", 
-						contigHdr.c_str(), pos+1, contigSeq.at(pos), '-', 
-						contigSeq.substr(pos, (curr_node.s_pos-pos)).c_str(), curr_node.num_support); 
+				// fprintf(rfout, "%s\t%d\t%c\t%c%s\t%d\n", 
+				// 		contigHdr.c_str(), pos+1, contigSeq.at(pos), '-', 
+				// 		contigSeq.substr(pos, (curr_node.s_pos-pos)).c_str(), curr_node.num_support);
+			rfout << contigHdr.c_str() << "\t" << pos+1 << "\t" << contigSeq.at(pos) << "\t-"
+			<< contigSeq.substr(pos, (curr_node.s_pos-pos)).c_str() << "\t" << curr_node.num_support << "\n";
 			}
 		}
 	}
-	fprintf(dfout, "\n");
+	//fprintf(dfout, "\n");
+	dfout << "\n";
 }
 
 /* Roll ntHash using the seqNode structure. */
@@ -549,6 +564,7 @@ void makeEdit(unsigned char& draft_char, unsigned& best_edit_type, unsigned char
 		unsigned& h_seq_i, unsigned& t_seq_i, unsigned& h_node_index, unsigned& t_node_index, 
 		uint64_t& fhVal, uint64_t& rhVal, uint64_t *hVal, 
 		std::string& contigSeq, std::vector<seqNode>& newSeq) {
+	
 	bool skipped_repeat = false;
 	std::string prev_insertion;
 	// make our edit
@@ -690,12 +706,12 @@ int tryDeletion(const unsigned char draft_char, unsigned num_deletions,
 			if (k%3 == 0 && bloom.contains(hVal)) {
 				check_present++;
 			}
-		}			
+		}
 	}
-	
+
 	if (opt::verbose)
 		std::cout << "\t\tdeleting: " << deleted_bases << " check_present: " << check_present << std::endl; 
-	if (check_present >= (static_cast<float>(opt::k) / opt::edit_threshold)) {
+	if (static_cast<float>(check_present) >= (static_cast<float>(opt::k) / opt::edit_threshold)) {
 		return static_cast<int>(check_present);
 	} 
 	return 0;
@@ -815,8 +831,10 @@ bool tryIndels(const unsigned char draft_char, const unsigned char index_char,
 }
 
 /* Kmerize and polish the contig. */
+// void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, BloomFilter& bloom, 
+// 		FILE* dfout, FILE* rfout) {
 void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, BloomFilter& bloom, 
-		FILE* dfout, FILE* rfout) {
+		std::ofstream& dfout, std::ofstream& rfout) {
 
 	// initialize values for hashing
 	uint64_t fhVal;
@@ -986,7 +1004,7 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 		do {
 			if (roll(h_seq_i, t_seq_i, h_node_index, t_node_index, contigSeq, newSeq, charOut, charIn)) {
 				if (!isAcceptedBase(toupper(charIn))) {
-					target_t_seq_i = static_cast<int>(t_seq_i) + opt::k;
+					target_t_seq_i = static_cast<int>(t_seq_i) + static_cast<int>(opt::k);
 				}
 				NTMC64(charOut, charIn, opt::k, opt::h, fhVal, rhVal, hVal); 
 			} else {
@@ -1020,14 +1038,20 @@ void readAndCorrect(BloomFilter& bloom) {
 	// outfile handles
 	std::string d_filename = opt::outfile_prefix+"_edited.fa"; 
 	std::string r_filename = opt::outfile_prefix+"_changes.tsv"; 
-	FILE* dfout = fopen(d_filename.c_str(), "w"); 
-	FILE* rfout = fopen(r_filename.c_str(), "w");
+	//FILE* dfout = fopen(d_filename.c_str(), "w"); 
+	//FILE* rfout = fopen(r_filename.c_str(), "w");
+	ofstream dfout;
+	ofstream rfout;
+  	dfout.open(d_filename);
+	rfout.open(r_filename);
 
-	fprintf(rfout, 
-		"ID\tbpPosition+1\tOriginalBase\tNewBase\tSupport %d-mer (out of %d)\tAlternateNewBase\tAlt.Support %d-mers\n",
-			opt::k, 
-			((opt::k / 3)+1),
-			opt::k); 
+	rfout << "ID\tbpPosition+1\tOriginalBase\tNewBase\tSupport " << opt::k << "-mer (out of " << (opt::k / 3)+1
+	<< ")\tAlternateNewBase\tAlt.Support " << opt::k << "-mers\n";
+	// fprintf(rfout, 
+	// 	"ID\tbpPosition+1\tOriginalBase\tNewBase\tSupport %d-mer (out of %d)\tAlternateNewBase\tAlt.Support %d-mers\n",
+	// 		opt::k, 
+	// 		((opt::k / 3)+1),
+	// 		opt::k); 
 
 #pragma omp parallel shared(seq,dfout,rfout)
 	{
@@ -1069,8 +1093,10 @@ void readAndCorrect(BloomFilter& bloom) {
 //#pragma omp barrier
 	kseq_destroy(seq); 
 	gzclose(dfp); 
-	fclose(dfout); 
-	fclose(rfout); 
+	//fclose(dfout); 
+	//fclose(rfout); 
+	dfout.close();
+	rfout.close();
 }
 
 int main (int argc, char ** argv) {
