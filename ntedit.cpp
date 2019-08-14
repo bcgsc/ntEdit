@@ -56,19 +56,26 @@ static const char USAGE_MESSAGE[] =
 	"	--version,	output version information and exit\n"
 	"\n"; 
 
-using namespace std; 
+//using namespace std; 
 
 namespace opt {
+	/* Defining magical numbers. */
+	constexpr int default_min_contig_len = 100;
+	constexpr int default_max_insertions=4;
+	constexpr int default_max_deletions=5;
+	constexpr float default_edit_threshold=9.0000; 
+	constexpr float default_missing_threshold=5.0000;
+	
 	unsigned nthreads=1; 
-	string draft_filename; 
-	string bloom_filename;
+	std::string draft_filename; 
+	std::string bloom_filename;
 	unsigned k; 
 	unsigned h=0;
-	unsigned min_contig_len=100; 
-	unsigned max_insertions=4; 
-	unsigned max_deletions=5;
-	float edit_threshold=9.0000; 
-	float missing_threshold=5.0000;
+	unsigned min_contig_len=default_min_contig_len; 
+	unsigned max_insertions=default_max_insertions; 
+	unsigned max_deletions=default_max_deletions;
+	float edit_threshold=default_edit_threshold; 
+	float missing_threshold=default_missing_threshold;
 	unsigned insertion_cap=opt::k*1.5;
 	string outfile_prefix; 
 	int mode=0; 
@@ -80,43 +87,43 @@ static const char shortopts[] = "t:f:s:k:z:b:r:v:d:i:x:y:m:c:";
 enum { OPT_HELP = 1, OPT_VERSION }; 
 
 static const struct option longopts[] = {
-	{"threads",	required_argument, NULL, 't'},
-	{"draft_file",	required_argument, NULL, 'f'},
-	{"k",	required_argument, NULL, 'k'},
-	{"minimum_contig_length",	required_argument, NULL, 'z'},
-	{"maximum_insertions",	required_argument, NULL, 'i'},
-	{"maximum_deletions", required_argument, NULL, 'd'},
-	{"insertion_cap",	required_argument, NULL ,'c'},
-	{"edit_threshold",	required_argument, NULL, 'y'},
-	{"missing_threshold",	required_argument, NULL, 'x'},
-	{"bloom_filename", required_argument, NULL, 'r'},
-	{"outfile_prefix", required_argument, NULL, 'b'},
-	{"mode", required_argument, NULL, 'm'},
-	{"verbose", required_argument, NULL, 'v'},
-	{"help", no_argument, NULL, OPT_HELP},
-	{"version", no_argument, NULL, OPT_VERSION},
-	{NULL, 0, NULL, 0}
+	{"threads",	required_argument, nullptr, 't'},
+	{"draft_file",	required_argument, nullptr, 'f'},
+	{"k",	required_argument, nullptr, 'k'},
+	{"minimum_contig_length",	required_argument, nullptr, 'z'},
+	{"maximum_insertions",	required_argument, nullptr, 'i'},
+	{"maximum_deletions", required_argument, nullptr, 'd'},
+	{"insertion_cap",	required_argument, nullptr ,'c'},
+	{"edit_threshold",	required_argument, nullptr, 'y'},
+	{"missing_threshold",	required_argument, nullptr, 'x'},
+	{"bloom_filename", required_argument, nullptr, 'r'},
+	{"outfile_prefix", required_argument, nullptr, 'b'},
+	{"mode", required_argument, nullptr, 'm'},
+	{"verbose", required_argument, nullptr, 'v'},
+	{"help", no_argument, nullptr, OPT_HELP},
+	{"version", no_argument, nullptr, OPT_VERSION},
+	{nullptr, 0, nullptr, 0}
 };
 
 // Setting up the number of tries when for each number of base insertion
-vector<int> num_tries = {0,1,5,21,85,341};
+std::vector<int> num_tries = {0,1,5,21,85,341};
 
 // Setting up base array
-unordered_map<unsigned char, vector<unsigned char>> bases_array = {{'A', {'T', 'C', 'G'}},
+std::unordered_map<unsigned char, std::vector<unsigned char>> bases_array = {{'A', {'T', 'C', 'G'}},
 							    {'T', {'A', 'C', 'G'}},
 							    {'C', {'A', 'T', 'G'}},
 							    {'G', {'A', 'T', 'C'}},
 							    {'N', {'A', 'T', 'C', 'G'}}};
 
 // Setting all the indel combos
-unordered_map<unsigned char, vector<string>> multi_possible_bases = {{'A', { "A", "AA", "AC", "AG", "AT", "AAA", "AAC", "AAG", "AAT", "ACA", "ACC", "ACG", "ACT", "AGA", "AGC", "AGG", "AGT", "ATA", "ATC", "ATG", "ATT", "AAAA", "AAAC", "AAAG", "AAAT", "AACA", "AACC", "AACG", "AACT", "AAGA", "AAGC", "AAGG", "AAGT", "AATA", "AATC", "AATG", "AATT", "ACAA", "ACAC", "ACAG", "ACAT", "ACCA", "ACCC", "ACCG", "ACCT", "ACGA", "ACGC", "ACGG", "ACGT", "ACTA", "ACTC", "ACTG", "ACTT", "AGAA", "AGAC", "AGAG", "AGAT", "AGCA", "AGCC", "AGCG", "AGCT", "AGGA", "AGGC", "AGGG", "AGGT", "AGTA", "AGTC", "AGTG", "AGTT", "ATAA", "ATAC", "ATAG", "ATAT", "ATCA", "ATCC", "ATCG", "ATCT", "ATGA", "ATGC", "ATGG", "ATGT", "ATTA", "ATTC", "ATTG", "ATTT", "AAAAA", "AAAAC", "AAAAG", "AAAAT", "AAACA", "AAACC", "AAACG", "AAACT", "AAAGA", "AAAGC", "AAAGG", "AAAGT", "AAATA", "AAATC", "AAATG", "AAATT", "AACAA", "AACAC", "AACAG", "AACAT", "AACCA", "AACCC", "AACCG", "AACCT", "AACGA", "AACGC", "AACGG", "AACGT", "AACTA", "AACTC", "AACTG", "AACTT", "AAGAA", "AAGAC", "AAGAG", "AAGAT", "AAGCA", "AAGCC", "AAGCG", "AAGCT", "AAGGA", "AAGGC", "AAGGG", "AAGGT", "AAGTA", "AAGTC", "AAGTG", "AAGTT", "AATAA", "AATAC", "AATAG", "AATAT", "AATCA", "AATCC", "AATCG", "AATCT", "AATGA", "AATGC", "AATGG", "AATGT", "AATTA", "AATTC", "AATTG", "AATTT", "ACAAA", "ACAAC", "ACAAG", "ACAAT", "ACACA", "ACACC", "ACACG", "ACACT", "ACAGA", "ACAGC", "ACAGG", "ACAGT", "ACATA", "ACATC", "ACATG", "ACATT", "ACCAA", "ACCAC", "ACCAG", "ACCAT", "ACCCA", "ACCCC", "ACCCG", "ACCCT", "ACCGA", "ACCGC", "ACCGG", "ACCGT", "ACCTA", "ACCTC", "ACCTG", "ACCTT", "ACGAA", "ACGAC", "ACGAG", "ACGAT", "ACGCA", "ACGCC", "ACGCG", "ACGCT", "ACGGA", "ACGGC", "ACGGG", "ACGGT", "ACGTA", "ACGTC", "ACGTG", "ACGTT", "ACTAA", "ACTAC", "ACTAG", "ACTAT", "ACTCA", "ACTCC", "ACTCG", "ACTCT", "ACTGA", "ACTGC", "ACTGG", "ACTGT", "ACTTA", "ACTTC", "ACTTG", "ACTTT", "AGAAA", "AGAAC", "AGAAG", "AGAAT", "AGACA", "AGACC", "AGACG", "AGACT", "AGAGA", "AGAGC", "AGAGG", "AGAGT", "AGATA", "AGATC", "AGATG", "AGATT", "AGCAA", "AGCAC", "AGCAG", "AGCAT", "AGCCA", "AGCCC", "AGCCG", "AGCCT", "AGCGA", "AGCGC", "AGCGG", "AGCGT", "AGCTA", "AGCTC", "AGCTG", "AGCTT", "AGGAA", "AGGAC", "AGGAG", "AGGAT", "AGGCA", "AGGCC", "AGGCG", "AGGCT", "AGGGA", "AGGGC", "AGGGG", "AGGGT", "AGGTA", "AGGTC", "AGGTG", "AGGTT", "AGTAA", "AGTAC", "AGTAG", "AGTAT", "AGTCA", "AGTCC", "AGTCG", "AGTCT", "AGTGA", "AGTGC", "AGTGG", "AGTGT", "AGTTA", "AGTTC", "AGTTG", "AGTTT", "ATAAA", "ATAAC", "ATAAG", "ATAAT", "ATACA", "ATACC", "ATACG", "ATACT", "ATAGA", "ATAGC", "ATAGG", "ATAGT", "ATATA", "ATATC", "ATATG", "ATATT", "ATCAA", "ATCAC", "ATCAG", "ATCAT", "ATCCA", "ATCCC", "ATCCG", "ATCCT", "ATCGA", "ATCGC", "ATCGG", "ATCGT", "ATCTA", "ATCTC", "ATCTG", "ATCTT", "ATGAA", "ATGAC", "ATGAG", "ATGAT", "ATGCA", "ATGCC", "ATGCG", "ATGCT", "ATGGA", "ATGGC", "ATGGG", "ATGGT", "ATGTA", "ATGTC", "ATGTG", "ATGTT", "ATTAA", "ATTAC", "ATTAG", "ATTAT", "ATTCA", "ATTCC", "ATTCG", "ATTCT", "ATTGA", "ATTGC", "ATTGG", "ATTGT", "ATTTA", "ATTTC", "ATTTG", "ATTTT"}},
+std::unordered_map<unsigned char, std::vector<string>> multi_possible_bases = {{'A', { "A", "AA", "AC", "AG", "AT", "AAA", "AAC", "AAG", "AAT", "ACA", "ACC", "ACG", "ACT", "AGA", "AGC", "AGG", "AGT", "ATA", "ATC", "ATG", "ATT", "AAAA", "AAAC", "AAAG", "AAAT", "AACA", "AACC", "AACG", "AACT", "AAGA", "AAGC", "AAGG", "AAGT", "AATA", "AATC", "AATG", "AATT", "ACAA", "ACAC", "ACAG", "ACAT", "ACCA", "ACCC", "ACCG", "ACCT", "ACGA", "ACGC", "ACGG", "ACGT", "ACTA", "ACTC", "ACTG", "ACTT", "AGAA", "AGAC", "AGAG", "AGAT", "AGCA", "AGCC", "AGCG", "AGCT", "AGGA", "AGGC", "AGGG", "AGGT", "AGTA", "AGTC", "AGTG", "AGTT", "ATAA", "ATAC", "ATAG", "ATAT", "ATCA", "ATCC", "ATCG", "ATCT", "ATGA", "ATGC", "ATGG", "ATGT", "ATTA", "ATTC", "ATTG", "ATTT", "AAAAA", "AAAAC", "AAAAG", "AAAAT", "AAACA", "AAACC", "AAACG", "AAACT", "AAAGA", "AAAGC", "AAAGG", "AAAGT", "AAATA", "AAATC", "AAATG", "AAATT", "AACAA", "AACAC", "AACAG", "AACAT", "AACCA", "AACCC", "AACCG", "AACCT", "AACGA", "AACGC", "AACGG", "AACGT", "AACTA", "AACTC", "AACTG", "AACTT", "AAGAA", "AAGAC", "AAGAG", "AAGAT", "AAGCA", "AAGCC", "AAGCG", "AAGCT", "AAGGA", "AAGGC", "AAGGG", "AAGGT", "AAGTA", "AAGTC", "AAGTG", "AAGTT", "AATAA", "AATAC", "AATAG", "AATAT", "AATCA", "AATCC", "AATCG", "AATCT", "AATGA", "AATGC", "AATGG", "AATGT", "AATTA", "AATTC", "AATTG", "AATTT", "ACAAA", "ACAAC", "ACAAG", "ACAAT", "ACACA", "ACACC", "ACACG", "ACACT", "ACAGA", "ACAGC", "ACAGG", "ACAGT", "ACATA", "ACATC", "ACATG", "ACATT", "ACCAA", "ACCAC", "ACCAG", "ACCAT", "ACCCA", "ACCCC", "ACCCG", "ACCCT", "ACCGA", "ACCGC", "ACCGG", "ACCGT", "ACCTA", "ACCTC", "ACCTG", "ACCTT", "ACGAA", "ACGAC", "ACGAG", "ACGAT", "ACGCA", "ACGCC", "ACGCG", "ACGCT", "ACGGA", "ACGGC", "ACGGG", "ACGGT", "ACGTA", "ACGTC", "ACGTG", "ACGTT", "ACTAA", "ACTAC", "ACTAG", "ACTAT", "ACTCA", "ACTCC", "ACTCG", "ACTCT", "ACTGA", "ACTGC", "ACTGG", "ACTGT", "ACTTA", "ACTTC", "ACTTG", "ACTTT", "AGAAA", "AGAAC", "AGAAG", "AGAAT", "AGACA", "AGACC", "AGACG", "AGACT", "AGAGA", "AGAGC", "AGAGG", "AGAGT", "AGATA", "AGATC", "AGATG", "AGATT", "AGCAA", "AGCAC", "AGCAG", "AGCAT", "AGCCA", "AGCCC", "AGCCG", "AGCCT", "AGCGA", "AGCGC", "AGCGG", "AGCGT", "AGCTA", "AGCTC", "AGCTG", "AGCTT", "AGGAA", "AGGAC", "AGGAG", "AGGAT", "AGGCA", "AGGCC", "AGGCG", "AGGCT", "AGGGA", "AGGGC", "AGGGG", "AGGGT", "AGGTA", "AGGTC", "AGGTG", "AGGTT", "AGTAA", "AGTAC", "AGTAG", "AGTAT", "AGTCA", "AGTCC", "AGTCG", "AGTCT", "AGTGA", "AGTGC", "AGTGG", "AGTGT", "AGTTA", "AGTTC", "AGTTG", "AGTTT", "ATAAA", "ATAAC", "ATAAG", "ATAAT", "ATACA", "ATACC", "ATACG", "ATACT", "ATAGA", "ATAGC", "ATAGG", "ATAGT", "ATATA", "ATATC", "ATATG", "ATATT", "ATCAA", "ATCAC", "ATCAG", "ATCAT", "ATCCA", "ATCCC", "ATCCG", "ATCCT", "ATCGA", "ATCGC", "ATCGG", "ATCGT", "ATCTA", "ATCTC", "ATCTG", "ATCTT", "ATGAA", "ATGAC", "ATGAG", "ATGAT", "ATGCA", "ATGCC", "ATGCG", "ATGCT", "ATGGA", "ATGGC", "ATGGG", "ATGGT", "ATGTA", "ATGTC", "ATGTG", "ATGTT", "ATTAA", "ATTAC", "ATTAG", "ATTAT", "ATTCA", "ATTCC", "ATTCG", "ATTCT", "ATTGA", "ATTGC", "ATTGG", "ATTGT", "ATTTA", "ATTTC", "ATTTG", "ATTTT"}},
 								{'C', { "C", "CA", "CC", "CG", "CT", "CAA", "CAC", "CAG", "CAT", "CCA", "CCC", "CCG", "CCT", "CGA", "CGC", "CGG", "CGT", "CTA", "CTC", "CTG", "CTT", "CAAA", "CAAC", "CAAG", "CAAT", "CACA", "CACC", "CACG", "CACT", "CAGA", "CAGC", "CAGG", "CAGT", "CATA", "CATC", "CATG", "CATT", "CCAA", "CCAC", "CCAG", "CCAT", "CCCA", "CCCC", "CCCG", "CCCT", "CCGA", "CCGC", "CCGG", "CCGT", "CCTA", "CCTC", "CCTG", "CCTT", "CGAA", "CGAC", "CGAG", "CGAT", "CGCA", "CGCC", "CGCG", "CGCT", "CGGA", "CGGC", "CGGG", "CGGT", "CGTA", "CGTC", "CGTG", "CGTT", "CTAA", "CTAC", "CTAG", "CTAT", "CTCA", "CTCC", "CTCG", "CTCT", "CTGA", "CTGC", "CTGG", "CTGT", "CTTA", "CTTC", "CTTG", "CTTT", "CAAAA", "CAAAC", "CAAAG", "CAAAT", "CAACA", "CAACC", "CAACG", "CAACT", "CAAGA", "CAAGC", "CAAGG", "CAAGT", "CAATA", "CAATC", "CAATG", "CAATT", "CACAA", "CACAC", "CACAG", "CACAT", "CACCA", "CACCC", "CACCG", "CACCT", "CACGA", "CACGC", "CACGG", "CACGT", "CACTA", "CACTC", "CACTG", "CACTT", "CAGAA", "CAGAC", "CAGAG", "CAGAT", "CAGCA", "CAGCC", "CAGCG", "CAGCT", "CAGGA", "CAGGC", "CAGGG", "CAGGT", "CAGTA", "CAGTC", "CAGTG", "CAGTT", "CATAA", "CATAC", "CATAG", "CATAT", "CATCA", "CATCC", "CATCG", "CATCT", "CATGA", "CATGC", "CATGG", "CATGT", "CATTA", "CATTC", "CATTG", "CATTT", "CCAAA", "CCAAC", "CCAAG", "CCAAT", "CCACA", "CCACC", "CCACG", "CCACT", "CCAGA", "CCAGC", "CCAGG", "CCAGT", "CCATA", "CCATC", "CCATG", "CCATT", "CCCAA", "CCCAC", "CCCAG", "CCCAT", "CCCCA", "CCCCC", "CCCCG", "CCCCT", "CCCGA", "CCCGC", "CCCGG", "CCCGT", "CCCTA", "CCCTC", "CCCTG", "CCCTT", "CCGAA", "CCGAC", "CCGAG", "CCGAT", "CCGCA", "CCGCC", "CCGCG", "CCGCT", "CCGGA", "CCGGC", "CCGGG", "CCGGT", "CCGTA", "CCGTC", "CCGTG", "CCGTT", "CCTAA", "CCTAC", "CCTAG", "CCTAT", "CCTCA", "CCTCC", "CCTCG", "CCTCT", "CCTGA", "CCTGC", "CCTGG", "CCTGT", "CCTTA", "CCTTC", "CCTTG", "CCTTT", "CGAAA", "CGAAC", "CGAAG", "CGAAT", "CGACA", "CGACC", "CGACG", "CGACT", "CGAGA", "CGAGC", "CGAGG", "CGAGT", "CGATA", "CGATC", "CGATG", "CGATT", "CGCAA", "CGCAC", "CGCAG", "CGCAT", "CGCCA", "CGCCC", "CGCCG", "CGCCT", "CGCGA", "CGCGC", "CGCGG", "CGCGT", "CGCTA", "CGCTC", "CGCTG", "CGCTT", "CGGAA", "CGGAC", "CGGAG", "CGGAT", "CGGCA", "CGGCC", "CGGCG", "CGGCT", "CGGGA", "CGGGC", "CGGGG", "CGGGT", "CGGTA", "CGGTC", "CGGTG", "CGGTT", "CGTAA", "CGTAC", "CGTAG", "CGTAT", "CGTCA", "CGTCC", "CGTCG", "CGTCT", "CGTGA", "CGTGC", "CGTGG", "CGTGT", "CGTTA", "CGTTC", "CGTTG", "CGTTT", "CTAAA", "CTAAC", "CTAAG", "CTAAT", "CTACA", "CTACC", "CTACG", "CTACT", "CTAGA", "CTAGC", "CTAGG", "CTAGT", "CTATA", "CTATC", "CTATG", "CTATT", "CTCAA", "CTCAC", "CTCAG", "CTCAT", "CTCCA", "CTCCC", "CTCCG", "CTCCT", "CTCGA", "CTCGC", "CTCGG", "CTCGT", "CTCTA", "CTCTC", "CTCTG", "CTCTT", "CTGAA", "CTGAC", "CTGAG", "CTGAT", "CTGCA", "CTGCC", "CTGCG", "CTGCT", "CTGGA", "CTGGC", "CTGGG", "CTGGT", "CTGTA", "CTGTC", "CTGTG", "CTGTT", "CTTAA", "CTTAC", "CTTAG", "CTTAT", "CTTCA", "CTTCC", "CTTCG", "CTTCT", "CTTGA", "CTTGC", "CTTGG", "CTTGT", "CTTTA", "CTTTC", "CTTTG", "CTTTT"}},
 								{'G', { "G", "GA", "GC", "GG", "GT", "GAA", "GAC", "GAG", "GAT", "GCA", "GCC", "GCG", "GCT", "GGA", "GGC", "GGG", "GGT", "GTA", "GTC", "GTG", "GTT", "GAAA", "GAAC", "GAAG", "GAAT", "GACA", "GACC", "GACG", "GACT", "GAGA", "GAGC", "GAGG", "GAGT", "GATA", "GATC", "GATG", "GATT", "GCAA", "GCAC", "GCAG", "GCAT", "GCCA", "GCCC", "GCCG", "GCCT", "GCGA", "GCGC", "GCGG", "GCGT", "GCTA", "GCTC", "GCTG", "GCTT", "GGAA", "GGAC", "GGAG", "GGAT", "GGCA", "GGCC", "GGCG", "GGCT", "GGGA", "GGGC", "GGGG", "GGGT", "GGTA", "GGTC", "GGTG", "GGTT", "GTAA", "GTAC", "GTAG", "GTAT", "GTCA", "GTCC", "GTCG", "GTCT", "GTGA", "GTGC", "GTGG", "GTGT", "GTTA", "GTTC", "GTTG", "GTTT", "GAAAA", "GAAAC", "GAAAG", "GAAAT", "GAACA", "GAACC", "GAACG", "GAACT", "GAAGA", "GAAGC", "GAAGG", "GAAGT", "GAATA", "GAATC", "GAATG", "GAATT", "GACAA", "GACAC", "GACAG", "GACAT", "GACCA", "GACCC", "GACCG", "GACCT", "GACGA", "GACGC", "GACGG", "GACGT", "GACTA", "GACTC", "GACTG", "GACTT", "GAGAA", "GAGAC", "GAGAG", "GAGAT", "GAGCA", "GAGCC", "GAGCG", "GAGCT", "GAGGA", "GAGGC", "GAGGG", "GAGGT", "GAGTA", "GAGTC", "GAGTG", "GAGTT", "GATAA", "GATAC", "GATAG", "GATAT", "GATCA", "GATCC", "GATCG", "GATCT", "GATGA", "GATGC", "GATGG", "GATGT", "GATTA", "GATTC", "GATTG", "GATTT", "GCAAA", "GCAAC", "GCAAG", "GCAAT", "GCACA", "GCACC", "GCACG", "GCACT", "GCAGA", "GCAGC", "GCAGG", "GCAGT", "GCATA", "GCATC", "GCATG", "GCATT", "GCCAA", "GCCAC", "GCCAG", "GCCAT", "GCCCA", "GCCCC", "GCCCG", "GCCCT", "GCCGA", "GCCGC", "GCCGG", "GCCGT", "GCCTA", "GCCTC", "GCCTG", "GCCTT", "GCGAA", "GCGAC", "GCGAG", "GCGAT", "GCGCA", "GCGCC", "GCGCG", "GCGCT", "GCGGA", "GCGGC", "GCGGG", "GCGGT", "GCGTA", "GCGTC", "GCGTG", "GCGTT", "GCTAA", "GCTAC", "GCTAG", "GCTAT", "GCTCA", "GCTCC", "GCTCG", "GCTCT", "GCTGA", "GCTGC", "GCTGG", "GCTGT", "GCTTA", "GCTTC", "GCTTG", "GCTTT", "GGAAA", "GGAAC", "GGAAG", "GGAAT", "GGACA", "GGACC", "GGACG", "GGACT", "GGAGA", "GGAGC", "GGAGG", "GGAGT", "GGATA", "GGATC", "GGATG", "GGATT", "GGCAA", "GGCAC", "GGCAG", "GGCAT", "GGCCA", "GGCCC", "GGCCG", "GGCCT", "GGCGA", "GGCGC", "GGCGG", "GGCGT", "GGCTA", "GGCTC", "GGCTG", "GGCTT", "GGGAA", "GGGAC", "GGGAG", "GGGAT", "GGGCA", "GGGCC", "GGGCG", "GGGCT", "GGGGA", "GGGGC", "GGGGG", "GGGGT", "GGGTA", "GGGTC", "GGGTG", "GGGTT", "GGTAA", "GGTAC", "GGTAG", "GGTAT", "GGTCA", "GGTCC", "GGTCG", "GGTCT", "GGTGA", "GGTGC", "GGTGG", "GGTGT", "GGTTA", "GGTTC", "GGTTG", "GGTTT", "GTAAA", "GTAAC", "GTAAG", "GTAAT", "GTACA", "GTACC", "GTACG", "GTACT", "GTAGA", "GTAGC", "GTAGG", "GTAGT", "GTATA", "GTATC", "GTATG", "GTATT", "GTCAA", "GTCAC", "GTCAG", "GTCAT", "GTCCA", "GTCCC", "GTCCG", "GTCCT", "GTCGA", "GTCGC", "GTCGG", "GTCGT", "GTCTA", "GTCTC", "GTCTG", "GTCTT", "GTGAA", "GTGAC", "GTGAG", "GTGAT", "GTGCA", "GTGCC", "GTGCG", "GTGCT", "GTGGA", "GTGGC", "GTGGG", "GTGGT", "GTGTA", "GTGTC", "GTGTG", "GTGTT", "GTTAA", "GTTAC", "GTTAG", "GTTAT", "GTTCA", "GTTCC", "GTTCG", "GTTCT", "GTTGA", "GTTGC", "GTTGG", "GTTGT", "GTTTA", "GTTTC", "GTTTG", "GTTTT"}},
 								{'T', { "T", "TA", "TC", "TG", "TT", "TAA", "TAC", "TAG", "TAT", "TCA", "TCC", "TCG", "TCT", "TGA", "TGC", "TGG", "TGT", "TTA", "TTC", "TTG", "TTT", "TAAA", "TAAC", "TAAG", "TAAT", "TACA", "TACC", "TACG", "TACT", "TAGA", "TAGC", "TAGG", "TAGT", "TATA", "TATC", "TATG", "TATT", "TCAA", "TCAC", "TCAG", "TCAT", "TCCA", "TCCC", "TCCG", "TCCT", "TCGA", "TCGC", "TCGG", "TCGT", "TCTA", "TCTC", "TCTG", "TCTT", "TGAA", "TGAC", "TGAG", "TGAT", "TGCA", "TGCC", "TGCG", "TGCT", "TGGA", "TGGC", "TGGG", "TGGT", "TGTA", "TGTC", "TGTG", "TGTT", "TTAA", "TTAC", "TTAG", "TTAT", "TTCA", "TTCC", "TTCG", "TTCT", "TTGA", "TTGC", "TTGG", "TTGT", "TTTA", "TTTC", "TTTG", "TTTT", "TAAAA", "TAAAC", "TAAAG", "TAAAT", "TAACA", "TAACC", "TAACG", "TAACT", "TAAGA", "TAAGC", "TAAGG", "TAAGT", "TAATA", "TAATC", "TAATG", "TAATT", "TACAA", "TACAC", "TACAG", "TACAT", "TACCA", "TACCC", "TACCG", "TACCT", "TACGA", "TACGC", "TACGG", "TACGT", "TACTA", "TACTC", "TACTG", "TACTT", "TAGAA", "TAGAC", "TAGAG", "TAGAT", "TAGCA", "TAGCC", "TAGCG", "TAGCT", "TAGGA", "TAGGC", "TAGGG", "TAGGT", "TAGTA", "TAGTC", "TAGTG", "TAGTT", "TATAA", "TATAC", "TATAG", "TATAT", "TATCA", "TATCC", "TATCG", "TATCT", "TATGA", "TATGC", "TATGG", "TATGT", "TATTA", "TATTC", "TATTG", "TATTT", "TCAAA", "TCAAC", "TCAAG", "TCAAT", "TCACA", "TCACC", "TCACG", "TCACT", "TCAGA", "TCAGC", "TCAGG", "TCAGT", "TCATA", "TCATC", "TCATG", "TCATT", "TCCAA", "TCCAC", "TCCAG", "TCCAT", "TCCCA", "TCCCC", "TCCCG", "TCCCT", "TCCGA", "TCCGC", "TCCGG", "TCCGT", "TCCTA", "TCCTC", "TCCTG", "TCCTT", "TCGAA", "TCGAC", "TCGAG", "TCGAT", "TCGCA", "TCGCC", "TCGCG", "TCGCT", "TCGGA", "TCGGC", "TCGGG", "TCGGT", "TCGTA", "TCGTC", "TCGTG", "TCGTT", "TCTAA", "TCTAC", "TCTAG", "TCTAT", "TCTCA", "TCTCC", "TCTCG", "TCTCT", "TCTGA", "TCTGC", "TCTGG", "TCTGT", "TCTTA", "TCTTC", "TCTTG", "TCTTT", "TGAAA", "TGAAC", "TGAAG", "TGAAT", "TGACA", "TGACC", "TGACG", "TGACT", "TGAGA", "TGAGC", "TGAGG", "TGAGT", "TGATA", "TGATC", "TGATG", "TGATT", "TGCAA", "TGCAC", "TGCAG", "TGCAT", "TGCCA", "TGCCC", "TGCCG", "TGCCT", "TGCGA", "TGCGC", "TGCGG", "TGCGT", "TGCTA", "TGCTC", "TGCTG", "TGCTT", "TGGAA", "TGGAC", "TGGAG", "TGGAT", "TGGCA", "TGGCC", "TGGCG", "TGGCT", "TGGGA", "TGGGC", "TGGGG", "TGGGT", "TGGTA", "TGGTC", "TGGTG", "TGGTT", "TGTAA", "TGTAC", "TGTAG", "TGTAT", "TGTCA", "TGTCC", "TGTCG", "TGTCT", "TGTGA", "TGTGC", "TGTGG", "TGTGT", "TGTTA", "TGTTC", "TGTTG", "TGTTT", "TTAAA", "TTAAC", "TTAAG", "TTAAT", "TTACA", "TTACC", "TTACG", "TTACT", "TTAGA", "TTAGC", "TTAGG", "TTAGT", "TTATA", "TTATC", "TTATG", "TTATT", "TTCAA", "TTCAC", "TTCAG", "TTCAT", "TTCCA", "TTCCC", "TTCCG", "TTCCT", "TTCGA", "TTCGC", "TTCGG", "TTCGT", "TTCTA", "TTCTC", "TTCTG", "TTCTT", "TTGAA", "TTGAC", "TTGAG", "TTGAT", "TTGCA", "TTGCC", "TTGCG", "TTGCT", "TTGGA", "TTGGC", "TTGGG", "TTGGT", "TTGTA", "TTGTC", "TTGTG", "TTGTT", "TTTAA", "TTTAC", "TTTAG", "TTTAT", "TTTCA", "TTTCC", "TTTCG", "TTTCT", "TTTGA", "TTTGC", "TTTGG", "TTTGT", "TTTTA", "TTTTC", "TTTTG", "TTTTT"}}
 };
 
 /* Checks that the filepath is readable and exits if it is not. */
-static inline void assert_readable(const string& path) {
+static inline void assert_readable(const std::string& path) {
 	if (access(path.c_str(), R_OK) == -1) {
 		std::cerr << PROGRAM ": error: `" << path << "': " << strerror(errno) << std::endl; 
 		exit(EXIT_FAILURE); 
@@ -149,7 +156,7 @@ char RC(unsigned char C) {
 
 /* Find the first only ATGC kmer starting at the beginning of a sequence.
  * 	Assumption: no insertions or deletions. */
-unsigned findFirstAcceptedKmer(unsigned b_i, const string& contigSeq) {
+unsigned findFirstAcceptedKmer(unsigned b_i, const std::string& contigSeq) {
 	for (unsigned i=b_i; i+opt::k<contigSeq.size();) {
 		if (isAcceptedBase(toupper(contigSeq.at(i)))) {
 			bool good_kmer=true; 
@@ -171,7 +178,7 @@ unsigned findFirstAcceptedKmer(unsigned b_i, const string& contigSeq) {
 }
 
 /* Helper for filling out the LPS array for detecting a low complexity repeat. */
-void computeLPSArray(string possible_repeat, int n, vector<int>& lps) {
+void computeLPSArray(std::string possible_repeat, int n, std::vector<int>& lps) {
 	int len=0; 
 	int i; 
 
@@ -183,8 +190,9 @@ void computeLPSArray(string possible_repeat, int n, vector<int>& lps) {
 			lps[i] = len; 
 			i++;
 		} else {
-			if (len!=0)
-				len = lps[len-1]; 
+			if (len!=0){
+				len = lps[len-1];
+			} 
 			else {
 				lps[i] = 0; 
 				i++;
@@ -194,9 +202,9 @@ void computeLPSArray(string possible_repeat, int n, vector<int>& lps) {
 }
 
 /* Determines if a string is a low complexity repeat of a word. */
-bool isRepeatInsertion(string possible_repeat) {
+bool isRepeatInsertion(std::string possible_repeat) {
 	int n = possible_repeat.size(); 
-	vector<int> lps(n); 
+	std::vector<int> lps(n); 
 
 	computeLPSArray(possible_repeat, n, lps); 
 
@@ -222,9 +230,9 @@ struct seqNode {
 
 /* Makes a character insertion RIGHT BEFORE <insert_pos> by creating a character node holding <c> with <num_support> 
  * 	- sets <node> to your insertion node (the node that holds the character <c>). */
-void makeInsertion(unsigned& t_node_index, int insert_pos, string insertion_bases, unsigned num_support, vector<seqNode>& newSeq) {
+void makeInsertion(unsigned& t_node_index, int insert_pos, std::string insertion_bases, unsigned num_support, std::vector<seqNode>& newSeq) {
 	seqNode orig_node = newSeq[t_node_index]; 
-	vector<seqNode> to_insert; 
+	std::vector<seqNode> to_insert; 
 	for (unsigned i=0; i<insertion_bases.size(); i++) {
 		seqNode insertion_node; 
 		insertion_node.node_type = 1; 
@@ -235,7 +243,7 @@ void makeInsertion(unsigned& t_node_index, int insert_pos, string insertion_base
 	if (orig_node.node_type == 0) {
 		if (insert_pos <= orig_node.s_pos) {
 			// gather nodes following this insertion
-			vector<seqNode> reappend; 
+			std::vector<seqNode> reappend; 
 			unsigned i=t_node_index; 
 			while (i<newSeq.size() && newSeq[i].node_type != -1) {
 				reappend.push_back(newSeq[i]); 
@@ -271,7 +279,7 @@ void makeInsertion(unsigned& t_node_index, int insert_pos, string insertion_base
 	} else if (orig_node.node_type == 1) {
 		// gather the nodes following this insertion
 		unsigned i=t_node_index;
-		vector<seqNode> reappend;
+		std::vector<seqNode> reappend;
 		while (i < newSeq.size() && newSeq[i].node_type != -1) {
 			reappend.push_back(newSeq[i]); 
 			newSeq[i].node_type = -1;
@@ -294,7 +302,7 @@ void makeInsertion(unsigned& t_node_index, int insert_pos, string insertion_base
 /* Make a deletion starting and including <pos> of length <num_del> with support <num_support> in seqNode structure.
  * 	- sets the t_node_index and pos to the position right after the deletion */
 void makeDeletion(unsigned& t_node_index, unsigned& pos, unsigned num_del, unsigned num_support, 
-		vector<seqNode>& newSeq) {
+		std::vector<seqNode>& newSeq) {
 	seqNode orig_node = newSeq[t_node_index]; 
 	if (orig_node.node_type == 0) {
 		unsigned leftover_del=0;
@@ -305,18 +313,17 @@ void makeDeletion(unsigned& t_node_index, unsigned& pos, unsigned num_del, unsig
 				newSeq[t_node_index].num_support = num_support;
 				pos = newSeq[t_node_index].s_pos;
 				return;
-			} else {
-				// we deleted the entire position node and are moving on
-				leftover_del = pos+num_del-orig_node.e_pos; 
-				pos = orig_node.e_pos+1; 
-				// overwite the following onto this one
-				unsigned i=t_node_index+1;
-				while (i < newSeq.size() && newSeq[i].node_type != -1) {
-					newSeq[i-1] = newSeq[i]; 
-					newSeq[i].node_type = -1;
-					i++;
-				}
 			}
+			// we deleted the entire position node and are moving on
+			leftover_del = pos+num_del-orig_node.e_pos; 
+			pos = orig_node.e_pos+1; 
+			// overwite the following onto this one
+			unsigned i=t_node_index+1;
+			while (i < newSeq.size() && newSeq[i].node_type != -1) {
+				newSeq[i-1] = newSeq[i]; 
+				newSeq[i].node_type = -1;
+				i++;
+			}			
 		} else {
 			if (pos+num_del <= orig_node.e_pos) {
 				// we are deleting in the middle of a position node
@@ -331,13 +338,12 @@ void makeDeletion(unsigned& t_node_index, unsigned& pos, unsigned num_del, unsig
 				if (t_node_index < newSeq.size()) newSeq[t_node_index] = split_node; 
 				else newSeq.push_back(split_node);
 				return;
-			} else {
-				// deleted from the middle of a position node past the end of it
-				leftover_del = pos+num_del-orig_node.e_pos;
-				newSeq[t_node_index].e_pos = pos-1;
-				pos = orig_node.e_pos+1;
-				t_node_index++; 
 			}
+			// deleted from the middle of a position node past the end of it
+			leftover_del = pos+num_del-orig_node.e_pos;
+			newSeq[t_node_index].e_pos = pos-1;
+			pos = orig_node.e_pos+1;
+			t_node_index++; 			
 		}
 		if (leftover_del>0) {
 			// pass the deletion to the next seqNode
@@ -376,8 +382,12 @@ void makeDeletion(unsigned& t_node_index, unsigned& pos, unsigned num_del, unsig
 
 /* Returns the character at pos based on the seqNode structure. */
 unsigned char getCharacter(unsigned& pos, seqNode node, const string& contigSeq) {
-	if (node.node_type == 0) return contigSeq.at(pos); 
-	else if (node.node_type == 1) return node.c; 
+	if (node.node_type == 0) {
+		return contigSeq.at(pos); 
+	}
+	else if (node.node_type == 1) {
+		return node.c;
+	} 
 	unsigned char c;
 	return c; 
 }
@@ -398,11 +408,11 @@ void increment(unsigned& pos, unsigned& node_index, vector<seqNode>& newSeq) {
 }
 
 /* Find the first accepted kmer (contains only ATGC characters) starting anywhere, based on the RopeLink structure. */
-string findAcceptedKmer(unsigned& h_seq_i, unsigned& t_seq_i,
+std::string findAcceptedKmer(unsigned& h_seq_i, unsigned& t_seq_i,
 			unsigned& h_node_index, unsigned& t_node_index,
 			const string& contigSeq, vector<seqNode>& newSeq) {
 	// temporary values
-	string kmer_str; 
+	std::string kmer_str; 
 	seqNode curr_node = newSeq[t_node_index];
 	unsigned temp_t_node_index = t_node_index;	
 	unsigned temp_h_node_index;
@@ -411,7 +421,7 @@ string findAcceptedKmer(unsigned& h_seq_i, unsigned& t_seq_i,
 		unsigned char c; 
 		c = getCharacter(i, curr_node, contigSeq); 
 		if (isAcceptedBase(toupper(c))) {
-			string kmer_str; 
+			std::string kmer_str; 
 			kmer_str += c; 
 			temp_h_node_index=temp_t_node_index;
 			unsigned j=i; 
@@ -447,8 +457,8 @@ string findAcceptedKmer(unsigned& h_seq_i, unsigned& t_seq_i,
 }
 
 /* Get the previous insertion (aka continuous string of character nodes) starting at t_node_index. */
-string getPrevInsertion(unsigned t_seq_i, unsigned t_node_index, vector<seqNode>& newSeq) { 
-	string prev_insertion;
+std::string getPrevInsertion(unsigned t_seq_i, unsigned t_node_index, vector<seqNode>& newSeq) { 
+	std::string prev_insertion;
 	// if we just finished the insertion
 	if ((t_node_index < newSeq.size() && newSeq[t_node_index].node_type == 0 && t_seq_i == newSeq[t_node_index].s_pos)
 			|| newSeq[t_node_index].node_type == 1) {
@@ -463,16 +473,16 @@ string getPrevInsertion(unsigned t_seq_i, unsigned t_node_index, vector<seqNode>
 
 /* Write the edits and new draft contig into respective files. */
 void writeEditsToFile(FILE* dfout, FILE* rfout, 
-		const string& contigHdr, const string& contigSeq,
-		vector<seqNode>& newSeq, queue<sRec>& substitution_record) {
+		const std::string& contigHdr, const std::string& contigSeq,
+		std::vector<seqNode>& newSeq, std::queue<sRec>& substitution_record) {
 	fprintf(dfout, ">%s\n", contigHdr.c_str()); 
 	unsigned node_index = 0;
-	string insertion_bases=""; 
+	std::string insertion_bases=""; 
 	int num_support=-1; 
 	unsigned char draft_char;
 	unsigned pos; 
 	// track a deletion
-	string deleted_bases="";
+	std::string deleted_bases="";
 	seqNode curr_node = newSeq[node_index];
 	while (node_index < newSeq.size() && curr_node.node_type != -1) {
 		if (curr_node.node_type == 0) {
@@ -517,7 +527,7 @@ void writeEditsToFile(FILE* dfout, FILE* rfout,
 /* Roll ntHash using the seqNode structure. */
 bool roll(unsigned& h_seq_i, unsigned& t_seq_i, 
 		unsigned& h_node_index, unsigned& t_node_index,
-		const string& contigSeq, vector<seqNode>& newSeq, 
+		const std::string& contigSeq, std::vector<seqNode>& newSeq, 
 		unsigned char & charOut, unsigned char& charIn) {
 
 	// quit if h_seq_i is out of scope
@@ -535,12 +545,12 @@ bool roll(unsigned& h_seq_i, unsigned& t_seq_i,
 
 /* Accept the edit */
 void makeEdit(unsigned char& draft_char, unsigned& best_edit_type, unsigned char& best_sub_base, string& best_indel,
-		unsigned& best_num_support, queue<sRec>& substitution_record,
+		unsigned& best_num_support, std::queue<sRec>& substitution_record,
 		unsigned& h_seq_i, unsigned& t_seq_i, unsigned& h_node_index, unsigned& t_node_index, 
 		uint64_t& fhVal, uint64_t& rhVal, uint64_t *hVal, 
-		string& contigSeq, vector<seqNode>& newSeq) {
+		std::string& contigSeq, std::vector<seqNode>& newSeq) {
 	bool skipped_repeat = false;
-	string prev_insertion;
+	std::string prev_insertion;
 	// make our edit
 	seqNode tNode = newSeq[t_node_index];
 	switch (best_edit_type) {
@@ -554,8 +564,9 @@ void makeEdit(unsigned char& draft_char, unsigned& best_edit_type, unsigned char
 				subst.sub_base = best_sub_base; 
 				subst.num_support = best_num_support;
 				substitution_record.push(subst); 
-			} else if (tNode.node_type == 1)
+			} else if (tNode.node_type == 1) {
 				newSeq[t_node_index].c = best_sub_base;
+			}
 			// make sure we change our current hash to match it
 			NTMC64_changelast(draft_char, best_sub_base, opt::k, opt::h, fhVal, rhVal, hVal); 
 			if (opt::verbose) 
@@ -636,6 +647,8 @@ void makeEdit(unsigned char& draft_char, unsigned& best_edit_type, unsigned char
 			if (opt::verbose)	
 				std::cout << "\tt_seq_i: " << t_seq_i << " FIX NOT FOUND" << std::endl; 
 			break;
+		default:
+			break;
 	}
 }
 
@@ -644,14 +657,18 @@ int tryDeletion(const unsigned char draft_char, unsigned num_deletions,
 		unsigned& h_seq_i, unsigned& t_seq_i, 
 		unsigned& h_node_index, unsigned& t_node_index,
 		uint64_t& fhVal, uint64_t& rhVal, uint64_t *hVal, 
-		const string& contigSeq, vector<seqNode>& newSeq, BloomFilter& bloom, 
-		string& deleted_bases) {
+		const std::string& contigSeq, std::vector<seqNode>& newSeq, BloomFilter& bloom, 
+		std::string& deleted_bases) {
 
 	// set temporary values
-	uint64_t temp_fhVal = fhVal, temp_rhVal = rhVal;
-	unsigned temp_h_seq_i = h_seq_i, temp_t_seq_i = t_seq_i; 
-	unsigned temp_h_node_index = h_node_index, temp_t_node_index = t_node_index;
-	unsigned char charOut, charIn;
+	uint64_t temp_fhVal = fhVal;
+	uint64_t temp_rhVal = rhVal;
+	unsigned temp_h_seq_i = h_seq_i;
+	unsigned temp_t_seq_i = t_seq_i;
+	unsigned temp_h_node_index = h_node_index;
+	unsigned temp_t_node_index = t_node_index;
+	unsigned char charOut;
+	unsigned char charIn;
 
 	// make the deletion
 	for (unsigned i=0; i<num_deletions; i++) {
@@ -663,19 +680,23 @@ int tryDeletion(const unsigned char draft_char, unsigned num_deletions,
 
 	// verify the deletion with a subset
 	unsigned check_present=0; 
-	if (bloom.contains(hVal)) check_present++; // check for changing the kmer after deletion
+	if (bloom.contains(hVal)) {
+		check_present++; // check for changing the kmer after deletion
+	}
 	for (unsigned k=1; k<=(opt::k-2) && temp_h_seq_i<contigSeq.size(); k++) {
 		if (roll(temp_h_seq_i, temp_t_seq_i, temp_h_node_index, temp_t_node_index,
 					contigSeq, newSeq, charOut, charIn)) {
 			NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
-			if (k%3 == 0 && bloom.contains(hVal)) check_present++; 
+			if (k%3 == 0 && bloom.contains(hVal)) {
+				check_present++;
+			}
 		}			
 	}
 	
 	if (opt::verbose)
 		std::cout << "\t\tdeleting: " << deleted_bases << " check_present: " << check_present << std::endl; 
-	if (check_present >= ((float) opt::k / opt::edit_threshold)) {
-		return check_present;
+	if (check_present >= (static_cast<float>(opt::k) / opt::edit_threshold)) {
+		return static_cast<int>(check_present);
 	} 
 	return 0;
 }
@@ -686,22 +707,27 @@ bool tryIndels(const unsigned char draft_char, const unsigned char index_char,
 		unsigned& h_seq_i, unsigned& t_seq_i,
 		unsigned& h_node_index, unsigned& t_node_index,
 		uint64_t& fhVal, uint64_t& rhVal, uint64_t *hVal,
-		const string& contigSeq, vector<seqNode>& newSeq,
-		BloomFilter& bloom, unsigned& best_edit_type, string& best_indel, unsigned& best_num_support) {
+		const std::string& contigSeq, std::vector<seqNode>& newSeq,
+		BloomFilter& bloom, unsigned& best_edit_type, std::string& best_indel, unsigned& best_num_support) {
 
 	// initialize temporary values
-	uint64_t temp_fhVal, temp_rhVal; 
-	unsigned temp_h_seq_i, temp_t_seq_i, temp_h_node_index, temp_t_node_index;
+	uint64_t temp_fhVal;
+	uint64_t temp_rhVal;
+	unsigned temp_h_seq_i;
+	unsigned temp_t_seq_i;
+	unsigned temp_h_node_index;
+	unsigned temp_t_node_index;
 	unsigned temp_best_num_support=0;
-	string temp_best_indel; 
+	std::string temp_best_indel; 
 	unsigned temp_best_edit_type=0;
-	unsigned char charIn, charOut;
+	unsigned char charIn;
+	unsigned char charOut;
 
 
 	// try all of the combinations of indels starting with our index_char
 	for (unsigned i=0; i<num_tries[opt::max_insertions]; i++) {
 		// gather the insertion bases
-		string insertion_bases = multi_possible_bases[index_char][i];
+		std::string insertion_bases = multi_possible_bases[index_char][i];
 		insertion_bases+=draft_char;
 
 		// set temporary values
@@ -754,7 +780,7 @@ bool tryIndels(const unsigned char draft_char, const unsigned char index_char,
 		}
 
 		if (num_deletions <= opt::max_deletions) {
-			string deleted_bases;
+			std::string deleted_bases;
 			unsigned del_support = tryDeletion(draft_char, num_deletions, h_seq_i, t_seq_i, 
 								h_node_index, t_node_index,
 								fhVal, rhVal, hVal, contigSeq, newSeq, bloom, deleted_bases);
@@ -793,14 +819,17 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 		FILE* dfout, FILE* rfout) {
 
 	// initialize values for hashing
-	uint64_t fhVal, rhVal;
+	uint64_t fhVal;
+	uint64_t rhVal;
 	uint64_t* hVal;
-	unsigned char charIn, charOut, draft_char; 
+	unsigned char charIn;
+	unsigned char charOut;
+	unsigned char draft_char;
 	hVal = new uint64_t[opt::h]; 
 
 
 	// vector to record substitutions
-	queue<sRec> substitution_record; 
+	std::queue<sRec> substitution_record; 
 	
 	// initialize and readjust the first character depending on the first N or nonATGC kmer
 	unsigned h_seq_i = findFirstAcceptedKmer(0, contigSeq); 
@@ -814,7 +843,7 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 
 	// compressed string
 //	vector<seqNode> newSeq(contigSeq.size()/4); 
-	vector<seqNode> newSeq;
+	std::vector<seqNode> newSeq;
 	newSeq.reserve(contigSeq.size()/4); 
 	// initialize our first node
 	seqNode root;
@@ -829,7 +858,9 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 
 	bool continue_edit = true;
 	do {
-		if (h_seq_i+opt::k-1 >= seqLen) break;
+		if (h_seq_i+opt::k-1 >= seqLen) {
+			break;
+		}
 		if (opt::verbose) 
 			std::cout << h_seq_i << " " << t_seq_i << " " << charIn 
 				<< " " << h_node_index << " " << t_node_index
@@ -858,7 +889,9 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 						do_not_fix = true; 
 						break;
 					}
-					if (k%3 == 1 && !bloom.contains(hVal)) check_missing++; 
+					if (k%3 == 1 && !bloom.contains(hVal)) {
+						check_missing++;
+					}
 				} else {
 					do_not_fix = true;
 					break;
@@ -867,11 +900,11 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 
 			if (opt::verbose) 
 				std::cout << "\tcheck_missing: " << check_missing << std::endl; 
-			if (!do_not_fix && check_missing>=((float) opt::k / opt::missing_threshold)) {
+			if (!do_not_fix && static_cast<float>(check_missing) >= (static_cast<float>(opt::k) / opt::missing_threshold)) {
 				// recorders
 				unsigned num_deletions=1;
 				unsigned best_edit_type=0; // 0=no edit made; 1=substitution; 2=insertion; 3=deletions
-				string best_indel; 
+				std::string best_indel; 
 				unsigned char best_sub_base; 
 				unsigned best_num_support=0; 
 				
@@ -952,7 +985,9 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 		int target_t_seq_i = -1; 
 		do {
 			if (roll(h_seq_i, t_seq_i, h_node_index, t_node_index, contigSeq, newSeq, charOut, charIn)) {
-				if (!isAcceptedBase(toupper(charIn))) target_t_seq_i = t_seq_i + opt::k; 
+				if (!isAcceptedBase(toupper(charIn))) {
+					target_t_seq_i = static_cast<int>(t_seq_i) + opt::k;
+				}
 				NTMC64(charOut, charIn, opt::k, opt::h, fhVal, rhVal, hVal); 
 			} else {
 				continue_edit = false;
@@ -980,11 +1015,11 @@ void readAndCorrect(BloomFilter& bloom) {
 	kseq_t * seq = kseq_init(dfp); 
 //	bool stop = false; 
 	int num_contigs=0; 
-
+	constexpr int print_step_size = 1000000;
 
 	// outfile handles
-	string d_filename = opt::outfile_prefix+"_edited.fa"; 
-	string r_filename = opt::outfile_prefix+"_changes.tsv"; 
+	std::string d_filename = opt::outfile_prefix+"_edited.fa"; 
+	std::string r_filename = opt::outfile_prefix+"_changes.tsv"; 
 	FILE* dfout = fopen(d_filename.c_str(), "w"); 
 	FILE* rfout = fopen(r_filename.c_str(), "w");
 
@@ -996,33 +1031,38 @@ void readAndCorrect(BloomFilter& bloom) {
 
 #pragma omp parallel shared(seq,dfout,rfout)
 	{
-		string contigHdr, contigSeq, contigName;
+		std::string contigHdr;
+		std::string contigSeq;
+		std::string contigName;
 		bool stop = false;
 
-		while(1) {
+		while(true) {
 #pragma omp critical(reading)
 			{
 				if (!stop && kseq_read(seq) >= 0) {
 					contigHdr = seq->name.s; 
-					if (seq->comment.l) contigName = contigHdr + " " + seq->comment.s; 
-					else contigName = contigHdr; 
+					if (seq->comment.l){
+						 contigName = contigHdr + " " + seq->comment.s; 
+					} else {
+						contigName = contigHdr; 
+					}
 					contigSeq = seq->seq.s; 
-				} else
-					stop = true; 
+				} else {
+					stop = true;
+					} 
 			}
-			if (stop) 
+			if (stop){ 
 				break; 
-			else {
-				unsigned seq_len = contigSeq.length();
-				if (opt::verbose) std::cout << contigName << std::endl; 
-				if (seq_len >= opt::min_contig_len) {
-					kmerizeAndCorrect(contigName, contigSeq, seq_len, bloom, dfout, rfout); 
-				}
+			}
+			unsigned seq_len = contigSeq.length();
+			if (opt::verbose) std::cout << contigName << std::endl; 
+			if (seq_len >= opt::min_contig_len) {
+				kmerizeAndCorrect(contigName, contigSeq, seq_len, bloom, dfout, rfout); 
+			}
 #pragma omp atomic
-				num_contigs++; 
-				if (num_contigs % 1000000 == 0) {
-					std::cout << "Processed " << num_contigs << std::endl; 
-				}
+			num_contigs++;
+			if (num_contigs % print_step_size == 0) {
+				std::cout << "Processed " << num_contigs << std::endl; 
 			}
 		}
 	}
@@ -1035,7 +1075,7 @@ void readAndCorrect(BloomFilter& bloom) {
 
 int main (int argc, char ** argv) {
 	bool die = false; 
-	for (int c; (c=getopt_long(argc, argv, shortopts, longopts, NULL)) != -1;) {
+	for (int c; (c=getopt_long(argc, argv, shortopts, longopts, nullptr)) != -1;) {
 		std::istringstream arg(optarg != NULL ? optarg: ""); 
 		switch (c) {
 			case '?':
@@ -1086,13 +1126,17 @@ int main (int argc, char ** argv) {
 			case OPT_VERSION:
 				std::cerr << VERSION_MESSAGE; 
 				exit(EXIT_SUCCESS); 
+			default:
+				break;
 		}
 		if (optarg != NULL && (!arg.eof() || arg.fail())) {
 			std::cerr << PROGRAM ": invalid option: `-"
-				<< (char)c << optarg << "'\n";
+				<< static_cast<char>(c) << optarg << "'\n";
 			exit(EXIT_FAILURE); 
 		}
 	}
+
+	//std::cout << opt::nthreads << " = thread no" << std::endl;
 
 	time_t rawtime; 
 	time(&rawtime); 
@@ -1123,12 +1167,13 @@ int main (int argc, char ** argv) {
 	}
 
 	// check that the parameters x and y are in bound
-	if (opt::missing_threshold < 3 && opt::missing_threshold > opt::k && 
-			opt::edit_threshold < 3 && opt::edit_threshold > opt::k) {
+	if (opt::missing_threshold < 3 && opt::missing_threshold > static_cast<float>(opt::k) && 
+			opt::edit_threshold < 3 && opt::edit_threshold > static_cast<float>(opt::k)) {
 		std::cerr << PROGRAM ": warning: x and y parameters must be >=3 and <=k; x and y were reset to default values x=5, y=9.\n"; 
-		opt::missing_threshold = 5; 
-		opt::missing_threshold = 5; 
-		opt::edit_threshold=9; 
+		constexpr float missing_threshold_override = 5;
+		constexpr float edit_threshold_override = 5;
+		opt::missing_threshold = missing_threshold_override; 
+		opt::edit_threshold = edit_threshold_override; 
 	}
 
 	// check that the parameters i and d are in bound
@@ -1139,8 +1184,8 @@ int main (int argc, char ** argv) {
 
 
 	// get the basename for the file
-	string draft_basename = opt::draft_filename.substr(opt::draft_filename.find_last_of("/\\")+1); 
-	string	bloom_basename = opt::bloom_filename.substr(opt::bloom_filename.find_last_of("/\\")+1); 
+	std::string draft_basename = opt::draft_filename.substr(opt::draft_filename.find_last_of("/\\")+1); 
+	std::string	bloom_basename = opt::bloom_filename.substr(opt::bloom_filename.find_last_of("/\\")+1); 
 
 	// set the outfile prefix if it wasn't given 
 	if (opt::outfile_prefix.empty()) {
@@ -1172,7 +1217,7 @@ int main (int argc, char ** argv) {
 		<< std::endl; 
 
 	// Threading information 
-	omp_set_num_threads(opt::nthreads); 
+	omp_set_num_threads(static_cast<int>(opt::nthreads)); 
 
 	// Load bloom filter
 	time(&rawtime); 
