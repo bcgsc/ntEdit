@@ -1,21 +1,21 @@
 #https://aka.ms/yaml
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: ubuntu-latest
 
 steps:
 - script: |
     sudo apt-get update -qq
     sudo apt-get install -qq gcc g++ libopenmpi-dev libgtest-dev
-  displayName: 'Install dependencies'
+  displayName: Install dependencies
 - script: |
     make ntedit
-  displayName: 'Compiling ntedit'
+  displayName: Compiling ntedit
 - script: |
     sudo apt-get install -y --no-install-recommends clang-format-7 clang-tidy-7
     sudo ln -s clang-format-7 /usr/bin/clang-format
     sudo ln -s clang-tidy-7 /usr/bin/clang-tidy
-    displayName: Install clang-format and clang-tidy
-script :|
+  displayName: Install clang-format and clang-tidy
+script : |
     make clang-tidy
-  displayName: 'Clang-tidy'
+  displayName: Clang-tidy
