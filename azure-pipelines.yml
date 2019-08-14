@@ -16,6 +16,6 @@ steps:
     sudo ln -s clang-format-7 /usr/bin/clang-format
     sudo ln -s clang-tidy-7 /usr/bin/clang-tidy
   displayName: Install clang-format and clang-tidy
-script : |
+- script : |
     make clang-tidy
   displayName: Clang-tidy
