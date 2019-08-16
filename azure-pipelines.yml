@@ -15,7 +15,11 @@ steps:
   displayName: Install dependencies
 - script: |
     make ntedit
-  displayName: Compiling ntedit
+  displayName: Compile ntedit
 - script : |
+    make clang-format
     make clang-tidy
-  displayName: Clang-tidy
+  displayName: Clang-format and clang-tidy
+- script : |
+    make check
+  displayName: Check output files
