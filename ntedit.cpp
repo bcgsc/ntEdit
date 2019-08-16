@@ -259,14 +259,20 @@ void makeInsertion(unsigned& t_node_index, int insert_pos, const std::string& in
 			}
 			// make insertion
 			for (unsigned i=0; i<to_insert.size(); i++) {
-				if (t_node_index+i < newSeq.size()) newSeq[t_node_index+i] = to_insert[i]; 
-				else newSeq.push_back(to_insert[i]);
+				if (t_node_index+i < newSeq.size()) {
+					newSeq[t_node_index+i] = to_insert[i];
+				}
+				else {
+					newSeq.push_back(to_insert[i]);
+				}
 			}
 			// reappend
 			for (unsigned i=0; i<reappend.size(); i++) {
-				if (t_node_index+to_insert.size()+i < newSeq.size())
-					newSeq[t_node_index+to_insert.size()+i] = reappend[i]; 
-				else newSeq.push_back(reappend[i]);
+				if (t_node_index+to_insert.size()+i < newSeq.size()) {
+					newSeq[t_node_index+to_insert.size()+i] = reappend[i];
+				} else {
+					newSeq.push_back(reappend[i]);
+				}
 			}
 		} else {
 			seqNode after_node; 
@@ -275,12 +281,19 @@ void makeInsertion(unsigned& t_node_index, int insert_pos, const std::string& in
 			after_node.e_pos = orig_node.e_pos;
 			newSeq[t_node_index].e_pos = insert_pos-1;
 			for (unsigned i=0; i<to_insert.size(); i++) {
-				if (t_node_index+i+1 < newSeq.size()) newSeq[t_node_index+i+1] = to_insert[i];
-				else newSeq.push_back(to_insert[i]);
+				if (t_node_index+i+1 < newSeq.size()) {
+					newSeq[t_node_index+i+1] = to_insert[i];
+				}
+				else {
+					newSeq.push_back(to_insert[i]);
+				}
 			}
-			if (t_node_index+to_insert.size()+1 < newSeq.size()) 
+			if (t_node_index+to_insert.size()+1 < newSeq.size()) {
 				newSeq[t_node_index+to_insert.size()+1] = after_node;
-			else newSeq.push_back(after_node);
+			}
+			else {
+				newSeq.push_back(after_node);
+			}
 			t_node_index++;
 		}
 	} else if (orig_node.node_type == 1) {
@@ -294,14 +307,21 @@ void makeInsertion(unsigned& t_node_index, int insert_pos, const std::string& in
 		}
 		// make the insertion
 		for (unsigned i=0; i<to_insert.size(); i++) {
-			if (t_node_index+i < newSeq.size()) newSeq[t_node_index+i] = to_insert[i];
-			else newSeq.push_back(to_insert[i]);
+			if (t_node_index+i < newSeq.size()) {
+				newSeq[t_node_index+i] = to_insert[i];
+			}
+			else {
+				newSeq.push_back(to_insert[i]);
+			}
 		}
 		// push all of the insertions back
 		for (unsigned i=0; i<reappend.size(); i++) {
-			if (t_node_index+to_insert.size()+i < newSeq.size()) 
-				newSeq[t_node_index+to_insert.size()+i] = reappend[i]; 
-			else newSeq.push_back(reappend[i]);
+			if (t_node_index+to_insert.size()+i < newSeq.size()) {
+				newSeq[t_node_index+to_insert.size()+i] = reappend[i];
+			}
+			else {
+				newSeq.push_back(reappend[i]);
+			}
 		}
 	}
 }
@@ -342,7 +362,9 @@ void makeDeletion(unsigned& t_node_index, unsigned& pos, unsigned num_del, //NOL
 				newSeq[t_node_index].e_pos = pos-1;
 				pos = split_node.s_pos;
 				t_node_index++; 
-				if (t_node_index < newSeq.size()) newSeq[t_node_index] = split_node; 
+				if (t_node_index < newSeq.size()) {
+					newSeq[t_node_index] = split_node;
+				}
 				else newSeq.push_back(split_node);
 				return;
 			}
@@ -355,7 +377,9 @@ void makeDeletion(unsigned& t_node_index, unsigned& pos, unsigned num_del, //NOL
 		if (leftover_del>0) {
 			// pass the deletion to the next seqNode
 			if (t_node_index < newSeq.size() && newSeq[t_node_index].node_type != -1) {
-				if (newSeq[t_node_index].node_type == 0) pos = newSeq[t_node_index].s_pos;
+				if (newSeq[t_node_index].node_type == 0) {
+					pos = newSeq[t_node_index].s_pos;
+				}
 				makeDeletion(t_node_index, pos, leftover_del, num_support, newSeq); 
 			}
 		}
@@ -380,7 +404,9 @@ void makeDeletion(unsigned& t_node_index, unsigned& pos, unsigned num_del, //NOL
 		if (leftover_del > 0) {
 			// pass the deletion to the next seqNode
 			if (t_node_index < newSeq.size() && newSeq[t_node_index].node_type != -1) {
-				if (newSeq[t_node_index].node_type == 0) pos = newSeq[t_node_index].s_pos; 
+				if (newSeq[t_node_index].node_type == 0) {
+					pos = newSeq[t_node_index].s_pos;
+				}
 				makeDeletion(t_node_index, pos, leftover_del, num_support, newSeq); 
 			}
 		}
@@ -395,7 +421,7 @@ unsigned char getCharacter(unsigned& pos, seqNode node, const string& contigSeq)
 	if (node.node_type == 1) {
 		return node.c;
 	} 
-	unsigned char c;
+	unsigned char c = 0;
 	return c; 
 }
 
@@ -407,11 +433,15 @@ void increment(unsigned& pos, unsigned& node_index, vector<seqNode>& newSeq) {
 		pos++; 
 		if (pos > node.e_pos) {
 			node_index++; 
-			if (node_index < newSeq.size() && newSeq[node_index].node_type == 0) pos = newSeq[node_index].s_pos; 		
+			if (node_index < newSeq.size() && newSeq[node_index].node_type == 0) {
+				pos = newSeq[node_index].s_pos;
+			}	
 		} 
 	} else if (node.node_type == 1) {
 		node_index++; 
-		if (node_index < newSeq.size() && newSeq[node_index].node_type == 0) pos = newSeq[node_index].s_pos;
+		if (node_index < newSeq.size() && newSeq[node_index].node_type == 0) {
+			pos = newSeq[node_index].s_pos;
+		}
 	}
 }
 
@@ -444,7 +474,9 @@ std::string findAcceptedKmer(unsigned& h_seq_i, unsigned& t_seq_i,
 					break;
 				} 
 				kmer_str += c;
-			        if (kmer_str.size() == opt::k) break;	
+			        if (kmer_str.size() == opt::k) {
+						break;
+					}
 				increment(j, temp_t_node_index, newSeq); 
 			}
 			// you found a good kmer so return it and adjust
@@ -489,12 +521,12 @@ void writeEditsToFile(std::ofstream& dfout, std::ofstream& rfout, const std::str
 	//fprintf(dfout, ">%s\n", contigHdr.c_str());
 	dfout << ">" << contigHdr.c_str() << "\n";
 	unsigned node_index = 0;
-	std::string insertion_bases=""; 
+	std::string insertion_bases; 
 	int num_support=-1; 
 	unsigned char draft_char;
 	unsigned pos; 
 	// track a deletion
-	std::string deleted_bases="";
+	std::string deleted_bases;
 	seqNode curr_node = newSeq[node_index];
 	while (node_index < newSeq.size() && curr_node.node_type != -1) {
 		if (curr_node.node_type == 0) {
@@ -525,7 +557,9 @@ void writeEditsToFile(std::ofstream& dfout, std::ofstream& rfout, const std::str
 			pos = curr_node.e_pos+1; 
 		} else if (curr_node.node_type == 1) {
 			insertion_bases += curr_node.c; 
-			if (num_support==-1) num_support = curr_node.num_support; 
+			if (num_support==-1) {
+				num_support = curr_node.num_support;
+			}
 			//fprintf(dfout, "%c", curr_node.c);
 			dfout << curr_node.c;
 		}
@@ -552,13 +586,17 @@ bool roll(unsigned& h_seq_i, unsigned& t_seq_i, unsigned& h_node_index, //NOLINT
 		unsigned char & charOut, unsigned char& charIn) {
 
 	// quit if h_seq_i is out of scope
-	if (h_seq_i >= contigSeq.size() || h_node_index >= newSeq.size()) return false;
+	if (h_seq_i >= contigSeq.size() || h_node_index >= newSeq.size()) {
+		return false;
+	}
 	charOut = getCharacter(h_seq_i, newSeq[h_node_index], contigSeq); 
 	increment(h_seq_i, h_node_index, newSeq); 
 
 	increment(t_seq_i, t_node_index, newSeq); 
 	// quit if t_seq_i is out of scope
-	if (t_seq_i >= contigSeq.size() || t_node_index >= newSeq.size()) return false; 
+	if (t_seq_i >= contigSeq.size() || t_node_index >= newSeq.size()) {
+		return false; 
+	}
 	charIn = getCharacter(t_seq_i, newSeq[t_node_index], contigSeq); 
 
 	return true;
@@ -592,9 +630,10 @@ void makeEdit(unsigned char& draft_char, unsigned& best_edit_type,
 			}
 			// make sure we change our current hash to match it
 			NTMC64_changelast(draft_char, best_sub_base, opt::k, opt::h, fhVal, rhVal, hVal); 
-			if (opt::verbose) 
+			if (opt::verbose) {
 				std::cout << "\tt_seq_i: " << t_seq_i << " SUB: " << best_sub_base
 					<< " check_present: " << best_num_support << std::endl;
+			}
 			break;
 		case 2: // INSERTION MADE
 			// check if we need to check the insertion 
@@ -604,8 +643,9 @@ void makeEdit(unsigned char& draft_char, unsigned& best_edit_type,
 				// check if the original previous insertion was a low complexity repeat or we have reached our hard cap
 				if (isRepeatInsertion(prev_insertion) || prev_insertion.size()+best_indel.size() >= opt::insertion_cap) {
 					unsigned j=1;
-					if (newSeq[t_node_index].node_type == 0 && t_seq_i == newSeq[t_node_index].s_pos) 
+					if (newSeq[t_node_index].node_type == 0 && t_seq_i == newSeq[t_node_index].s_pos) {
 						j=0;
+					}
 					for (unsigned i=prev_insertion.size(); i>0; i--) {
 						if (t_node_index+j < newSeq.size() && newSeq[t_node_index+j].node_type != -1) {
 							newSeq[t_node_index-i] = newSeq[t_node_index+j]; 
@@ -801,7 +841,8 @@ bool tryIndels(const unsigned char draft_char, const unsigned char index_char,
 				best_indel = insertion_bases; 
 				best_num_support = check_present; 
 				return true;
-			} else if (opt::mode == 1 || opt::mode == 2) {
+			}
+			if (opt::mode == 1 || opt::mode == 2) {
 				// if we are in some deep mode, we look for the best indel within index char first
 				if (check_present > temp_best_num_support) {
 					temp_best_edit_type = 2; 
@@ -858,7 +899,7 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 	uint64_t fhVal;
 	uint64_t rhVal;
 	uint64_t* hVal;
-	unsigned char charIn;
+	unsigned char charIn = 0;
 	unsigned char charOut;
 	unsigned char draft_char;
 	hVal = new uint64_t[opt::h]; 
