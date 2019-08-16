@@ -116,9 +116,10 @@ static const struct option longopts[] = {
 };
 
 // Setting up the number of tries when for each number of base insertion
-std::vector<int> num_tries = { 0, 1, 5, 21, 85, 341 };
+std::vector<int> num_tries = { 0, 1, 5, 21, 85, 341 }; // NOLINT
 
 // Setting up base array
+// NOLINTNEXTLINE
 std::unordered_map<unsigned char, std::vector<unsigned char>> bases_array = {
 	{ 'A', { 'T', 'C', 'G' } },
 	{ 'T', { 'A', 'C', 'G' } },
@@ -128,6 +129,7 @@ std::unordered_map<unsigned char, std::vector<unsigned char>> bases_array = {
 };
 
 // Setting all the indel combos
+// NOLINTNEXTLINE
 std::unordered_map<unsigned char, std::vector<string>> multi_possible_bases = {
 	{ 'A',
 	  { "A",     "AA",    "AC",    "AG",    "AT",    "AAA",   "AAC",   "AAG",   "AAT",   "ACA",
@@ -533,8 +535,9 @@ makeDeletion(
 				t_node_index++;
 				if (t_node_index < newSeq.size()) {
 					newSeq[t_node_index] = split_node;
-				} else
+				} else {
 					newSeq.push_back(split_node);
+				}
 				return;
 			}
 			// deleted from the middle of a position node past the end of it
