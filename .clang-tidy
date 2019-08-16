@@ -1,0 +1,1 @@
+{Checks: '*,-cppcoreguidelines-pro-bounds-array-to-pointer-decay,-cppcoreguidelines-pro-bounds-pointer-arithmetic,-hicpp-no-array-decay,-fuchsia-default-arguments,-fuchsia-overloaded-operator,-google-runtime-references,-readability-implicit-bool-conversion,-cppcoreguidelines-pro-bounds-constant-array-index'}
