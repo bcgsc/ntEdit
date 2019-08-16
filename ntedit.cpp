@@ -19,7 +19,7 @@
 #include <cerrno>
 #include <unistd.h>
 #include "lib/kseq.h"
-#include "lib/nthash.hpp"
+#include "lib/nthash.hpp" // NOLINT
 #include "lib/BloomFilter.hpp"
 
 // NOLINTNEXTLINE
@@ -516,15 +516,16 @@ std::string getPrevInsertion(unsigned t_seq_i, unsigned t_node_index, vector<seq
 // void writeEditsToFile(FILE* dfout, FILE* rfout, 
 // 		const std::string& contigHdr, const std::string& contigSeq,
 // 		std::vector<seqNode>& newSeq, std::queue<sRec>& substitution_record) {
-//NOLINTNEXTLINE(misc-unused-parameters)
-void writeEditsToFile(std::ofstream& dfout, std::ofstream& rfout, const std::string& contigHdr, const std::string& contigSeq, std::vector<seqNode>& newSeq, std::queue<sRec>& substitution_record) {
-	//fprintf(dfout, ">%s\n", contigHdr.c_str());
+void writeEditsToFile(std::ofstream& dfout, std::ofstream& rfout, const std::string& contigHdr, 
+		const std::string& contigSeq, //NOLINTNEXTLINE(misc-unused-parameters)
+		std::vector<seqNode>& newSeq, std::queue<sRec>& substitution_record) {
 	dfout << ">" << contigHdr.c_str() << "\n";
 	unsigned node_index = 0;
 	std::string insertion_bases; 
 	int num_support=-1; 
 	unsigned char draft_char;
-	unsigned pos; 
+	unsigned pos = 0;
+
 	// track a deletion
 	std::string deleted_bases;
 	seqNode curr_node = newSeq[node_index];
@@ -533,20 +534,13 @@ void writeEditsToFile(std::ofstream& dfout, std::ofstream& rfout, const std::str
 			draft_char = contigSeq.at(curr_node.s_pos);
 			// log an insertion if it occured before this
 			if (!insertion_bases.empty()) {
-				// fprintf(rfout, "%s\t%d\t%c\t%c%s\t%d\n",
-				// 		contigHdr.c_str(), pos+1, draft_char,'+', insertion_bases.c_str(), num_support);
-				rfout << contigHdr.c_str() << "\t" <<  pos+1 << "\t" << draft_char << "\t+" << 
+				rfout << contigHdr.c_str() << "\t" <<  pos + 1 << "\t" << draft_char << "\t+" << 
 				insertion_bases.c_str() << "\t" << num_support << "\n";
 				insertion_bases = "";  
 				num_support = -1; 
 			}
 			// log all the substitutions up to this point
 			while (!substitution_record.empty() && substitution_record.front().pos <= curr_node.e_pos){
-				// fprintf(rfout, "%s\t%d\t%c\t%c\t%d\n",
-				// 		contigHdr.c_str(), substitution_record.front().pos+1,
-				// 		substitution_record.front().draft_char,
-				// 		substitution_record.front().sub_base,
-				// 		substitution_record.front().num_support);
 				rfout << contigHdr.c_str() << "\t" << substitution_record.front().pos+1 << "\t"
 				<< substitution_record.front().draft_char << "\t" << substitution_record.front().sub_base << "\t"
 				<< substitution_record.front().num_support << "\n";
@@ -560,7 +554,6 @@ void writeEditsToFile(std::ofstream& dfout, std::ofstream& rfout, const std::str
 			if (num_support==-1) {
 				num_support = curr_node.num_support;
 			}
-			//fprintf(dfout, "%c", curr_node.c);
 			dfout << curr_node.c;
 		}
 		node_index++; 
@@ -568,15 +561,11 @@ void writeEditsToFile(std::ofstream& dfout, std::ofstream& rfout, const std::str
 			curr_node = newSeq[node_index];
 			if (curr_node.node_type == 0 && curr_node.s_pos != pos) {
 				// print out the deletion
-				// fprintf(rfout, "%s\t%d\t%c\t%c%s\t%d\n", 
-				// 		contigHdr.c_str(), pos+1, contigSeq.at(pos), '-', 
-				// 		contigSeq.substr(pos, (curr_node.s_pos-pos)).c_str(), curr_node.num_support);
-			rfout << contigHdr.c_str() << "\t" << pos+1 << "\t" << contigSeq.at(pos) << "\t-"
-			<< contigSeq.substr(pos, (curr_node.s_pos-pos)).c_str() << "\t" << curr_node.num_support << "\n";
+				rfout << contigHdr.c_str() << "\t" << pos+1 << "\t" << contigSeq.at(pos) << "\t-"
+					<< contigSeq.substr(pos, (curr_node.s_pos-pos)).c_str() << "\t" << curr_node.num_support << "\n";
 			}
 		}
 	}
-	//fprintf(dfout, "\n");
 	dfout << "\n";
 }
 
@@ -834,7 +823,7 @@ bool tryIndels(const unsigned char draft_char, const unsigned char index_char,
 			std::cout << "\t\tinserting: " << insertion_bases << " check_present: " << check_present << std::endl;
 		}
 		// if the insertion is good, store the insertion accordingly 
-		if (check_present >= (static_cast<float>(opt::k) / opt::edit_threshold)) {
+		if (static_cast<float>(check_present) >= (static_cast<float>(opt::k) / opt::edit_threshold)) {
 			if (opt::mode == 0) {
 				// if we are in default mode, we just accept this first good insertion and return
 				best_edit_type = 2; 
@@ -896,8 +885,8 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 		std::ofstream& dfout, std::ofstream& rfout) {
 
 	// initialize values for hashing
-	uint64_t fhVal;
-	uint64_t rhVal;
+	uint64_t fhVal = 0;
+	uint64_t rhVal = 0;
 	uint64_t* hVal;
 	unsigned char charIn = 0;
 	unsigned char charOut;
@@ -1035,7 +1024,7 @@ void kmerizeAndCorrect(string& contigHdr, string& contigSeq, unsigned seqLen, Bl
 							std::cout << "\t\tsub: " << sub_base << " check_present: " 
 								<< check_present << std::endl;
 						}
-						if (check_present >= (static_cast<float>(opt::k) / opt::edit_threshold)) {
+						if (static_cast<float>(check_present) >= (static_cast<float>(opt::k) / opt::edit_threshold)) {
 							// update the best substitution
 							if (check_present > best_num_support) {
 								best_edit_type = 1;
