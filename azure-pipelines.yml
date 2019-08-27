@@ -1,19 +1,25 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
-trigger:
-- master
+#https://aka.ms/yaml
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: Ubuntu 16.04
 
 steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
-
 - script: |
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+    curl https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+    sudo apt-add-repository "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main"
+    sudo apt-get update -qq
+    sudo apt-get install -qq gcc g++ libopenmpi-dev libgtest-dev
+    sudo apt-get install -y --no-install-recommends clang-format-7 clang-tidy-7
+    sudo ln -s clang-format-7 /usr/bin/clang-format
+    sudo ln -s clang-tidy-7 /usr/bin/clang-tidy
+  displayName: Install dependencies
+- script: |
+    make ntedit
+  displayName: Compile ntedit
+- script : |
+    make clang-format
+    make clang-tidy
+  displayName: Clang-format and clang-tidy
+- script : |
+    make check
+  displayName: Check output files
