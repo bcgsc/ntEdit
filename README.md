@@ -153,7 +153,7 @@ ntEdit v1.2.3
 
 Scalable genome sequence polishing.
 
-Options:
+ Options:
 	-t,	number of threads [default=1]
 	-f,	Draft genome assembly (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED
 	-r,	Bloom filter file (generated from ntHits), REQUIRED
@@ -162,8 +162,8 @@ Options:
 	-z,	minimum contig length [default=100]
 	-i,	maximum number of insertion bases to try, range 0-5, [default=4]
 	-d,	maximum number of deletions bases to try, range 0-5, [default=5]
-	-X,	ratio for the number of kmers in the k subset that should be missing to attempt fix, [default=0.5]
-	-Y,	ratio for the number of kmer in the k subset that should be present to accept an edit, [default=0.5]
+	-X,	ratio of number of kmers in the k subset that should be missing in order to attempt fix (higher=stringent), [default=0.5]
+	-Y,	ratio of number of kmers in the k subset that should be present to accept an edit (higher=stringent), [default=0.5]
 	-x,	k/x ratio for the number of kmers that should be missing, [default=5.000]
 	-y, 	k/y ratio for the number of editted kmers that should be present, [default=9.000]
 	-c,	cap for the number of base insertions that can be made at one position, [default=k*1.5]
@@ -176,6 +176,8 @@ Options:
 
 	--help,		display this message and exit 
 	--version,	output version information and exit
+
+	If one of X/Y is set, it will use those parameters. Otherwise, it uses x/y by default.
 
 </pre>
 
