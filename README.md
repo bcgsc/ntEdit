@@ -149,7 +149,7 @@ eg.
 <pre>
 e.g. ./ntedit -f ecoliWithMismatches001Indels0001.fa -r solidBF_k25.bf -k 25 -b ntEditEcolik25
 
-ntEdit v1.2.2b
+ntEdit v1.2.3
 
 Scalable genome sequence polishing.
 
