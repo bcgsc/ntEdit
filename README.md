@@ -149,7 +149,7 @@ eg.
 <pre>
 e.g. ./ntedit -f ecoliWithMismatches001Indels0001.fa -r solidBF_k25.bf -k 25 -b ntEditEcolik25
 
-ntEdit v1.2.3
+ntEdit v1.2.2
 
 Scalable genome sequence polishing.
 
@@ -162,12 +162,9 @@ Scalable genome sequence polishing.
 	-z,	minimum contig length [default=100]
 	-i,	maximum number of insertion bases to try, range 0-5, [default=4]
 	-d,	maximum number of deletions bases to try, range 0-5, [default=5]
-	-X,	ratio of number of kmers in the k subset that should be missing in order to attempt fix (higher=stringent), [default=0.5]
-	-Y,	ratio of number of kmers in the k subset that should be present to accept an edit (higher=stringent), [default=0.5]
 	-x,	k/x ratio for the number of kmers that should be missing, [default=5.000]
 	-y, 	k/y ratio for the number of editted kmers that should be present, [default=9.000]
 	-c,	cap for the number of base insertions that can be made at one position, [default=k*1.5]
-	-j,	when checking subset of kmers, check every jth kmer, [default=3]
 	-m,	mode of editing, range 0-2, [default=0]
 			0: best substitution, or first good indel
 			1: best substitution, or best indel
@@ -176,8 +173,6 @@ Scalable genome sequence polishing.
 
 	--help,		display this message and exit 
 	--version,	output version information and exit
-
-	If one of X/Y is set, it will use those parameters. Otherwise, it uses x/y by default.
 
 </pre>
 
