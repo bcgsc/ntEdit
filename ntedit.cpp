@@ -1120,7 +1120,7 @@ tryIndels(
 			          << std::endl;
 		}
 		// if the insertion is good, store the insertion accordingly RLW
-		if ((!opt::use_ratio && static_cast<float>(check_present) >= (static_cast<float>(opt::k) / opt::edit_threshold)) || (opt::use_ratio && check_present >= (opt::k / opt::jump) * opt::edit_ratio)) { // RLW
+		if ((!opt::use_ratio && static_cast<float>(check_present) >= (static_cast<float>(opt::k) / opt::edit_threshold)) || (opt::use_ratio && static_cast<float>(check_present) >= ( static_cast<float>(opt::k) / opt::jump) * opt::edit_ratio)) { // RLW
 			if (opt::mode == 0) {
 				// if we are in default mode, we just accept this first good insertion and return
 				best_edit_type = 2;
