@@ -1595,7 +1595,7 @@ main(int argc, char** argv)
 
 	time_t rawtime;
 	time(&rawtime);
-	std::cout << "\n-----------------Running ntEdit------------- " << ctime(&rawtime);
+	std::cout << "\n---------- Running ntEdit ---------- " << ctime(&rawtime);
 
 	// check the draft file is specified
 	if (opt::draft_filename.empty()) {
@@ -1676,7 +1676,7 @@ main(int argc, char** argv)
 
 	// Load bloom filter
 	time(&rawtime);
-	std::cout << "\n----------Loading Bloom Filter From File------ " << ctime(&rawtime);
+	std::cout << "\n---------- Loading Bloom Filter From File ---------- " << ctime(&rawtime);
 	BloomFilter bloom(opt::bloom_filename.c_str());
 	opt::h = bloom.getHashNum();
 
@@ -1696,11 +1696,11 @@ main(int argc, char** argv)
 
 	// Read & edit contigs
 	time(&rawtime);
-	std::cout << "\n----------Reading and Polishing Draft---------- " << ctime(&rawtime);
+	std::cout << "\n---------- Reading and Polishing Draft ---------- " << ctime(&rawtime);
 	readAndCorrect(bloom);
 
 	time(&rawtime);
-	std::cout << "\n----------ntEdit Polishing Complete !---------- " << ctime(&rawtime);
+	std::cout << "\n---------- ntEdit Polishing Complete ! ---------- " << ctime(&rawtime);
 
 	return 0;
 }
