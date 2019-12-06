@@ -868,15 +868,15 @@ makeEdit(
 			subst.pos = t_seq_i;
 			subst.sub_base = best_sub_base;
 			subst.num_support = best_num_support;
-			if (altsupp1) {
+			if (altsupp1 && altbase1 != best_sub_base) {
 				subst.altbase1 = altbase1;
                         	subst.altsupp1 = altsupp1;
 			}
-			if (altsupp2) {
+			if (altsupp2 && altbase2 != altbase1) {
 				subst.altbase2 = altbase2;
 				subst.altsupp2 = altsupp2;
 			}
-			if (altsupp3) {
+			if (altsupp3 && altbase3 != altbase2) {
 				subst.altbase3 = altbase3;
 				subst.altsupp3 = altsupp3;
 			}
