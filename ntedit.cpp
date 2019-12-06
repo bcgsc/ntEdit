@@ -1425,10 +1425,14 @@ kmerizeAndCorrect(
 
 							// update the best substitution
 							if (check_present >= best_num_support) {
-								altbase3 = altbase2;
-								altsupp3 = altsupp2;
-								altbase2 = altbase1;
-								altsupp2 = altsupp1;
+								if (altsupp2) {
+									altbase3 = altbase2;
+									altsupp3 = altsupp2;
+								}
+								if(altsupp1) {
+									altbase2 = altbase1;
+									altsupp2 = altsupp1;
+								}
 								altsupp1 = best_num_support;
 								altbase1 = best_sub_base;
 								best_edit_type = 1;
