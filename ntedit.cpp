@@ -1330,8 +1330,8 @@ kmerizeAndCorrect(
 			if (opt::verbose) {
 				std::cout << "\tcheck_missing: " << check_missing << std::endl;
 			}
-                        if ((opt::snv) || ((!do_not_fix) && ((!opt::use_ratio && static_cast<float>(check_missing) >= (static_cast<float>(opt::k) / opt::missing_threshold)))
-                                || ((opt::use_ratio && static_cast<float>(check_missing) >= (( static_cast<float>(opt::k) / opt::jump) * opt::missing_ratio))))) { // RLW
+                        if ((opt::snv) || ((!do_not_fix) && (((!opt::use_ratio && static_cast<float>(check_missing) >= (static_cast<float>(opt::k) / opt::missing_threshold)))
+                                || ((opt::use_ratio && static_cast<float>(check_missing) >= (( static_cast<float>(opt::k) / opt::jump) * opt::missing_ratio)))))) { // RLW
 
 				// recorders
 				unsigned num_deletions = 1;
