@@ -1,6 +1,7 @@
 #define PROGRAM "ntEdit" // NOLINT
 
 // clang-format off
+#include <math.h>
 #include <iostream> //NOLINT(llvm-include-order)
 #include <fstream>
 #include <sstream>
@@ -29,20 +30,21 @@ KSEQ_INIT(gzFile, gzread)
 
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)
 static const char VERSION_MESSAGE[] =
-    PROGRAM " Version 1.2.3\n"
+    PROGRAM " Version 1.3.0\n"
             "Written by Rene Warren, Hamid Mohamadi, and Jessica Zhang.\n"
-            "Copyright 2018, 2019 Canada's Michael smith Genome Science Centre\n";
+            "Copyright 2018-2020 Canada's Michael smith Genome Science Centre\n";
 
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)
 static const char USAGE_MESSAGE[] = PROGRAM
-    " v1.2.3\n"
+    " v1.3.0\n"
     "\n"
     "Scalable genome sequence polishing.\n"
     "\n"
     " Options:\n"
     "	-t,	number of threads [default=1]\n"
-    "	-f,	Draft genome assembly (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED\n"
+    "	-f,	draft genome assembly (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED\n"
     "	-r,	Bloom filter file (generated from ntHits), REQUIRED\n"
+    "	-e,	secondary Bloom filter with kmers to reject (generated from ntHits), OPTIONAL. EXPERIMENTAL\n"
     "	-b,	output file prefix, OPTIONAL\n"
     "	-k,	kmer size, REQUIRED\n"
     "	-z,	minimum contig length [default=100]\n"
@@ -58,6 +60,7 @@ static const char USAGE_MESSAGE[] = PROGRAM
     "			0: best substitution, or first good indel\n"
     "			1: best substitution, or best indel\n"
     "			2: best edit overall (suggestion that you reduce i and d for performance)\n"
+    "	-s,     SNV mode. Overrides draft kmer checks, forcing reassessment at each position (-s 1 = yes, default = 0, no. EXPERIMENTAL)\n"
     "	-v,	verbose mode (-v 1 = yes, default = 0, no)\n"
     "\n"
     "	--help,		display this message and exit \n"
@@ -82,9 +85,11 @@ unsigned jump = 3;
 unsigned nthreads = 1;
 std::string draft_filename; // NOLINT
 std::string bloom_filename; // NOLINT
+std::string bloomrep_filename; // NOLINT
 std::string outfile_prefix; // NOLINT
 unsigned k;
 unsigned h = 0;
+unsigned e = 0;
 unsigned min_contig_len = default_min_contig_len;
 unsigned max_insertions = default_max_insertions;
 unsigned max_deletions = default_max_deletions;
@@ -92,10 +97,12 @@ float edit_threshold = default_edit_threshold;
 float missing_threshold = default_missing_threshold;
 unsigned insertion_cap = static_cast<unsigned>(static_cast<float>(opt::k) * default_insertion_cap_ratio);
 int mode = 0;
+int snv = 0;
 int verbose = 0;
+int secbf = 0;
 } // namespace opt
 
-static const char shortopts[] = "t:f:s:k:z:b:r:v:d:i:X:Y:x:y:m:c:j:";
+static const char shortopts[] = "t:f:s:k:z:b:r:v:d:i:X:Y:x:y:m:c:j:s:e:";
 
 enum
 {
@@ -117,8 +124,10 @@ static const struct option longopts[] = {
 	{ "missing_ratio", required_argument, nullptr, 'X' },
 	{ "jump", required_argument, nullptr, 'j' },
 	{ "bloom_filename", required_argument, nullptr, 'r' },
+	{ "bloomrep_filename", required_argument, nullptr, 'e' },
 	{ "outfile_prefix", required_argument, nullptr, 'b' },
 	{ "mode", required_argument, nullptr, 'm' },
+        { "snv", required_argument, nullptr, 's' },
 	{ "verbose", required_argument, nullptr, 'v' },
 	{ "help", no_argument, nullptr, OPT_HELP },
 	{ "version", no_argument, nullptr, OPT_VERSION },
@@ -395,6 +404,12 @@ struct sRec
 	unsigned char draft_char = 0;
 	unsigned char sub_base = 0;
 	unsigned num_support = 0;
+	unsigned char altbase1 = 0;
+	unsigned altsupp1 = 0;
+	unsigned char altbase2 = 0;
+	unsigned altsupp2 = 0;
+	unsigned char altbase3 = 0;
+	unsigned altsupp3 = 0;
 };
 
 struct seqNode
@@ -718,7 +733,7 @@ writeEditsToFile(
     std::vector<seqNode>& newSeq,
     std::queue<sRec>& substitution_record)
 {
-	dfout << ">" << contigHdr.c_str() << "\n";
+	dfout << ">" << contigHdr.c_str() << "\n"; // FASTA HEADER RLWYY
 	unsigned node_index = 0;
 	std::string insertion_bases;
 	int num_support = -1;
@@ -744,11 +759,22 @@ writeEditsToFile(
 				rfout << contigHdr.c_str() << "\t" << substitution_record.front().pos + 1 << "\t"
 				      << substitution_record.front().draft_char << "\t"
 				      << substitution_record.front().sub_base << "\t"
-				      << substitution_record.front().num_support << "\n";
+				      << substitution_record.front().num_support;
+				if (substitution_record.front().altsupp1 > 0){//XXRLWXX
+					rfout << "\t" << substitution_record.front().altbase1 << "\t" << substitution_record.front().altsupp1;
+				}
+				if (substitution_record.front().altsupp2 > 0){//XXRLWXX
+					rfout << "\t" << substitution_record.front().altbase2 << "\t" << substitution_record.front().altsupp2;
+				}
+				if (substitution_record.front().altsupp3 > 0){//XXRLWXX
+					rfout << "\t" << substitution_record.front().altbase3 << "\t" << substitution_record.front().altsupp3;
+				}
+				rfout << "\n";
 				substitution_record.pop();
 			}
 			// fprintf(dfout, "%s", contigSeq.substr(curr_node.s_pos,
 			// (curr_node.e_pos-curr_node.s_pos+1)).c_str());
+			// NEXT 3 LINES CARRY INSTRUCTIONS TO PRINT NEW FASTA SEQ RLWYY
 			dfout << contigSeq.substr(curr_node.s_pos, (curr_node.e_pos - curr_node.s_pos + 1))
 			             .c_str();
 			pos = curr_node.e_pos + 1;
@@ -770,7 +796,7 @@ writeEditsToFile(
 			}
 		}
 	}
-	dfout << "\n";
+	dfout << "\n";//FASTA RECORD
 }
 
 /* Roll ntHash using the seqNode structure. */
@@ -811,6 +837,12 @@ makeEdit(
     unsigned char& best_sub_base,
     string& best_indel,
     unsigned& best_num_support,
+    unsigned char& altbase1,
+    unsigned& altsupp1,
+    unsigned char& altbase2,
+    unsigned& altsupp2,
+    unsigned char& altbase3,
+    unsigned& altsupp3,
     std::queue<sRec>& substitution_record,
     unsigned& h_seq_i,
     unsigned& t_seq_i,
@@ -837,6 +869,12 @@ makeEdit(
 			subst.pos = t_seq_i;
 			subst.sub_base = best_sub_base;
 			subst.num_support = best_num_support;
+			subst.altbase1 = altbase1;
+                        subst.altsupp1 = altsupp1;
+			subst.altbase2 = altbase2;
+			subst.altsupp2 = altsupp2;
+			subst.altbase3 = altbase3;
+			subst.altsupp3 = altsupp3;
 			substitution_record.push(subst);
 		} else if (tNode.node_type == 1) {
 			newSeq[t_node_index].c = best_sub_base;
@@ -970,6 +1008,7 @@ tryDeletion(
     const std::string& contigSeq,
     std::vector<seqNode>& newSeq,
     BloomFilter& bloom,
+    BloomFilter& bloomrep,
     std::string& deleted_bases)
 {
 
@@ -999,7 +1038,7 @@ tryDeletion(
 
 	// verify the deletion with a subset
 	unsigned check_present = 0;
-	if (bloom.contains(hVal)) {
+	if (bloom.contains(hVal) && (!opt::secbf || !bloomrep.contains(hVal))) {
 		check_present++; // check for changing the kmer after deletion
 	}
 	for (unsigned k = 1; k <= (opt::k - 2) && temp_h_seq_i < contigSeq.size(); k++) {
@@ -1013,7 +1052,7 @@ tryDeletion(
 		        charOut,
 		        charIn)) {
 			NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
-			if (k%opt::jump == 0 && bloom.contains(hVal)) {
+			if (k%opt::jump == 0 && bloom.contains(hVal) && (!opt::secbf || !bloomrep.contains(hVal))) {
 				check_present++;
 			}
 		}
@@ -1046,6 +1085,7 @@ tryIndels(
     const std::string& contigSeq,
     std::vector<seqNode>& newSeq,
     BloomFilter& bloom,
+    BloomFilter& bloomrep,
     unsigned& best_edit_type,
     std::string& best_indel,
     unsigned& best_num_support)
@@ -1093,7 +1133,7 @@ tryIndels(
 			    temp_rhVal,
 			    hVal);
 			increment(temp_h_seq_i, temp_h_node_index, newSeq);
-			if (k % opt::jump == 0 && bloom.contains(hVal)) {// RLW
+			if (k % opt::jump == 0 && bloom.contains(hVal) && (!opt::secbf || !bloomrep.contains(hVal))) {// RLW
 				check_present++;
 			}
 		}
@@ -1109,7 +1149,7 @@ tryIndels(
 			        charOut,
 			        charIn)) {
 				NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
-				if (k % opt::jump == 0 && bloom.contains(hVal)) {//RLW
+				if (k % opt::jump == 0 && bloom.contains(hVal) && (!opt::secbf || !bloomrep.contains(hVal))) {//RLW
 					check_present++;
 				}
 			}
@@ -1153,6 +1193,7 @@ tryIndels(
 			    contigSeq,
 			    newSeq,
 			    bloom,
+			    bloomrep,
 			    deleted_bases);
 			if (del_support > 0) {
 				if (opt::mode == 0) {
@@ -1192,6 +1233,7 @@ kmerizeAndCorrect(
     string& contigSeq,
     unsigned seqLen,
     BloomFilter& bloom,
+    BloomFilter& bloomrep,
     std::ofstream& dfout,
     std::ofstream& rfout)
 {
@@ -1242,7 +1284,7 @@ kmerizeAndCorrect(
 			std::cout << h_seq_i << " " << t_seq_i << " " << charIn << " " << h_node_index << " "
 			          << t_node_index << " " << hVal[0] << hVal[1] << hVal[2] << std::endl;
 		}
-		if (!bloom.contains(hVal)) {
+		if (opt::snv || !bloom.contains(hVal)) {
 			// make temporary value holders
 			uint64_t temp_fhVal = fhVal;
 			uint64_t temp_rhVal = rhVal;
@@ -1256,6 +1298,7 @@ kmerizeAndCorrect(
 
 			// confirm missing by checking subset
 			unsigned check_missing = 0;
+			unsigned check_there = 0; // RLW
 			bool do_not_fix = false;
 			for (unsigned k = 0; k < opt::k && temp_h_seq_i < seqLen; k++) { // RLW
 				if (roll(
@@ -1275,6 +1318,9 @@ kmerizeAndCorrect(
 					if (k % opt::jump == 0 && !bloom.contains(hVal)) { // RLW
 						check_missing++;
 					}
+					else if(k % opt::jump == 0 && bloom.contains(hVal)){ // XXRLWXX
+						check_there++;
+					}
 				} else {
 					do_not_fix = true;
 					break;
@@ -1284,8 +1330,9 @@ kmerizeAndCorrect(
 			if (opt::verbose) {
 				std::cout << "\tcheck_missing: " << check_missing << std::endl;
 			}
-			if (!do_not_fix && ((!opt::use_ratio && static_cast<float>(check_missing) >= (static_cast<float>(opt::k) / opt::missing_threshold))
-				|| (opt::use_ratio && static_cast<float>(check_missing) >= (( static_cast<float>(opt::k) / opt::jump) * opt::missing_ratio)))) { // RLW
+                        if (opt::snv || (!do_not_fix && ((!opt::use_ratio && static_cast<float>(check_missing) >= (static_cast<float>(opt::k) / opt::missing_threshold)))
+                                || ((opt::use_ratio && static_cast<float>(check_missing) >= (( static_cast<float>(opt::k) / opt::jump) * opt::missing_ratio))))) { // RLW
+
 				// recorders
 				unsigned num_deletions = 1;
 				unsigned best_edit_type =
@@ -1293,6 +1340,26 @@ kmerizeAndCorrect(
 				std::string best_indel;
 				unsigned char best_sub_base;
 				unsigned best_num_support = 0;
+				unsigned char altbase1;
+				unsigned char altbase2;
+				unsigned char altbase3;
+                                unsigned altsupp1 = 0;
+				unsigned altsupp2 = 0;
+				unsigned altsupp3 = 0;
+
+                                if(opt::snv){ // XXRLWXX -- sets baseline for draft
+
+					if ((!opt::use_ratio && static_cast<float>(check_there) >= (static_cast<float>(opt::k) / opt::edit_threshold))
+                                                        || (opt::use_ratio && static_cast<float>(check_there) >= (( static_cast<float>(opt::k) / opt::jump))*opt::edit_ratio)) { 
+						best_sub_base = draft_char;
+						best_num_support = check_there;
+
+						if (opt::verbose) {
+							std::cout << "\t\tORI BEST SUB BASE: " << best_sub_base
+                                                	<< " NUMBER: " << best_num_support << std::endl;
+						}
+					}
+                                }
 
 				// try substitution
 				for (const unsigned char sub_base : bases_array[draft_char]) {
@@ -1304,8 +1371,8 @@ kmerizeAndCorrect(
 					NTMC64_changelast(
 					    draft_char, sub_base, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
 
-					// only do verification of substition if it is found in bloom filter
-					if (bloom.contains(hVal) || opt::mode == 2) {
+					// only do verification of substitution if it is found in Bloom filter
+					if ((bloom.contains(hVal) && (!opt::secbf || !bloomrep.contains(hVal))) || opt::mode == 2) {
 						// reset temporary values
 						temp_h_node_index = h_node_index;
 						temp_t_node_index = t_node_index;
@@ -1318,7 +1385,7 @@ kmerizeAndCorrect(
 						} else if (newSeq[t_node_index].node_type == 1) {
 							newSeq[t_node_index].c = sub_base;
 						}
-						// check the subset to see if this substition is good
+						// check the subset to see if this substitution is good
 						unsigned check_present = 0;
 						for (unsigned k = 0; // RLW
 						     k < opt::k && temp_h_seq_i < seqLen && temp_t_seq_i < seqLen;
@@ -1334,7 +1401,7 @@ kmerizeAndCorrect(
 							        charIn)) {
 								NTMC64(
 								    charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
-								if (k % opt::jump == 0 && bloom.contains(hVal)) { // RLW
+								if (k % opt::jump == 0 && bloom.contains(hVal) && (!opt::secbf || !bloomrep.contains(hVal))) { // RLW
 									check_present++;
 								}
 							} else {
@@ -1357,10 +1424,24 @@ kmerizeAndCorrect(
 							|| (opt::use_ratio && static_cast<float>(check_present) >= (( static_cast<float>(opt::k) / opt::jump))*opt::edit_ratio)) { // RLW
 
 							// update the best substitution
-							if (check_present > best_num_support) {
+							if (check_present >= best_num_support) {
+								altbase3 = altbase2;
+								altsupp3 = altsupp2;
+								altbase2 = altbase1;
+								altsupp2 = altsupp1;
+								altsupp1 = best_num_support;
+								altbase1 = best_sub_base;
 								best_edit_type = 1;
 								best_sub_base = sub_base;
 								best_num_support = check_present;
+							} else{
+								if (! altsupp2) {
+									altbase2 = sub_base;
+									altsupp2 = check_present;
+								} else if (! altsupp3) {
+									altbase3 = sub_base;
+									altsupp3 = check_present;
+								}
 							}
 							// if we aren't exhaustively trying all edit combinations,
 							// 	then just do substitutions from now on
@@ -1385,6 +1466,7 @@ kmerizeAndCorrect(
 							        contigSeq,
 							        newSeq,
 							        bloom,
+								bloomrep,
 							        best_edit_type,
 							        best_indel,
 							        best_num_support)) {
@@ -1402,6 +1484,12 @@ kmerizeAndCorrect(
 				    best_sub_base,
 				    best_indel,
 				    best_num_support,
+				    altbase1,
+				    altsupp1,
+				    altbase2,
+				    altsupp2,
+				    altbase3,
+				    altsupp3,
 				    substitution_record,
 				    h_seq_i,
 				    t_seq_i,
@@ -1450,7 +1538,7 @@ kmerizeAndCorrect(
 
 /* Read the contigs from the file and polish each contig. */
 void
-readAndCorrect(BloomFilter& bloom)
+readAndCorrect(BloomFilter& bloom, BloomFilter& bloomrep)
 {
 	// read file handle
 	gzFile dfp;
@@ -1466,9 +1554,11 @@ readAndCorrect(BloomFilter& bloom)
 	ofstream rfout;
 	dfout.open(d_filename);
 	rfout.open(r_filename);
+	//printf ( "OUT OF %.1f\n", ceil( double(opt::k) / double(opt::jump) ) );
 
 	rfout << "ID\tbpPosition+1\tOriginalBase\tNewBase\tSupport " << opt::k << "-mer (out of "
-	      << ((opt::k / opt::jump) + 1) << ")\tAlternateNewBase\tAlt.Support " << opt::k << "-mers\n"; // RLW
+	      << ceil( double(opt::k) / double(opt::jump)) << ")\tAlt.Base1\tAlt.Support1\t"
+	      << "Alt.Base2\tAlt.Support2\tAlt.Base3\tAlt.Support3\n"; // RLW
 
 #pragma omp parallel shared(seq, dfout, rfout)
 	{
@@ -1500,7 +1590,7 @@ readAndCorrect(BloomFilter& bloom)
 				std::cout << contigName << std::endl;
 			}
 			if (seq_len >= opt::min_contig_len) {
-				kmerizeAndCorrect(contigName, contigSeq, seq_len, bloom, dfout, rfout);
+				kmerizeAndCorrect(contigName, contigSeq, seq_len, bloom, bloomrep, dfout, rfout);
 			}
 #pragma omp atomic
 			num_contigs++;
@@ -1544,6 +1634,9 @@ main(int argc, char** argv)
 		case 'r':
 			arg >> opt::bloom_filename;
 			break;
+		case 'e':
+			arg >> opt::bloomrep_filename;
+			break;
 		case 'd':
 			arg >> opt::max_deletions;
 			break;
@@ -1572,6 +1665,9 @@ main(int argc, char** argv)
 			break;
 		case 'm':
 			arg >> opt::mode;
+			break;
+		case 's':
+			arg >> opt::snv;
 			break;
 		case 'v':
 			arg >> opt::verbose;
@@ -1615,6 +1711,15 @@ main(int argc, char** argv)
 		assert_readable(opt::bloom_filename);
 	}
 
+	// check that the repeat bloom filter file is specified - RLW2019
+	if (opt::bloomrep_filename.empty()) {
+		opt::secbf = 0;//flag will track whether to query secondary Bloom filter or not
+	} else {
+		// if the file is specified check that it is readable
+		opt::secbf = 1;
+		assert_readable(opt::bloomrep_filename);
+	}
+
 	if (die) {
 		std::cerr << "Try `" << PROGRAM << " --help' for more information.\n";
 		exit(EXIT_FAILURE);
@@ -1639,11 +1744,20 @@ main(int argc, char** argv)
 		opt::max_deletions = opt::max_insertions;
 	}
 
+	// added nov21 2019 XXRLW
+	if(opt::snv){
+		opt::max_insertions = 0;
+		opt::max_deletions = 0;
+		std::cerr << PROGRAM ": EXPERIMENTAL feature note: i and d set to 0 when s is set to 1; Only tracking single-base variants.\n";
+	}
+
 	// get the basename for the file
 	std::string draft_basename =
 	    opt::draft_filename.substr(opt::draft_filename.find_last_of("/\\") + 1);
 	std::string bloom_basename =
 	    opt::bloom_filename.substr(opt::bloom_filename.find_last_of("/\\") + 1);
+	std::string bloomrep_basename =
+	    opt::bloomrep_filename.substr(opt::bloomrep_filename.find_last_of("/\\") + 1);
 
 	// set the outfile prefix if it wasn't given
 	if (opt::outfile_prefix.empty()) {
@@ -1655,28 +1769,27 @@ main(int argc, char** argv)
 	}
 
 	// print parameters:
-        if (opt::use_ratio) { // RLW
-                std::cout << "Running: " << PROGRAM << "\n -t " << opt::nthreads << "\n -f " << draft_basename
-                << "\n -k " << opt::k << "\n -z " << opt::min_contig_len << "\n -b "
-                << opt::outfile_prefix << "\n -r " << bloom_basename << "\n -i "
-                << opt::max_insertions << "\n -d " << opt::max_deletions << "\n -X "
-                << opt::missing_ratio << "\n -Y " << opt::edit_ratio << "\n -j " << opt::jump << "\n -m " << opt::mode
-                << "\n -v " << opt::verbose << std::endl;
-        } else {
-		std::cout << "Running: " << PROGRAM << "\n -t " << opt::nthreads << "\n -f " << draft_basename
+        std::cout << "Running: " << PROGRAM << "\n -t " << opt::nthreads << "\n -f " << draft_basename
 		<< "\n -k " << opt::k << "\n -z " << opt::min_contig_len << "\n -b "
-		<< opt::outfile_prefix << "\n -r " << bloom_basename << "\n -i "
-		<< opt::max_insertions << "\n -d " << opt::max_deletions << "\n -x "
-		<< opt::missing_threshold << "\n -y " << opt::edit_threshold << "\n -j " << opt::jump << "\n -m " << opt::mode
-		<< "\n -v " << opt::verbose << std::endl;
+		<< opt::outfile_prefix << "\n -r " << bloom_basename << "\n -e " << bloomrep_basename
+		<< "\n -i " << opt::max_insertions << "\n -d " << opt::max_deletions;
+
+        if (opt::use_ratio) { // RLW
+                std::cout << "\n -X " << opt::missing_ratio << "\n -Y " << opt::edit_ratio;
+        } else {
+		std::cout << "\n -x " << opt::missing_threshold << "\n -y " << opt::edit_threshold;
 	}
+
+	std::cout << "\n -j " << opt::jump << "\n -m " << opt::mode
+		<< "\n -s " << opt::snv << "\n -v " << opt::verbose << std::endl;
+
 
 	// Threading information
 	omp_set_num_threads(static_cast<int>(opt::nthreads));
 
 	// Load bloom filter
 	time(&rawtime);
-	std::cout << "\n---------- Loading Bloom Filter From File ---------- " << ctime(&rawtime);
+	std::cout << "\n---------- Loading Bloom filter from file ---------- " << ctime(&rawtime);
 	BloomFilter bloom(opt::bloom_filename.c_str());
 	opt::h = bloom.getHashNum();
 
@@ -1694,13 +1807,39 @@ main(int argc, char** argv)
 	// print bloom filter details
 	bloom.printBloomFilterDetails();
 
+
 	// Read & edit contigs
 	time(&rawtime);
-	std::cout << "\n---------- Reading and Polishing Draft ---------- " << ctime(&rawtime);
-	readAndCorrect(bloom);
+	if (opt::secbf) {
+		time(&rawtime);
+        	std::cout << "\n---------- Loading secondary Bloom filter from file ---------- " << ctime(&rawtime);
+        	BloomFilter bloomrep(opt::bloomrep_filename.c_str());
+        	opt::e = bloomrep.getHashNum();
 
+       		// Checks for the bloom filter
+        	if (opt::e == 0) {
+                	std::cerr << PROGRAM ": error: Secondary Bloom filter file is incorrect.";
+                	exit(EXIT_FAILURE);
+        	}
+
+        	if (opt::k != bloomrep.getKmerSize()) {
+                	std::cerr << PROGRAM ": error: Secondary Bloom filter k size is different than ntEdit k size.";
+                	exit(EXIT_FAILURE);
+        	}
+		// print bloom filter details
+		bloomrep.printBloomFilterDetails();
+
+		std::cout << "\n---------- Reading and polishing draft ---------- " << ctime(&rawtime);
+		readAndCorrect(bloom,bloomrep);
+
+	}
+	else {
+		std::cout << "\n---------- Reading and polishing draft ---------- " << ctime(&rawtime);
+		BloomFilter bloomrep(1000,1,1);
+		readAndCorrect(bloom,bloomrep);
+	}
 	time(&rawtime);
-	std::cout << "\n---------- ntEdit Polishing Complete ! ---------- " << ctime(&rawtime);
+	std::cout << "\n---------- ntEdit process complete ! ---------- " << ctime(&rawtime);
 
 	return 0;
 }

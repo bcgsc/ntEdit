@@ -2,9 +2,10 @@
 
 # ntEdit
 
-## Scalable genome sequence polishing
-## 2/2019
+## Scalable genome sequence polishing and variant identification*
+## 2018-2020
 ## email: rwarren [at] bcgsc [dot] ca
+## *experimental feature
 
 
 ### Description
@@ -18,7 +19,7 @@ We expect ntEdit to have additional applications in fast mapping of simple nucle
 ### Implementation and requirements
 -------------------------------
 
-ntEdit v1.2 is written in C++. 
+ntEdit v1.2 and subsequent versions are written in C++. 
 
 (We compiled with gcc 5.5.0)
 
@@ -65,7 +66,7 @@ Rene L Warren, Lauren Coombe, Hamid Mohamadi, Jessica Zhang, Barry Jaquish, Nath
 2019. Bioinformatics. doi:10.1093/bioinformatics/btz400
 </pre>
 
-The experimental data described in our paper can be downloaded here: http://www.bcgsc.ca/downloads/btl/ntedit/
+The experimental data described in our paper can be downloaded from: http://www.bcgsc.ca/downloads/btl/ntedit/
 Thank you for using, developing and promoting this free software.
 
 
@@ -80,6 +81,7 @@ Hamid Mohamadi
 
 C++ implementation:
 Jessica Zhang
+Rene Warren
 
 
 ### How to run in a pipeline
@@ -124,7 +126,7 @@ Where @reads.in is a file listing the path to all read fastq files to kmerize
 
 *About ntCard
 We recommend that you run ntCard independently on your short read data, and plot the kmer coverage distribution.
-Ideally, you may select a coverage threshold cutoff (nthits -c) based on that histogram.
+Ideally, you may select a coverage threshold cutoff (nthits -c) based on the histogram.
 
 https://github.com/bcgsc/ntCard
 Bioinformatics. 2017 May 1; 33(9): 1324–1330.
@@ -149,14 +151,15 @@ eg.
 <pre>
 e.g. ./ntedit -f ecoliWithMismatches001Indels0001.fa -r solidBF_k25.bf -k 25 -b ntEditEcolik25
 
-ntEdit v1.2.3
+ntEdit v1.3.0
 
 Scalable genome sequence polishing.
 
  Options:
 	-t,	number of threads [default=1]
-	-f,	Draft genome assembly (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED
+	-f,	draft genome assembly (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED
 	-r,	Bloom filter file (generated from ntHits), REQUIRED
+	-e,	secondary Bloom filter with kmers to reject (generated from ntHits), OPTIONAL. EXPERIMENTAL
 	-b,	output file prefix, OPTIONAL
 	-k,	kmer size, REQUIRED
 	-z,	minimum contig length [default=100]
@@ -172,12 +175,14 @@ Scalable genome sequence polishing.
 			0: best substitution, or first good indel
 			1: best substitution, or best indel
 			2: best edit overall (suggestion that you reduce i and d for performance)
+	-s,     SNV mode. Overrides draft kmer checks, forcing reassessment at each position (-s 1 = yes, default = 0, no. EXPERIMENTAL)
 	-v,	verbose mode (-v 1 = yes, default = 0, no)
 
 	--help,		display this message and exit 
 	--version,	output version information and exit
 
 	If one of X/Y is set, ntEdit will use those parameters instead. Otherwise, it uses x/y by default.
+
 </pre>
 
 ### ntEdit Modes
@@ -194,6 +199,62 @@ Mode 2:
 </pre>
 
 *We recommend running ntEdit in Mode 1 (or 0)
+
+### ntEdit -s (SNV) EXPERIMENTAL option 
+------------
+
+<pre>
+
+Version 1.3 implements a new mode (-s 1) to help detect simple base variation in genome sequences.
+
+It works by overriding the kmer absence verification stage of ntEdit, effectively testing every base position for possible alternate k kmers. At the moment, ntEdit only reports possible base substitutions (no indels), along with the number of supported kmers (the latter is NOT a proxy for read/kmer coverage). In our tests on simulated (C. elegans, H. sapiens) and experimental (GIAB, HG001/HG004), we find k52/k55 (-j 3 -- see below) to give the best performance.
+
+Caveats: Variations occurring within 2*k are not reported. Because kmers are shorter and have less context than reads and read pairs, kmer variations that occur within a genomic allele (intra allelic) may be reported. In order to minimize false discovery, we recommend using a secondary Bloom filter built with repeat kmers (see details on the -e Secondary Bloom filter option below). 
+
+This option is provided as a convenience feature, implemented to do a quick and dirty variation detection analysis on large genomes. It is a basic presence/absence detector based on kmer subsets. For robust variant identification, we recommend statistically principled approaches.
+
+</pre>
+
+### ntEdit -e Secondary Bloom filter, with kmers to exclude. EXPERIMENTAL option
+------------
+
+<pre>
+
+A secondary Bloom filter with kmers to exclude may be provided to ntEdit v1.3 with the -e option.
+This option is useful when running ntEdit in -s 1 mode, effectively taking a "slice" of robust (non-error and non-repeated) kmers. For example:
+-f draft from A (pseudo haploid)
+-r Bloom filter from A (diploid): non-error kmers
+-e Bloom filter from A (diploid): repeat kmers
+-s 1
+
+When computing a repeat kmer Bloom filter with ntHits, we recommend that you first run ntCard and plot the kmer coverage histogram to identify the repeat cutoff value. A higher precision can be achieved with a more strict repeat filter cutoff, albeit at the risk of impacting sensitivity.
+
+
+Alternate kmers that pass the presence verification stage of ntEdit will not be considered if present in the secondary Bloom filter.
+This option may be used to map homozygous variation between species/individual. For example, in such a set up:
+-f draft from A (pseudo haploid)
+-r Bloom filter from B (different individual or species, diploid): non-error kmers 
+-e Bloom filter from A (diploid): non-error kmers
+-s 0
+This will map sites that are different (homozygous variants) between B and A.
+
+
+*These are provided as examples. Other experimental setup are possible.
+
+
+We recommend setting the jump parameter (j) to 1 when using the secondary Bloom filter or using the following compatible j/k values:
+
+-j 1: all k combinations may be used
+-j 2: k31, k33, k35, k37, k39, k41, k43, k45, k47, k49, k51, k53, k55, k57, k59, k61 (odd k value) 
+-j 3: k30, k33, k36, k39, k42, k45, k49, k52, k55, k58, k61
+
+Faster ntEdit runs are achieved at -j 3. Higher values of j would not provide enough kmers in the k subset and have not been tested.
+
+Users should perform their own benchmarks.
+
+</pre>
+
+
 
 ### ntedit-make
 ------------
@@ -260,7 +321,7 @@ Sequence reads are first shredded into kmers using ntHits, keeping track of kmer
 ### License
 -------
 
-ntEdit Copyright (c) 2018-2019 British Columbia Cancer Agency Branch.  All rights reserved.
+ntEdit Copyright (c) 2018-2020 British Columbia Cancer Agency Branch.  All rights reserved.
 
 ntEdit is released under the GNU General Public License v3
 
