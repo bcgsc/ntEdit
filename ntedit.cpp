@@ -1,7 +1,6 @@
 #define PROGRAM "ntEdit" // NOLINT
 
 // clang-format off
-#include <math.h>
 #include <iostream> //NOLINT(llvm-include-order)
 #include <fstream>
 #include <sstream>
