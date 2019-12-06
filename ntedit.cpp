@@ -869,12 +869,18 @@ makeEdit(
 			subst.pos = t_seq_i;
 			subst.sub_base = best_sub_base;
 			subst.num_support = best_num_support;
-			subst.altbase1 = altbase1;
-                        subst.altsupp1 = altsupp1;
-			subst.altbase2 = altbase2;
-			subst.altsupp2 = altsupp2;
-			subst.altbase3 = altbase3;
-			subst.altsupp3 = altsupp3;
+			if (altsupp1) {
+				subst.altbase1 = altbase1;
+                        	subst.altsupp1 = altsupp1;
+			}
+			if (altsupp2) {
+				subst.altbase2 = altbase2;
+				subst.altsupp2 = altsupp2;
+			}
+			if (altsupp3) {
+				subst.altbase3 = altbase3;
+				subst.altsupp3 = altsupp3;
+			}
 			substitution_record.push(subst);
 		} else if (tNode.node_type == 1) {
 			newSeq[t_node_index].c = best_sub_base;
