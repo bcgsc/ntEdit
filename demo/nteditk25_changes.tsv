@@ -1,4 +1,4 @@
-ID	bpPosition+1	OriginalBase	NewBase	Support 25-mer (out of 9)	AlternateNewBase	Alt.Support 25-mers
+ID	bpPosition+1	OriginalBase	NewBase	Support 25-mer (out of 9)	Alt.Base1	Alt.Support1	Alt.Base2	Alt.Support2	Alt.Base3	Alt.Support3
 U00096.3_MG1655_k12	117	A	T	9
 U00096.3_MG1655_k12	2308	G	A	9
 U00096.3_MG1655_k12	3084	T	G	9
