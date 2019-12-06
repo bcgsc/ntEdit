@@ -1433,8 +1433,10 @@ kmerizeAndCorrect(
 									altbase2 = altbase1;
 									altsupp2 = altsupp1;
 								}
-								altsupp1 = best_num_support;
-								altbase1 = best_sub_base;
+								if(best_num_support) {
+									altsupp1 = best_num_support;
+									altbase1 = best_sub_base;
+								}
 								best_edit_type = 1;
 								best_sub_base = sub_base;
 								best_num_support = check_present;
