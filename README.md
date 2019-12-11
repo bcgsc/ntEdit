@@ -65,15 +65,17 @@ rwarren@bcgsc.ca
 ### Citing ntEdit 
 ------------
 
+Thank you for your [![Stars](https://img.shields.io/github/stars/bcgsc/ntEdit.svg)](https://github.com/bcgsc/ntEdit/stargazers) and for using, developing and promoting this free software.
+
+If you use ntEdit in your research, please cite:
+
 [ntEdit: scalable genome sequence polishing](http://dx.doi.org/10.1093/bioinformatics/btz400)
 <pre>
-Rene L Warren, Lauren Coombe, Hamid Mohamadi, Jessica Zhang, Barry Jaquish, Nathalie Isabel, Steven JM Jones, Jean Bousquet, Joerg Bohlmann, Inanc Birol. 
+Rene L Warren, Lauren Coombe, Hamid Mohamadi, Jessica Zhang, Barry Jaquish, Nathalie Isabel, Steven JM Jones, Jean Bousquet, Joerg Bohlmann, Inanc Birol.
 2019. Bioinformatics. doi:10.1093/bioinformatics/btz400
 </pre>
 
 The experimental data described in our paper can be downloaded from: http://www.bcgsc.ca/downloads/btl/ntedit/
-
-Thank you for your [![Stars](https://img.shields.io/github/stars/bcgsc/ntEdit.svg)](https://github.com/bcgsc/ntEdit/stargazers) and for using, developing and promoting this free software.
 
 
 ### Credits
