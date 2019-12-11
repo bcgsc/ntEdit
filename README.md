@@ -72,6 +72,7 @@ Rene L Warren, Lauren Coombe, Hamid Mohamadi, Jessica Zhang, Barry Jaquish, Nath
 </pre>
 
 The experimental data described in our paper can be downloaded from: http://www.bcgsc.ca/downloads/btl/ntedit/
+
 Thank you for your [![Stars](https://img.shields.io/github/stars/bcgsc/ntEdit.svg)](https://github.com/bcgsc/ntEdit/stargazers) and for using, developing and promoting this free software.
 
 
