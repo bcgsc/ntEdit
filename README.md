@@ -71,8 +71,9 @@ If you use ntEdit in your research, please cite:
 
 [ntEdit: scalable genome sequence polishing](http://dx.doi.org/10.1093/bioinformatics/btz400)
 <pre>
-Rene L Warren, Lauren Coombe, Hamid Mohamadi, Jessica Zhang, Barry Jaquish, Nathalie Isabel, Steven JM Jones, Jean Bousquet, Joerg Bohlmann, Inanc Birol.
-2019. Bioinformatics. doi:10.1093/bioinformatics/btz400
+ntEdit: scalable genome sequence polishing.
+Warren RL, Coombe L, Mohamadi H, Zhang J, Jaquish B, Isabel N, Jones SJM, Bousquet J, Bohlmann J, Birol I.
+Bioinformatics. 2019 Nov 1;35(21):4430-4432. doi: 10.1093/bioinformatics/btz400.
 </pre>
 [![link](https://img.shields.io/badge/ntEdit-manuscript-brightgreen)](http://dx.doi.org/10.1093/bioinformatics/btz400)
 
