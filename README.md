@@ -65,7 +65,7 @@ rwarren@bcgsc.ca
 ### Citing ntEdit 
 ------------
 
-Thank you for your [![Stars](https://img.shields.io/github/stars/bcgsc/ntEdit.svg)](https://github.com/bcgsc/ntEdit/stargazers) and for using, developing and promoting this free software.
+Thank you for your [![Stars](https://img.shields.io/github/stars/bcgsc/ntEdit.svg)](https://github.com/bcgsc/ntEdit/stargazers) and for using, developing and promoting this free software!
 
 If you use ntEdit in your research, please cite:
 
