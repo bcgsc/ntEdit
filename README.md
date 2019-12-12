@@ -74,6 +74,8 @@ If you use ntEdit in your research, please cite:
 Rene L Warren, Lauren Coombe, Hamid Mohamadi, Jessica Zhang, Barry Jaquish, Nathalie Isabel, Steven JM Jones, Jean Bousquet, Joerg Bohlmann, Inanc Birol.
 2019. Bioinformatics. doi:10.1093/bioinformatics/btz400
 </pre>
+[![link](https://img.shields.io/badge/ntEdit-manuscript-brightgreen)](http://dx.doi.org/10.1093/bioinformatics/btz400)
+
 
 The experimental data described in our paper can be downloaded from: http://www.bcgsc.ca/downloads/btl/ntedit/
 
