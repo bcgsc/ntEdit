@@ -7,10 +7,10 @@
 
 # ntEdit
 
-## Scalable genome sequence polishing and snv detection*
-## 2018-2020
-## email: rwarren [at] bcgsc [dot] ca
-## *experimental feature
+## Fast, lightweight, scalable genome sequence polishing & snv detection*
+### 2018-2020
+### email: rwarren [at] bcgsc [dot] ca
+### *experimental feature
 
 
 ### Description
