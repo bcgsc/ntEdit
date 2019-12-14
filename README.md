@@ -84,15 +84,11 @@ The experimental data described in our paper can be downloaded from: http://www.
 ### Credits
 -------
 
-ntEdit (concept, algorithm design and prototype):
-Rene Warren
+ntEdit (concept, algorithm design and prototype): Rene Warren
 
-nthits / nthash / BloomFilter.pm:
-Hamid Mohamadi
+nthits / nthash / BloomFilter.pm: Hamid Mohamadi
 
-C++ implementation:
-Jessica Zhang
-Rene Warren
+C++ implementation: Jessica Zhang, Rene Warren
 
 
 ### How to run in a pipeline
