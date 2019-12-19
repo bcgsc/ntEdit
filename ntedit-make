@@ -58,7 +58,7 @@ help:
 	@echo "	draft	draft genome assembly. Must be specified with exact FILE NAME. Ex: draft=myDraft.fa (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED"
 	@echo "	reads	prefix of reads file(s). All files in the working directory with the specified prefix will be used for polishing (fastq, fasta, gz, bz, zip), REQUIRED"
 	@echo "	time	logs time and memory usage to file for main steps (Set to 1 to enable logging)"
-	@echo "	k	kmer size, REQUIRED"
+	@echo "	k	kmer size, REQUIRED FOR NTHITS. AS OF v1.3.1, NO LONGER REQUIRED BY NTEDIT."
 	@echo "	t	number of threads [default=1]"
 	@echo "	b	output file prefix, OPTIONAL"
 	@echo ""
@@ -81,8 +81,8 @@ help:
 	@echo "	v	verbose mode (1 = yes, default = 0, no)"
 	@echo ""
 	@echo "Example: Polishing myDraft.fa with myReads1.fq and myReads2.fq"
-	@echo "		./ntedit-make ntedit draft=myDraft.fa reads=myReads k=64 cutoff=2 or"
-	@echo "		./ntedit-make ntedit draft=myDraft.fa reads=myReads k=64 solid=true"
+	@echo "		./ntedit-make ntedit draft=myDraft.fa reads=myReads cutoff=2 or"
+	@echo "		./ntedit-make ntedit draft=myDraft.fa reads=myReads solid=true"
 	@echo ""
 	@echo "Make sure your read files all have the same prefix, as indicated by 'reads=<prefix>'. The makefile will use all files in the current working directory with this prefix for polishing."
 	@echo "To ensure that the pipeline runs correctly, make sure that the following tools are in your PATH: ntedit, nthits"
@@ -117,4 +117,4 @@ else
 endif
 
 $(draftPrefix)_k$k_edited.fa: $p_k$k.bf $(draft)
-	$(gtimeNtedit) ntedit -r $< -f $(word 2,$^) -k $k -b $b -t $t -z $z -i $i -d $d -x $x -y $y -c $(cap) -m $m -v $v
+	$(gtimeNtedit) ntedit -r $< -f $(word 2,$^) -b $b -t $t -z $z -i $i -d $d -x $x -y $y -c $(cap) -m $m -v $v

@@ -1,4 +1,4 @@
-#define PROGRAM "ntEdit" // NOLINT
+#define PROGRAM "ntedit" // NOLINT
 
 // clang-format off
 #include <iostream> //NOLINT(llvm-include-order)
@@ -29,13 +29,13 @@ KSEQ_INIT(gzFile, gzread)
 
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)
 static const char VERSION_MESSAGE[] =
-    PROGRAM " Version 1.3.0\n"
-            "Written by Rene Warren, Hamid Mohamadi, and Jessica Zhang.\n"
-            "Copyright 2018-2020 Canada's Michael smith Genome Science Centre\n";
+    PROGRAM " version 1.3.1\n"
+            "written by Rene Warren, Hamid Mohamadi, and Jessica Zhang.\n"
+            "copyright 2018-2020 Canada's Michael smith Genome Science Centre\n";
 
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)
 static const char USAGE_MESSAGE[] = PROGRAM
-    " v1.3.0\n"
+    " v1.3.1\n"
     "\n"
     "Scalable genome sequence polishing.\n"
     "\n"
@@ -45,7 +45,6 @@ static const char USAGE_MESSAGE[] = PROGRAM
     "	-r,	Bloom filter file (generated from ntHits), REQUIRED\n"
     "	-e,	secondary Bloom filter with kmers to reject (generated from ntHits), OPTIONAL. EXPERIMENTAL\n"
     "	-b,	output file prefix, OPTIONAL\n"
-    "	-k,	kmer size, REQUIRED\n"
     "	-z,	minimum contig length [default=100]\n"
     "	-i,	maximum number of insertion bases to try, range 0-5, [default=4]\n"
     "	-d,	maximum number of deletions bases to try, range 0-5, [default=5]\n"
@@ -94,7 +93,7 @@ unsigned max_insertions = default_max_insertions;
 unsigned max_deletions = default_max_deletions;
 float edit_threshold = default_edit_threshold;
 float missing_threshold = default_missing_threshold;
-unsigned insertion_cap = static_cast<unsigned>(static_cast<float>(opt::k) * default_insertion_cap_ratio);
+unsigned insertion_cap;
 int mode = 0;
 int snv = 0;
 int verbose = 0;
@@ -835,6 +834,7 @@ makeEdit(
     unsigned& best_edit_type,
     unsigned char& best_sub_base,
     string& best_indel,
+    string& alt_indel,
     unsigned& best_num_support,
     unsigned char& altbase1,
     unsigned& altsupp1,
@@ -1093,7 +1093,9 @@ tryIndels(
     BloomFilter& bloomrep,
     unsigned& best_edit_type,
     std::string& best_indel,
-    unsigned& best_num_support)
+    std::string& alt_indel,
+    unsigned& best_num_support,
+    unsigned& altsupp1)
 {
 
 	// initialize temporary values
@@ -1104,7 +1106,9 @@ tryIndels(
 	unsigned temp_h_node_index;
 	unsigned temp_t_node_index;
 	unsigned temp_best_num_support = 0;
+	unsigned temp_alt_num_support = 0;
 	std::string temp_best_indel;
+	std::string temp_alt_indel;
 	unsigned temp_best_edit_type = 0;
 	unsigned char charIn;
 	unsigned char charOut;
@@ -1175,7 +1179,11 @@ tryIndels(
 			}
 			if (opt::mode == 1 || opt::mode == 2) {
 				// if we are in some deep mode, we look for the best indel within index char first
-				if (check_present > temp_best_num_support) {
+				if (check_present >= temp_best_num_support) {
+					if(temp_best_num_support) {
+						temp_alt_indel = temp_best_indel;
+						temp_alt_num_support = temp_best_num_support;
+					}
 					temp_best_edit_type = 2;
 					temp_best_indel = insertion_bases;
 					temp_best_num_support = check_present;
@@ -1208,7 +1216,11 @@ tryIndels(
 					return true;
 				}
 				if (opt::mode == 1 || opt::mode == 2) {
-					if (del_support > temp_best_num_support) {
+					if (del_support >= temp_best_num_support) {
+						if(temp_best_num_support) {
+							temp_alt_indel = temp_best_indel;
+							temp_alt_num_support = temp_best_num_support;
+						}
 						temp_best_edit_type = 3;
 						temp_best_indel = deleted_bases;
 						temp_best_num_support = del_support;
@@ -1225,6 +1237,8 @@ tryIndels(
 			best_edit_type = temp_best_edit_type;
 			best_indel = temp_best_indel;
 			best_num_support = temp_best_num_support;
+			alt_indel = temp_alt_indel;
+			altsupp1 = temp_alt_num_support;
 		}
 		return true;
 	}
@@ -1305,7 +1319,7 @@ kmerizeAndCorrect(
 			unsigned check_missing = 0;
 			unsigned check_there = 0; // RLW
 			bool do_not_fix = false;
-			for (unsigned k = 0; k < opt::k && temp_h_seq_i < seqLen; k++) { // RLW
+			for (unsigned k = 0; k < opt::k && temp_h_seq_i < seqLen; k++) { // RLW -- below roll may be adjusted/dupli to account for gapped seed
 				if (roll(
 				        temp_h_seq_i,
 				        temp_t_seq_i,
@@ -1343,6 +1357,7 @@ kmerizeAndCorrect(
 				unsigned best_edit_type =
 				    0; // 0=no edit made; 1=substitution; 2=insertion; 3=deletions
 				std::string best_indel;
+				std::string alt_indel;
 				unsigned char best_sub_base;
 				unsigned best_num_support = 0;
 				unsigned char altbase1;
@@ -1446,12 +1461,36 @@ kmerizeAndCorrect(
 								best_sub_base = sub_base;
 								best_num_support = check_present;
 							} else{
-								if (! altsupp2) {
-									altbase2 = sub_base;
-									altsupp2 = check_present;
+								if (! altsupp1) {
+									altbase1 = sub_base;
+									altsupp1 = check_present;
+								} else if (! altsupp2) {
+									if (check_present < altsupp1) {
+										altbase2 = sub_base;
+										altsupp2 = check_present;
+									} else {
+										altbase2 = altbase1;
+										altsupp2 = altsupp1;
+										altbase1 = sub_base;
+										altsupp1 = check_present;
+									}
 								} else if (! altsupp3) {
-									altbase3 = sub_base;
-									altsupp3 = check_present;
+									if (check_present < altsupp2) {
+										altbase3 = sub_base;
+										altsupp3 = check_present;
+									} else if (check_present < altsupp1) {
+										altbase3 = altbase2;
+										altsupp3 = altsupp2;
+										altbase2 = sub_base;
+										altsupp2 = check_present;
+									} else {
+										altbase3 = altbase2;
+										altsupp3 = altsupp2;
+										altbase2 = altbase1;
+										altsupp2 = altsupp1;
+										altbase1 = sub_base;
+										altsupp1 = check_present;
+									}
 								}
 							}
 							// if we aren't exhaustively trying all edit combinations,
@@ -1480,7 +1519,9 @@ kmerizeAndCorrect(
 								bloomrep,
 							        best_edit_type,
 							        best_indel,
-							        best_num_support)) {
+							        alt_indel,
+							        best_num_support,
+							        altsupp1)) {
 								if (opt::mode == 0 || opt::mode == 1) {
 									break;
 								}
@@ -1494,6 +1535,7 @@ kmerizeAndCorrect(
 				    best_edit_type,
 				    best_sub_base,
 				    best_indel,
+				    alt_indel,
 				    best_num_support,
 				    altbase1,
 				    altsupp1,
@@ -1633,9 +1675,6 @@ main(int argc, char** argv)
 		case 'f':
 			arg >> opt::draft_filename;
 			break;
-		case 'k':
-			arg >> opt::k;
-			break;
 		case 'z':
 			arg >> opt::min_contig_len;
 			break;
@@ -1702,7 +1741,7 @@ main(int argc, char** argv)
 
 	time_t rawtime;
 	time(&rawtime);
-	std::cout << "\n---------- Running ntEdit ---------- " << ctime(&rawtime);
+	std::cout << "---------- running ntedit                           : " << ctime(&rawtime);
 
 	// check the draft file is specified
 	if (opt::draft_filename.empty()) {
@@ -1736,6 +1775,47 @@ main(int argc, char** argv)
 		exit(EXIT_FAILURE);
 	}
 
+	// added nov21 2019 XXRLW
+	if(opt::snv){
+		opt::max_insertions = 0;
+		opt::max_deletions = 0;
+		std::cerr << PROGRAM ": EXPERIMENTAL feature note: i and d set to 0 when s is set to 1; Only tracking single-base variants.\n";
+	}
+
+	// get the basename for the file
+	std::string draft_basename =
+	    opt::draft_filename.substr(opt::draft_filename.find_last_of("/\\") + 1);
+	std::string bloom_basename =
+	    opt::bloom_filename.substr(opt::bloom_filename.find_last_of("/\\") + 1);
+	std::string bloomrep_basename =
+	    opt::bloomrep_filename.substr(opt::bloomrep_filename.find_last_of("/\\") + 1);
+
+	// Threading information
+	omp_set_num_threads(static_cast<int>(opt::nthreads));
+
+	// Load bloom filter
+	time(&rawtime);
+	std::cout << "---------- loading Bloom filter from file           : " << ctime(&rawtime) << "\n";
+	BloomFilter bloom(opt::bloom_filename.c_str());
+	opt::h = bloom.getHashNum();
+
+	// Checks for the bloom filter
+	if (opt::h == 0) {
+		std::cerr << PROGRAM ": error: Bloom filter file supplied (-r) is incorrect.\n";
+		exit(EXIT_FAILURE);
+	}
+
+	// assign k from Bloom filter header
+	opt::k = bloom.getKmerSize();
+
+	opt::insertion_cap = static_cast<unsigned>(static_cast<float>(opt::k) * opt::default_insertion_cap_ratio);
+
+	// print bloom filter details
+	bloom.printBloomFilterDetails();
+
+	// Checking parameters
+        time(&rawtime);
+	std::cout << "\n---------- verifying parameters                     : " << ctime(&rawtime);
 	// check that the parameters x and y are in bound
 	if (opt::missing_threshold < 3 && opt::missing_threshold > static_cast<float>(opt::k) &&
 	    opt::edit_threshold < 3 && opt::edit_threshold > static_cast<float>(opt::k)) {
@@ -1755,21 +1835,6 @@ main(int argc, char** argv)
 		opt::max_deletions = opt::max_insertions;
 	}
 
-	// added nov21 2019 XXRLW
-	if(opt::snv){
-		opt::max_insertions = 0;
-		opt::max_deletions = 0;
-		std::cerr << PROGRAM ": EXPERIMENTAL feature note: i and d set to 0 when s is set to 1; Only tracking single-base variants.\n";
-	}
-
-	// get the basename for the file
-	std::string draft_basename =
-	    opt::draft_filename.substr(opt::draft_filename.find_last_of("/\\") + 1);
-	std::string bloom_basename =
-	    opt::bloom_filename.substr(opt::bloom_filename.find_last_of("/\\") + 1);
-	std::string bloomrep_basename =
-	    opt::bloomrep_filename.substr(opt::bloomrep_filename.find_last_of("/\\") + 1);
-
 	// set the outfile prefix if it wasn't given
 	if (opt::outfile_prefix.empty()) {
 		std::ostringstream outfile_name;
@@ -1780,77 +1845,56 @@ main(int argc, char** argv)
 	}
 
 	// print parameters:
-        std::cout << "Running: " << PROGRAM << "\n -t " << opt::nthreads << "\n -f " << draft_basename
-		<< "\n -k " << opt::k << "\n -z " << opt::min_contig_len << "\n -b "
-		<< opt::outfile_prefix << "\n -r " << bloom_basename << "\n -e " << bloomrep_basename
-		<< "\n -i " << opt::max_insertions << "\n -d " << opt::max_deletions;
+	std::cout << "\nrunning : " << PROGRAM << "\n -f " << draft_basename
+	          << "\n -k " << opt::k << "\n -z " << opt::min_contig_len << "\n -b "
+	          << opt::outfile_prefix << "\n -r " << bloom_basename << "\n -e " << bloomrep_basename
+	          << "\n -i " << opt::max_insertions << "\n -d " << opt::max_deletions;
 
-        if (opt::use_ratio) { // RLW
-                std::cout << "\n -X " << opt::missing_ratio << "\n -Y " << opt::edit_ratio;
-        } else {
+	if (opt::use_ratio) { // RLW
+		std::cout << "\n -X " << opt::missing_ratio << "\n -Y " << opt::edit_ratio;
+	} else {
 		std::cout << "\n -x " << opt::missing_threshold << "\n -y " << opt::edit_threshold;
 	}
 
 	std::cout << "\n -j " << opt::jump << "\n -m " << opt::mode
-		<< "\n -s " << opt::snv << "\n -v " << opt::verbose << std::endl;
-
-
-	// Threading information
-	omp_set_num_threads(static_cast<int>(opt::nthreads));
-
-	// Load bloom filter
-	time(&rawtime);
-	std::cout << "\n---------- Loading Bloom filter from file ---------- " << ctime(&rawtime);
-	BloomFilter bloom(opt::bloom_filename.c_str());
-	opt::h = bloom.getHashNum();
-
-	// Checks for the bloom filter
-	if (opt::h == 0) {
-		std::cerr << PROGRAM ": error: Bloom Filter file is incorrect.";
-		exit(EXIT_FAILURE);
-	}
-
-	if (opt::k != bloom.getKmerSize()) {
-		std::cerr << PROGRAM ": error: Bloom Filter k size is different than ntEdit k size.";
-		exit(EXIT_FAILURE);
-	}
-
-	// print bloom filter details
-	bloom.printBloomFilterDetails();
-
+	          << "\n -s " << opt::snv << "\n -t " << opt::nthreads << "\n -v " << opt::verbose << "\n" << std::endl;
 
 	// Read & edit contigs
 	time(&rawtime);
 	if (opt::secbf) {
 		time(&rawtime);
-        	std::cout << "\n---------- Loading secondary Bloom filter from file ---------- " << ctime(&rawtime);
+        	std::cout << "---------- loading secondary Bloom filter from file : " << ctime(&rawtime) << "\n";
         	BloomFilter bloomrep(opt::bloomrep_filename.c_str());
         	opt::e = bloomrep.getHashNum();
 
-       		// Checks for the bloom filter
+       		// Checks for the Bloom filter
         	if (opt::e == 0) {
-                	std::cerr << PROGRAM ": error: Secondary Bloom filter file is incorrect.";
+                	std::cerr << PROGRAM ": error: secondary Bloom filter file supplied (-e) is incorrect.\n";
                 	exit(EXIT_FAILURE);
         	}
 
-        	if (opt::k != bloomrep.getKmerSize()) {
-                	std::cerr << PROGRAM ": error: Secondary Bloom filter k size is different than ntEdit k size.";
+		// Check that primary and secondary BF kmer sizes match
+        	if (opt::k != bloomrep.getKmerSize()) { 
+                	std::cerr << PROGRAM ": error: secondary Bloom filter k size ("
+			          << bloomrep.getKmerSize() 
+			          << ") is different than main Bloom filter k size ("
+			          << opt::k
+			          << ")\n";
                 	exit(EXIT_FAILURE);
         	}
 		// print bloom filter details
 		bloomrep.printBloomFilterDetails();
 
-		std::cout << "\n---------- Reading and polishing draft ---------- " << ctime(&rawtime);
+		std::cout << "\n---------- reading and polishing draft              : " << ctime(&rawtime);
 		readAndCorrect(bloom,bloomrep);
 
 	}
 	else {
-		std::cout << "\n---------- Reading and polishing draft ---------- " << ctime(&rawtime);
+		std::cout << "---------- reading and polishing draft              : " << ctime(&rawtime);
 		BloomFilter bloomrep(1000,1,1);
 		readAndCorrect(bloom,bloomrep);
 	}
 	time(&rawtime);
-	std::cout << "\n---------- ntEdit process complete ! ---------- " << ctime(&rawtime);
-
+	std::cout << "---------- process complete                         : " << ctime(&rawtime);
 	return 0;
 }
