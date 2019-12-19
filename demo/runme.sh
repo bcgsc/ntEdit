@@ -7,5 +7,5 @@
 #/usr/bin/time -v -o nthitk25.time nthits -c 2 -b 36 -k 25 --outbloom -p solidBF Sim_100_300_1.fq.gz Sim_100_300_2.fq.gz
 echo Running ntEdit...
 #===================
-/usr/bin/time -v -o nteditk25.time ../ntedit -f ecoliWithMismatches001Indels0001.fa.gz -k 25 -r solidBF_k25.bf -d 5 -i 4 -b nteditk25
+/usr/bin/time -v -o nteditk25.time ../ntedit -f ecoliWithMismatches001Indels0001.fa.gz -r solidBF_k25.bf -d 5 -i 4 -b nteditk25
 echo Output corrections in nteditk25_
