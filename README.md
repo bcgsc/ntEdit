@@ -1,5 +1,5 @@
 [![Release](https://img.shields.io/github/release/bcgsc/ntEdit.svg)](https://github.com/bcgsc/ntEdit/releases)
-[![Downloads](https://img.shields.io/github/downloads/bcgsc/ntEdit/total?logo=github)](https://github.com/bcgsc/ntEdit/releases/download/v1.3/ntEdit_v1-3-0.tar.gz)
+[![Downloads](https://img.shields.io/github/downloads/bcgsc/ntEdit/total?logo=github)](https://github.com/bcgsc/ntEdit/releases/download/v1.3.1/ntEdit_v1-3-1.tar.gz)
 [![Issues](https://img.shields.io/github/issues/bcgsc/ntEdit.svg)](https://github.com/bcgsc/ntEdit/issues)
 
 
