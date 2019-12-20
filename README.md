@@ -20,7 +20,7 @@ ntEdit is a fast and scalable genomics application for polishing genome assembly
 It simplifies polishing and "haploidization" of gene and genome sequences with its re-usable Bloom filter design.
 We expect ntEdit to have additional applications in fast mapping of simple nucleotide variations between any two individuals or species’ genomes.
 ```diff
-! NOTE: In v1.3.1, the parameter k is automatically detected from Bloom filters
+! NOTE: In v1.3.1 the parameter k is automatically detected from supplied Bloom filters
 ```
 
 ### Implementation and requirements
