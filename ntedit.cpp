@@ -19,9 +19,10 @@
 #include <cassert>
 #include <cerrno>
 #include <unistd.h>
-#include "lib/kseq.h"
-#include "lib/nthash.hpp" // NOLINT
+#include "lib/kseq.h" // NOLINT
 #include "lib/BloomFilter.hpp"
+#include "vendor/stHashIterator.hpp"
+#include "vendor/nthash.hpp"
 // clang-format on
 
 // NOLINTNEXTLINE
@@ -43,30 +44,36 @@ static const char USAGE_MESSAGE[] = PROGRAM
     "	-t,	number of threads [default=1]\n"
     "	-f,	draft genome assembly (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED\n"
     "	-r,	Bloom filter file (generated from ntHits), REQUIRED\n"
-    "	-e,	secondary Bloom filter with kmers to reject (generated from ntHits), OPTIONAL. EXPERIMENTAL\n"
+    "	-e,	secondary Bloom filter with kmers to reject (generated from ntHits), OPTIONAL. "
+    "EXPERIMENTAL\n"
     "	-b,	output file prefix, OPTIONAL\n"
     "	-z,	minimum contig length [default=100]\n"
     "	-i,	maximum number of insertion bases to try, range 0-5, [default=4]\n"
     "	-d,	maximum number of deletions bases to try, range 0-5, [default=5]\n"
     "	-x,	k/x ratio for the number of kmers that should be missing, [default=5.000]\n"
     "	-y, 	k/y ratio for the number of editted kmers that should be present, [default=9.000]\n"
-    "	-X, 	ratio of number of kmers in the k subset that should be missing in order to attempt fix (higher=stringent), [default=0.5]\n"
-    "	-Y, 	ratio of number of kmers in the k subset that should be present to accept an edit (higher=stringent), [default=0.5]\n"
-    "	-c,	cap for the number of base insertions that can be made at one position, [default=k*1.5]\n"
-    "	-j, 	controls size of kmer subset. When checking subset of kmers, check every jth kmer, [default=3]\n"
+    "	-X, 	ratio of number of kmers in the k subset that should be missing in order to "
+    "attempt fix (higher=stringent), [default=0.5]\n"
+    "	-Y, 	ratio of number of kmers in the k subset that should be present to accept an edit "
+    "(higher=stringent), [default=0.5]\n"
+    "	-c,	cap for the number of base insertions that can be made at one position, "
+    "[default=k*1.5]\n"
+    "	-j, 	controls size of kmer subset. When checking subset of kmers, check every jth kmer, "
+    "[default=3]\n"
     "	-m,	mode of editing, range 0-2, [default=0]\n"
     "			0: best substitution, or first good indel\n"
     "			1: best substitution, or best indel\n"
     "			2: best edit overall (suggestion that you reduce i and d for performance)\n"
-    "	-s,     SNV mode. Overrides draft kmer checks, forcing reassessment at each position (-s 1 = yes, default = 0, no. EXPERIMENTAL)\n"
+    "	-s,     SNV mode. Overrides draft kmer checks, forcing reassessment at each position (-s 1 "
+    "= yes, default = 0, no. EXPERIMENTAL)\n"
     "	-v,	verbose mode (-v 1 = yes, default = 0, no)\n"
     "\n"
     "	--help,		display this message and exit \n"
     "	--version,	output version information and exit\n"
     "\n"
-    "	If one of X/Y is set, ntEdit will use those parameters instead. Otherwise, it uses x/y by default.\n"
+    "	If one of X/Y is set, ntEdit will use those parameters instead. Otherwise, it uses x/y by "
+    "default.\n"
     "\n";
-
 
 namespace opt {
 /* Defining magical numbers. */
@@ -81,10 +88,10 @@ float missing_ratio = 0.5;
 bool use_ratio = false;
 unsigned jump = 3;
 unsigned nthreads = 1;
-std::string draft_filename; // NOLINT
-std::string bloom_filename; // NOLINT
+std::string draft_filename;    // NOLINT
+std::string bloom_filename;    // NOLINT
 std::string bloomrep_filename; // NOLINT
-std::string outfile_prefix; // NOLINT
+std::string outfile_prefix;    // NOLINT
 unsigned k;
 unsigned h = 0;
 unsigned e = 0;
@@ -98,9 +105,11 @@ int mode = 0;
 int snv = 0;
 int verbose = 0;
 int secbf = 0;
+unsigned g = 0;
+std::vector<std::vector<unsigned>> seedSet = { {} };
 } // namespace opt
 
-static const char shortopts[] = "t:f:s:k:z:b:r:v:d:i:X:Y:x:y:m:c:j:s:e:";
+static const char shortopts[] = "t:f:s:z:b:r:v:d:i:X:Y:x:y:m:c:j:s:e:g:";
 
 enum
 {
@@ -111,7 +120,6 @@ enum
 static const struct option longopts[] = {
 	{ "threads", required_argument, nullptr, 't' },
 	{ "draft_file", required_argument, nullptr, 'f' },
-	{ "k", required_argument, nullptr, 'k' },
 	{ "minimum_contig_length", required_argument, nullptr, 'z' },
 	{ "maximum_insertions", required_argument, nullptr, 'i' },
 	{ "maximum_deletions", required_argument, nullptr, 'd' },
@@ -125,7 +133,7 @@ static const struct option longopts[] = {
 	{ "bloomrep_filename", required_argument, nullptr, 'e' },
 	{ "outfile_prefix", required_argument, nullptr, 'b' },
 	{ "mode", required_argument, nullptr, 'm' },
-        { "snv", required_argument, nullptr, 's' },
+	{ "snv", required_argument, nullptr, 's' },
 	{ "verbose", required_argument, nullptr, 'v' },
 	{ "help", no_argument, nullptr, OPT_HELP },
 	{ "version", no_argument, nullptr, OPT_VERSION },
@@ -758,14 +766,17 @@ writeEditsToFile(
 				      << substitution_record.front().draft_char << "\t"
 				      << substitution_record.front().sub_base << "\t"
 				      << substitution_record.front().num_support;
-				if (substitution_record.front().altsupp1 > 0){//XXRLWXX
-					rfout << "\t" << substitution_record.front().altbase1 << "\t" << substitution_record.front().altsupp1;
+				if (substitution_record.front().altsupp1 > 0) { // XXRLWXX
+					rfout << "\t" << substitution_record.front().altbase1 << "\t"
+					      << substitution_record.front().altsupp1;
 				}
-				if (substitution_record.front().altsupp2 > 0){//XXRLWXX
-					rfout << "\t" << substitution_record.front().altbase2 << "\t" << substitution_record.front().altsupp2;
+				if (substitution_record.front().altsupp2 > 0) { // XXRLWXX
+					rfout << "\t" << substitution_record.front().altbase2 << "\t"
+					      << substitution_record.front().altsupp2;
 				}
-				if (substitution_record.front().altsupp3 > 0){//XXRLWXX
-					rfout << "\t" << substitution_record.front().altbase3 << "\t" << substitution_record.front().altsupp3;
+				if (substitution_record.front().altsupp3 > 0) { // XXRLWXX
+					rfout << "\t" << substitution_record.front().altbase3 << "\t"
+					      << substitution_record.front().altsupp3;
 				}
 				rfout << "\n";
 				substitution_record.pop();
@@ -794,7 +805,7 @@ writeEditsToFile(
 			}
 		}
 	}
-	dfout << "\n";//FASTA RECORD
+	dfout << "\n"; // FASTA RECORD
 }
 
 /* Roll ntHash using the seqNode structure. */
@@ -850,7 +861,10 @@ makeEdit(
     uint64_t& rhVal,
     uint64_t* hVal,
     std::string& contigSeq,
-    std::vector<seqNode>& newSeq)
+    std::vector<seqNode>& newSeq,
+	std::string& currSeq,
+	bool* hStn
+	)
 {
 
 	bool skipped_repeat = false;
@@ -869,7 +883,7 @@ makeEdit(
 			subst.num_support = best_num_support;
 			if (altsupp1 && altbase1 != best_sub_base) {
 				subst.altbase1 = altbase1;
-                        	subst.altsupp1 = altsupp1;
+				subst.altsupp1 = altsupp1;
 			}
 			if (altsupp2 && altbase2 != altbase1) {
 				subst.altbase2 = altbase2;
@@ -884,7 +898,15 @@ makeEdit(
 			newSeq[t_node_index].c = best_sub_base;
 		}
 		// make sure we change our current hash to match it
-		NTMC64_changelast(draft_char, best_sub_base, opt::k, opt::h, fhVal, rhVal, hVal);
+		if (opt::g == 0) {
+			NTMC64_changelast(draft_char, best_sub_base, opt::k, opt::h, fhVal, rhVal, hVal);
+		} else {
+			unsigned locN = 0;
+			currSeq = currSeq.substr(0, currSeq.size() - 1);
+			currSeq += best_sub_base;
+			NTMSM64(currSeq.c_str(), opt::seedSet, opt::k, 1, opt::h, fhVal, rhVal, locN, hVal, hStn);
+		}
+		
 		if (opt::verbose) {
 			std::cout << "\tt_seq_i: " << t_seq_i << " SUB: " << best_sub_base
 			          << " check_present: " << best_num_support << std::endl;
@@ -1056,7 +1078,8 @@ tryDeletion(
 		        charOut,
 		        charIn)) {
 			NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
-			if (k%opt::jump == 0 && bloom.contains(hVal) && (!opt::secbf || !bloomrep.contains(hVal))) {
+			if (k % opt::jump == 0 && bloom.contains(hVal) &&
+			    (!opt::secbf || !bloomrep.contains(hVal))) {
 				check_present++;
 			}
 		}
@@ -1066,8 +1089,11 @@ tryDeletion(
 		std::cout << "\t\tdeleting: " << deleted_bases << " check_present: " << check_present
 		          << std::endl;
 	}
-        if ((!opt::use_ratio && static_cast<float>(check_present) >= ( static_cast<float>(opt::k) / opt::edit_threshold))
-		|| (opt::use_ratio && static_cast<float>(check_present) >= ( 1 + ( static_cast<float>(opt::k) / opt::jump )) * opt::edit_ratio)) { // RLW
+	if ((!opt::use_ratio &&
+	     static_cast<float>(check_present) >= (static_cast<float>(opt::k) / opt::edit_threshold)) ||
+	    (opt::use_ratio &&
+	     static_cast<float>(check_present) >=
+	         (1 + (static_cast<float>(opt::k) / opt::jump)) * opt::edit_ratio)) { // RLW
 		return static_cast<int>(check_present);
 	}
 	return 0;
@@ -1134,14 +1160,15 @@ tryIndels(
 		for (; k < insertion_bases.size() - 1 && temp_h_seq_i < contigSeq.size(); k++) {
 			NTMC64(
 			    getCharacter(temp_h_seq_i, newSeq[temp_h_node_index], contigSeq),
-			    insertion_bases[k+1],
+			    insertion_bases[k + 1],
 			    opt::k,
 			    opt::h,
 			    temp_fhVal,
 			    temp_rhVal,
 			    hVal);
 			increment(temp_h_seq_i, temp_h_node_index, newSeq);
-			if (k % opt::jump == 0 && bloom.contains(hVal) && (!opt::secbf || !bloomrep.contains(hVal))) {// RLW
+			if (k % opt::jump == 0 && bloom.contains(hVal) &&
+			    (!opt::secbf || !bloomrep.contains(hVal))) { // RLW
 				check_present++;
 			}
 		}
@@ -1157,7 +1184,8 @@ tryIndels(
 			        charOut,
 			        charIn)) {
 				NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
-				if (k % opt::jump == 0 && bloom.contains(hVal) && (!opt::secbf || !bloomrep.contains(hVal))) {//RLW
+				if (k % opt::jump == 0 && bloom.contains(hVal) &&
+				    (!opt::secbf || !bloomrep.contains(hVal))) { // RLW
 					check_present++;
 				}
 			}
@@ -1168,7 +1196,11 @@ tryIndels(
 			          << std::endl;
 		}
 		// if the insertion is good, store the insertion accordingly RLW
-		if ((!opt::use_ratio && static_cast<float>(check_present) >= (static_cast<float>(opt::k) / opt::edit_threshold)) || (opt::use_ratio && static_cast<float>(check_present) >= ( static_cast<float>(opt::k) / opt::jump) * opt::edit_ratio)) { // RLW
+		if ((!opt::use_ratio && static_cast<float>(check_present) >=
+		                            (static_cast<float>(opt::k) / opt::edit_threshold)) ||
+		    (opt::use_ratio &&
+		     static_cast<float>(check_present) >=
+		         (static_cast<float>(opt::k) / opt::jump) * opt::edit_ratio)) { // RLW
 			if (opt::mode == 0) {
 				// if we are in default mode, we just accept this first good insertion and return
 				best_edit_type = 2;
@@ -1179,7 +1211,7 @@ tryIndels(
 			if (opt::mode == 1 || opt::mode == 2) {
 				// if we are in some deep mode, we look for the best indel within index char first
 				if (check_present >= temp_best_num_support) {
-					if(temp_best_num_support) {
+					if (temp_best_num_support) {
 						temp_alt_indel = temp_best_indel;
 						temp_alt_num_support = temp_best_num_support;
 					}
@@ -1216,7 +1248,7 @@ tryIndels(
 				}
 				if (opt::mode == 1 || opt::mode == 2) {
 					if (del_support >= temp_best_num_support) {
-						if(temp_best_num_support) {
+						if (temp_best_num_support) {
 							temp_alt_indel = temp_best_indel;
 							temp_alt_num_support = temp_best_num_support;
 						}
@@ -1259,11 +1291,14 @@ kmerizeAndCorrect(
 	// initialize values for hashing
 	uint64_t fhVal = 0;
 	uint64_t rhVal = 0;
+	unsigned locN=0;
 	uint64_t* hVal;
+	bool* hStn;
 	unsigned char charIn = 0;
 	unsigned char charOut;
 	unsigned char draft_char;
 	hVal = new uint64_t[opt::h];
+	hStn = new bool[opt::h * opt::seedSet.size()];
 
 	// vector to record substitutions
 	std::queue<sRec> substitution_record;
@@ -1273,10 +1308,19 @@ kmerizeAndCorrect(
 	unsigned t_seq_i = h_seq_i + opt::k - 1;
 
 	// intialize our seed kmer
+	std::string currSeq = contigSeq.substr(h_seq_i, opt::k);
 	if (h_seq_i + opt::k - 1 < seqLen) {
-		NTMC64(contigSeq.substr(h_seq_i, opt::k).c_str(), opt::k, opt::h, fhVal, rhVal, hVal);
-		charIn = contigSeq.at(t_seq_i);
+		if (opt::g == 0) {
+			NTMC64(contigSeq.substr(h_seq_i, opt::k).c_str(), opt::k, opt::h, fhVal, rhVal, hVal);
+		} else {
+		// 1 is number of seed
+			NTMSM64(contigSeq.substr(h_seq_i, opt::k).c_str(), opt::seedSet, opt::k, 1, opt::h, fhVal, rhVal, locN, hVal, hStn);
+		}
 	}
+
+
+
+	charIn = contigSeq.at(t_seq_i);
 
 	// compressed string
 	//	vector<seqNode> newSeq(contigSeq.size()/4);
@@ -1292,7 +1336,8 @@ kmerizeAndCorrect(
 	// h_seq_i and t_seq_i node pointers
 	unsigned h_node_index = 0;
 	unsigned t_node_index = 0;
-
+	bool finishDiagnosis = false;
+	unsigned finishDiagnosisCount = 0;
 	bool continue_edit = true;
 	do {
 		if (h_seq_i + opt::k - 1 >= seqLen) {
@@ -1318,38 +1363,77 @@ kmerizeAndCorrect(
 			unsigned check_missing = 0;
 			unsigned check_there = 0; // RLW
 			bool do_not_fix = false;
-			for (unsigned k = 0; k < opt::k && temp_h_seq_i < seqLen; k++) { // RLW -- below roll may be adjusted/dupli to account for gapped seed
-				if (roll(
-				        temp_h_seq_i,
-				        temp_t_seq_i,
-				        temp_h_node_index,
-				        temp_t_node_index,
-				        contigSeq,
-				        newSeq,
-				        charOut,
-				        charIn)) {
-					NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
-					if (!isAcceptedBase(toupper(charIn))) {
+			if (opt::g == 0) {
+				for (unsigned k = 0; k < opt::k && temp_h_seq_i < seqLen;
+					k++) { // RLW -- below roll may be adjusted/dupli to account for gapped seed
+					if (roll(
+							temp_h_seq_i,
+							temp_t_seq_i,
+							temp_h_node_index,
+							temp_t_node_index,
+							contigSeq,
+							newSeq,
+							charOut,
+							charIn)) {
+						NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
+						if (!isAcceptedBase(toupper(charIn))) {
+							do_not_fix = true;
+							break;
+						}
+						if (k % opt::jump == 0 && !bloom.contains(hVal)) { // RLW
+							check_missing++;
+						} else if (k % opt::jump == 0 && bloom.contains(hVal)) { // XXRLWXX
+							check_there++;
+						}
+					} else {
 						do_not_fix = true;
 						break;
 					}
-					if (k % opt::jump == 0 && !bloom.contains(hVal)) { // RLW
-						check_missing++;
+				}
+			} else {
+				std::string rollSeq = currSeq;
+				for (unsigned k = 0; k <( opt::k - opt::g ) /2 && temp_h_seq_i < seqLen;
+					k++) {
+					if (roll(
+							temp_h_seq_i,
+							temp_t_seq_i,
+							temp_h_node_index,
+							temp_t_node_index,
+							contigSeq,
+							newSeq,
+							charOut,
+							charIn)) {
+						rollSeq = rollSeq.substr(1, rollSeq.size() - 1);
+						rollSeq += charIn;
+						NTMSM64(rollSeq.c_str(), opt::seedSet, opt::k, 1, opt::h, fhVal, rhVal, locN, hVal, hStn);
+
+						if (!isAcceptedBase(toupper(charIn))) {
+							do_not_fix = true;
+							break;
+						}
+
+						if (k % opt::jump == 0 && !bloom.contains(hVal)) { // RLW
+							check_missing++;
+						} else if (k % opt::jump == 0 && bloom.contains(hVal)) { // XXRLWXX
+							check_there++;
+						}
+					} else {
+						do_not_fix = true;
 					}
-					else if(k % opt::jump == 0 && bloom.contains(hVal)){ // XXRLWXX
-						check_there++;
-					}
-				} else {
-					do_not_fix = true;
-					break;
 				}
 			}
 
 			if (opt::verbose) {
 				std::cout << "\tcheck_missing: " << check_missing << std::endl;
 			}
-                        if ((opt::snv) || ((!do_not_fix) && (((!opt::use_ratio && static_cast<float>(check_missing) >= (static_cast<float>(opt::k) / opt::missing_threshold)))
-                                || ((opt::use_ratio && static_cast<float>(check_missing) >= (( static_cast<float>(opt::k) / opt::jump) * opt::missing_ratio)))))) { // RLW
+
+			if ((opt::snv) || ((!do_not_fix) &&
+			                   (((!opt::use_ratio &&
+			                      static_cast<float>(check_missing) >=
+			                          (static_cast<float>(opt::k) / opt::missing_threshold))) ||
+			                    ((opt::use_ratio && static_cast<float>(check_missing) >=
+			                                            ((static_cast<float>(opt::k) / opt::jump) *
+			                                             opt::missing_ratio)))))) { // RLW
 
 				// recorders
 				unsigned num_deletions = 1;
@@ -1362,36 +1446,65 @@ kmerizeAndCorrect(
 				unsigned char altbase1;
 				unsigned char altbase2;
 				unsigned char altbase3;
-                                unsigned altsupp1 = 0;
+				unsigned altsupp1 = 0;
 				unsigned altsupp2 = 0;
 				unsigned altsupp3 = 0;
 
-                                if(opt::snv){ // XXRLWXX -- sets baseline for draft
+				if (opt::snv) { // XXRLWXX -- sets baseline for draft
+					if (opt::g == 0) {
+						if ((!opt::use_ratio &&
+							static_cast<float>(check_there) >=
+								(static_cast<float>(opt::k) / opt::edit_threshold)) ||
+							(opt::use_ratio &&
+							static_cast<float>(check_there) >=
+								((static_cast<float>(opt::k) / opt::jump)) * opt::edit_ratio)) {
+							best_sub_base = draft_char;
+							best_num_support = check_there;
 
-					if ((!opt::use_ratio && static_cast<float>(check_there) >= (static_cast<float>(opt::k) / opt::edit_threshold))
-                                                        || (opt::use_ratio && static_cast<float>(check_there) >= (( static_cast<float>(opt::k) / opt::jump))*opt::edit_ratio)) { 
-						best_sub_base = draft_char;
-						best_num_support = check_there;
+							if (opt::verbose) {
+								std::cout << "\t\tORI BEST SUB BASE: " << best_sub_base
+										<< " NUMBER: " << best_num_support << std::endl;
+							}
+						}
+					} else {
+						if ((!opt::use_ratio &&
+							static_cast<float>(check_there) >=
+								(static_cast<float>(( opt::k - opt::g ) /2) / opt::edit_threshold)) ||
+							(opt::use_ratio &&
+							static_cast<float>(check_there) >=
+								((static_cast<float>(( opt::k - opt::g ) /2) / opt::jump)) * opt::edit_ratio)) {
+							best_sub_base = draft_char;
+							best_num_support = check_there;
 
-						if (opt::verbose) {
-							std::cout << "\t\tORI BEST SUB BASE: " << best_sub_base
-                                                	<< " NUMBER: " << best_num_support << std::endl;
+							if (opt::verbose) {
+								std::cout << "\t\tORI BEST SUB BASE: " << best_sub_base
+										<< " NUMBER: " << best_num_support << std::endl;
+							}
 						}
 					}
-                                }
+				}
 
 				// try substitution
 				for (const unsigned char sub_base : bases_array[draft_char]) {
 					// reset the temporary values
 					temp_fhVal = fhVal;
 					temp_rhVal = rhVal;
+					std::string currSeqSub = currSeq;
 
 					// hash the substitution change
-					NTMC64_changelast(
-					    draft_char, sub_base, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
+					if (opt::g == 0) {
+						NTMC64_changelast(
+					    	draft_char, sub_base, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
+					}  else {
+						currSeqSub = currSeqSub.substr(0, currSeqSub.size() - 1);
+						currSeqSub += sub_base;
+						NTMSM64(currSeqSub.c_str(), opt::seedSet, opt::k, 1, opt::h, fhVal, rhVal, locN, hVal, hStn);
+					}
 
 					// only do verification of substitution if it is found in Bloom filter
-					if ((bloom.contains(hVal) && (!opt::secbf || !bloomrep.contains(hVal))) || opt::mode == 2) {
+					if ((bloom.contains(hVal) && (!opt::secbf || !bloomrep.contains(hVal))) ||
+					    opt::mode == 2) {
+
 						// reset temporary values
 						temp_h_node_index = h_node_index;
 						temp_t_node_index = t_node_index;
@@ -1406,25 +1519,54 @@ kmerizeAndCorrect(
 						}
 						// check the subset to see if this substitution is good
 						unsigned check_present = 0;
-						for (unsigned k = 0; // RLW
-						     k < opt::k && temp_h_seq_i < seqLen && temp_t_seq_i < seqLen;
-						     k++) {
-							if (roll(
-							        temp_h_seq_i,
-							        temp_t_seq_i,
-							        temp_h_node_index,
-							        temp_t_node_index,
-							        contigSeq,
-							        newSeq,
-							        charOut,
-							        charIn)) {
-								NTMC64(
-								    charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
-								if (k % opt::jump == 0 && bloom.contains(hVal) && (!opt::secbf || !bloomrep.contains(hVal))) { // RLW
-									check_present++;
+						if (opt::g != 0) {
+							std::string rollSeqSub = currSeqSub;
+							for (unsigned k = 0; // RLW
+								k < ( opt::k - opt::g ) /2 && temp_h_seq_i < seqLen && temp_t_seq_i < seqLen;
+								k++) {
+								if (roll(
+										temp_h_seq_i,
+										temp_t_seq_i,
+										temp_h_node_index,
+										temp_t_node_index,
+										contigSeq,
+										newSeq,
+										charOut,
+										charIn)) {
+									rollSeqSub = rollSeqSub.substr(1, rollSeqSub.size() - 1);
+									rollSeqSub += charIn;
+									NTMSM64(rollSeqSub.c_str(), opt::seedSet, opt::k, 1, opt::h, fhVal, rhVal, locN, hVal, hStn);
+
+									if (k % opt::jump == 0 && bloom.contains(hVal) &&
+										(!opt::secbf || !bloomrep.contains(hVal))) { // RLW
+										check_present++;
+									}
+								} else {
+									break;
 								}
-							} else {
-								break;
+							}
+						} else {
+							for (unsigned k = 0; // RLW
+								k < opt::k && temp_h_seq_i < seqLen && temp_t_seq_i < seqLen;
+								k++) {
+								if (roll(
+										temp_h_seq_i,
+										temp_t_seq_i,
+										temp_h_node_index,
+										temp_t_node_index,
+										contigSeq,
+										newSeq,
+										charOut,
+										charIn)) {
+									NTMC64(
+										charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
+									if (k % opt::jump == 0 && bloom.contains(hVal) &&
+										(!opt::secbf || !bloomrep.contains(hVal))) { // RLW
+										check_present++;
+									}
+								} else {
+									break;
+								}
 							}
 						}
 
@@ -1439,63 +1581,133 @@ kmerizeAndCorrect(
 							          << " check_present: " << check_present << std::endl;
 						}
 
-						if ((!opt::use_ratio && static_cast<float>(check_present) >= (static_cast<float>(opt::k) / opt::edit_threshold))
-							|| (opt::use_ratio && static_cast<float>(check_present) >= (( static_cast<float>(opt::k) / opt::jump))*opt::edit_ratio)) { // RLW
+						if (opt::g != 0) {
+							if ((!opt::use_ratio &&
+								static_cast<float>(check_present) >=
+									(static_cast<float>(( opt::k - opt::g ) /2) / opt::edit_threshold)) ||
+								(opt::use_ratio && static_cast<float>(check_present) >=
+													((static_cast<float>(( opt::k - opt::g ) /2) / opt::jump)) *
+														opt::edit_ratio)) { // RLW
 
-							// update the best substitution
-							if (check_present >= best_num_support) {
-								if (altsupp2) {
-									altbase3 = altbase2;
-									altsupp3 = altsupp2;
-								}
-								if(altsupp1) {
-									altbase2 = altbase1;
-									altsupp2 = altsupp1;
-								}
-								if(best_num_support) {
-									altsupp1 = best_num_support;
-									altbase1 = best_sub_base;
-								}
-								best_edit_type = 1;
-								best_sub_base = sub_base;
-								best_num_support = check_present;
-							} else{
-								if (! altsupp1) {
-									altbase1 = sub_base;
-									altsupp1 = check_present;
-								} else if (! altsupp2) {
-									if (check_present < altsupp1) {
-										altbase2 = sub_base;
-										altsupp2 = check_present;
-									} else {
-										altbase2 = altbase1;
-										altsupp2 = altsupp1;
-										altbase1 = sub_base;
-										altsupp1 = check_present;
-									}
-								} else if (! altsupp3) {
-									if (check_present < altsupp2) {
-										altbase3 = sub_base;
-										altsupp3 = check_present;
-									} else if (check_present < altsupp1) {
+								// update the best substitution
+								if (check_present >= best_num_support) {
+									if (altsupp2) {
 										altbase3 = altbase2;
 										altsupp3 = altsupp2;
-										altbase2 = sub_base;
-										altsupp2 = check_present;
-									} else {
-										altbase3 = altbase2;
-										altsupp3 = altsupp2;
+									}
+									if (altsupp1) {
 										altbase2 = altbase1;
 										altsupp2 = altsupp1;
+									}
+									if (best_num_support) {
+										altsupp1 = best_num_support;
+										altbase1 = best_sub_base;
+									}
+									best_edit_type = 1;
+									best_sub_base = sub_base;
+									best_num_support = check_present;
+								} else {
+									if (!altsupp1) {
 										altbase1 = sub_base;
 										altsupp1 = check_present;
+									} else if (!altsupp2) {
+										if (check_present < altsupp1) {
+											altbase2 = sub_base;
+											altsupp2 = check_present;
+										} else {
+											altbase2 = altbase1;
+											altsupp2 = altsupp1;
+											altbase1 = sub_base;
+											altsupp1 = check_present;
+										}
+									} else if (!altsupp3) {
+										if (check_present < altsupp2) {
+											altbase3 = sub_base;
+											altsupp3 = check_present;
+										} else if (check_present < altsupp1) {
+											altbase3 = altbase2;
+											altsupp3 = altsupp2;
+											altbase2 = sub_base;
+											altsupp2 = check_present;
+										} else {
+											altbase3 = altbase2;
+											altsupp3 = altsupp2;
+											altbase2 = altbase1;
+											altsupp2 = altsupp1;
+											altbase1 = sub_base;
+											altsupp1 = check_present;
+										}
 									}
+								}
+								// if we aren't exhaustively trying all edit combinations,
+								// 	then just do substitutions from now on
+								if (opt::mode == 0 || opt::mode == 1) {
+									continue;
 								}
 							}
-							// if we aren't exhaustively trying all edit combinations,
-							// 	then just do substitutions from now on
-							if (opt::mode == 0 || opt::mode == 1) {
-								continue;
+						} else {
+							if ((!opt::use_ratio &&
+								static_cast<float>(check_present) >=
+									(static_cast<float>(opt::k) / opt::edit_threshold)) ||
+								(opt::use_ratio && static_cast<float>(check_present) >=
+													((static_cast<float>(opt::k) / opt::jump)) *
+														opt::edit_ratio)) { // RLW
+
+								// update the best substitution
+								if (check_present >= best_num_support) {
+									if (altsupp2) {
+										altbase3 = altbase2;
+										altsupp3 = altsupp2;
+									}
+									if (altsupp1) {
+										altbase2 = altbase1;
+										altsupp2 = altsupp1;
+									}
+									if (best_num_support) {
+										altsupp1 = best_num_support;
+										altbase1 = best_sub_base;
+									}
+									best_edit_type = 1;
+									best_sub_base = sub_base;
+									best_num_support = check_present;
+								} else {
+									if (!altsupp1) {
+										altbase1 = sub_base;
+										altsupp1 = check_present;
+									} else if (!altsupp2) {
+										if (check_present < altsupp1) {
+											altbase2 = sub_base;
+											altsupp2 = check_present;
+										} else {
+											altbase2 = altbase1;
+											altsupp2 = altsupp1;
+											altbase1 = sub_base;
+											altsupp1 = check_present;
+										}
+									} else if (!altsupp3) {
+										if (check_present < altsupp2) {
+											altbase3 = sub_base;
+											altsupp3 = check_present;
+										} else if (check_present < altsupp1) {
+											altbase3 = altbase2;
+											altsupp3 = altsupp2;
+											altbase2 = sub_base;
+											altsupp2 = check_present;
+										} else {
+											altbase3 = altbase2;
+											altsupp3 = altsupp2;
+											altbase2 = altbase1;
+											altsupp2 = altsupp1;
+											altbase1 = sub_base;
+											altsupp1 = check_present;
+										}
+									}
+								}
+								// if we aren't exhaustively trying all edit combinations,
+								// 	then just do substitutions from now on
+								if (opt::mode == 0 || opt::mode == 1) {
+									continue;
+								}
 							}
 						}
 						// if we are exhaustively trying all edit combinations or
@@ -1515,7 +1727,7 @@ kmerizeAndCorrect(
 							        contigSeq,
 							        newSeq,
 							        bloom,
-								bloomrep,
+							        bloomrep,
 							        best_edit_type,
 							        best_indel,
 							        alt_indel,
@@ -1550,9 +1762,12 @@ kmerizeAndCorrect(
 				    rhVal,
 				    hVal,
 				    contigSeq,
-				    newSeq);
+				    newSeq,
+					currSeq,
+					hStn);
 			}
 		}
+
 		// roll and skip over non-ATGC containing kmers
 		int target_t_seq_i = -1;
 		do {
@@ -1568,7 +1783,14 @@ kmerizeAndCorrect(
 				if (!isAcceptedBase(toupper(charIn))) {
 					target_t_seq_i = static_cast<int>(t_seq_i) + static_cast<int>(opt::k);
 				}
-				NTMC64(charOut, charIn, opt::k, opt::h, fhVal, rhVal, hVal);
+				if (opt::g == 0) {
+					NTMC64(charOut, charIn, opt::k, opt::h, fhVal, rhVal, hVal);
+				} else {
+					
+					currSeq = currSeq.substr(1, currSeq.size() - 1);
+					currSeq += charIn;
+					NTMSM64(currSeq.c_str(), opt::seedSet, opt::k, 1, opt::h, fhVal, rhVal, locN, hVal, hStn);
+				}
 			} else {
 				continue_edit = false;
 				break;
@@ -1579,6 +1801,8 @@ kmerizeAndCorrect(
 	// clean allocated memory for hash
 	delete[] hVal;
 	hVal = nullptr;
+	delete[] hStn;
+	hStn = nullptr;
 
 #pragma omp critical(write)
 	{
@@ -1605,10 +1829,10 @@ readAndCorrect(BloomFilter& bloom, BloomFilter& bloomrep)
 	ofstream rfout;
 	dfout.open(d_filename);
 	rfout.open(r_filename);
-	//printf ( "OUT OF %.1f\n", ceil( double(opt::k) / double(opt::jump) ) );
+	// printf ( "OUT OF %.1f\n", ceil( double(opt::k) / double(opt::jump) ) );
 
 	rfout << "ID\tbpPosition+1\tOriginalBase\tNewBase\tSupport " << opt::k << "-mer (out of "
-	      << ceil( double(opt::k) / double(opt::jump)) << ")\tAlt.Base1\tAlt.Support1\t"
+	      << ceil(double(opt::k) / double(opt::jump)) << ")\tAlt.Base1\tAlt.Support1\t"
 	      << "Alt.Base2\tAlt.Support2\tAlt.Base3\tAlt.Support3\n"; // RLW
 
 #pragma omp parallel shared(seq, dfout, rfout)
@@ -1699,11 +1923,11 @@ main(int argc, char** argv)
 			break;
 		case 'X':
 			arg >> opt::missing_ratio;
-			opt::use_ratio=true;
+			opt::use_ratio = true;
 			break;
 		case 'Y':
 			arg >> opt::edit_ratio;
-			opt::use_ratio=true;
+			opt::use_ratio = true;
 			break;
 		case 'c':
 			arg >> opt::insertion_cap;
@@ -1719,6 +1943,9 @@ main(int argc, char** argv)
 			break;
 		case 'v':
 			arg >> opt::verbose;
+			break;
+		case 'g':
+			arg >> opt::g;
 			break;
 		case OPT_HELP:
 			std::cerr << USAGE_MESSAGE;
@@ -1761,7 +1988,7 @@ main(int argc, char** argv)
 
 	// check that the repeat bloom filter file is specified - RLW2019
 	if (opt::bloomrep_filename.empty()) {
-		opt::secbf = 0;//flag will track whether to query secondary Bloom filter or not
+		opt::secbf = 0; // flag will track whether to query secondary Bloom filter or not
 	} else {
 		// if the file is specified check that it is readable
 		opt::secbf = 1;
@@ -1774,10 +2001,11 @@ main(int argc, char** argv)
 	}
 
 	// added nov21 2019 XXRLW
-	if(opt::snv){
+	if (opt::snv) {
 		opt::max_insertions = 0;
 		opt::max_deletions = 0;
-		std::cerr << PROGRAM ": EXPERIMENTAL feature note: i and d set to 0 when s is set to 1; Only tracking single-base variants.\n";
+		std::cerr << PROGRAM ": EXPERIMENTAL feature note: i and d set to 0 when s is set to 1; "
+		                     "Only tracking single-base variants.\n";
 	}
 
 	// get the basename for the file
@@ -1793,7 +2021,8 @@ main(int argc, char** argv)
 
 	// Load bloom filter
 	time(&rawtime);
-	std::cout << "---------- loading Bloom filter from file           : " << ctime(&rawtime) << "\n";
+	std::cout << "---------- loading Bloom filter from file           : " << ctime(&rawtime)
+	          << "\n";
 	BloomFilter bloom(opt::bloom_filename.c_str());
 	opt::h = bloom.getHashNum();
 
@@ -1806,13 +2035,22 @@ main(int argc, char** argv)
 	// assign k from Bloom filter header
 	opt::k = bloom.getKmerSize();
 
-	opt::insertion_cap = static_cast<unsigned>(static_cast<float>(opt::k) * opt::default_insertion_cap_ratio);
+	if (opt::g != 0) {
+		std::string gap(opt::g, '0');
+		std::string nonGap((opt::k - opt::g) / 2, '1');
+		std::vector<std::string> seedString;
+		seedString.push_back(nonGap + gap + nonGap);
+		opt::seedSet = stHashIterator::parseSeed(seedString);
+	}
+
+	opt::insertion_cap =
+	    static_cast<unsigned>(static_cast<float>(opt::k) * opt::default_insertion_cap_ratio);
 
 	// print bloom filter details
-	bloom.printBloomFilterDetails();
+	// bloom.printBloomFilterDetails();
 
 	// Checking parameters
-        time(&rawtime);
+	time(&rawtime);
 	std::cout << "\n---------- verifying parameters                     : " << ctime(&rawtime);
 	// check that the parameters x and y are in bound
 	if (opt::missing_threshold < 3 && opt::missing_threshold > static_cast<float>(opt::k) &&
@@ -1843,10 +2081,10 @@ main(int argc, char** argv)
 	}
 
 	// print parameters:
-	std::cout << "\nrunning : " << PROGRAM << "\n -f " << draft_basename
-	          << "\n -k " << opt::k << "\n -z " << opt::min_contig_len << "\n -b "
-	          << opt::outfile_prefix << "\n -r " << bloom_basename << "\n -e " << bloomrep_basename
-	          << "\n -i " << opt::max_insertions << "\n -d " << opt::max_deletions;
+	std::cout << "\nrunning : " << PROGRAM << "\n -f " << draft_basename << "\n -k " << opt::k
+	          << "\n -z " << opt::min_contig_len << "\n -b " << opt::outfile_prefix << "\n -r "
+	          << bloom_basename << "\n -e " << bloomrep_basename << "\n -i " << opt::max_insertions
+	          << "\n -d " << opt::max_deletions;
 
 	if (opt::use_ratio) { // RLW
 		std::cout << "\n -X " << opt::missing_ratio << "\n -Y " << opt::edit_ratio;
@@ -1854,43 +2092,43 @@ main(int argc, char** argv)
 		std::cout << "\n -x " << opt::missing_threshold << "\n -y " << opt::edit_threshold;
 	}
 
-	std::cout << "\n -j " << opt::jump << "\n -m " << opt::mode
-	          << "\n -s " << opt::snv << "\n -t " << opt::nthreads << "\n -v " << opt::verbose << "\n" << std::endl;
+	std::cout << "\n -j " << opt::jump << "\n -m " << opt::mode << "\n -s " << opt::snv << "\n -t "
+	          << opt::nthreads << "\n -v " << opt::verbose << "\n"
+	          << std::endl;
 
 	// Read & edit contigs
 	time(&rawtime);
 	if (opt::secbf) {
 		time(&rawtime);
-        	std::cout << "---------- loading secondary Bloom filter from file : " << ctime(&rawtime) << "\n";
-        	BloomFilter bloomrep(opt::bloomrep_filename.c_str());
-        	opt::e = bloomrep.getHashNum();
+		std::cout << "---------- loading secondary Bloom filter from file : " << ctime(&rawtime)
+		          << "\n";
+		BloomFilter bloomrep(opt::bloomrep_filename.c_str());
+		opt::e = bloomrep.getHashNum();
 
-       		// Checks for the Bloom filter
-        	if (opt::e == 0) {
-                	std::cerr << PROGRAM ": error: secondary Bloom filter file supplied (-e) is incorrect.\n";
-                	exit(EXIT_FAILURE);
-        	}
+		// Checks for the Bloom filter
+		if (opt::e == 0) {
+			std::cerr << PROGRAM
+			    ": error: secondary Bloom filter file supplied (-e) is incorrect.\n";
+			exit(EXIT_FAILURE);
+		}
 
 		// Check that primary and secondary BF kmer sizes match
-        	if (opt::k != bloomrep.getKmerSize()) { 
-                	std::cerr << PROGRAM ": error: secondary Bloom filter k size ("
-			          << bloomrep.getKmerSize() 
-			          << ") is different than main Bloom filter k size ("
-			          << opt::k
-			          << ")\n";
-                	exit(EXIT_FAILURE);
-        	}
+		if (opt::k != bloomrep.getKmerSize()) {
+			std::cerr << PROGRAM ": error: secondary Bloom filter k size ("
+			          << bloomrep.getKmerSize() << ") is different than main Bloom filter k size ("
+			          << opt::k << ")\n";
+			exit(EXIT_FAILURE);
+		}
 		// print bloom filter details
-		bloomrep.printBloomFilterDetails();
+		// bloomrep.printBloomFilterDetails();
 
 		std::cout << "\n---------- reading and polishing draft              : " << ctime(&rawtime);
-		readAndCorrect(bloom,bloomrep);
+		readAndCorrect(bloom, bloomrep);
 
-	}
-	else {
+	} else {
 		std::cout << "---------- reading and polishing draft              : " << ctime(&rawtime);
-		BloomFilter bloomrep(1000,1,1);
-		readAndCorrect(bloom,bloomrep);
+		BloomFilter bloomrep(1000, 1, 1);
+		readAndCorrect(bloom, bloomrep);
 	}
 	time(&rawtime);
 	std::cout << "---------- process complete                         : " << ctime(&rawtime);

@@ -1,5 +1,5 @@
-#ifndef NTHASH__ITERATOR_H
-#define NTHASH__ITERATOR_H 1
+#ifndef STHASH__ITERATOR_H
+#define STHASH__ITERATOR_H 1
 
 #include <string>
 #include <limits>
@@ -15,28 +15,43 @@
  * hash values for successive k-mers.
  */
 
-class ntHashIterator
+class stHashIterator
 {
 
 public:
+
+    static std::vector<std::vector<unsigned> > parseSeed(const std::vector<std::string> &seedString) {
+        std::vector<std::vector<unsigned> > seedSet;
+        for (unsigned i=0; i< seedString.size(); i++) {
+            std::vector<unsigned> sSeed;
+            for (unsigned j=0; j < seedString[i].size(); j++) {
+                if(seedString[i][j]!='1') sSeed.push_back(j);
+            }
+            seedSet.push_back(sSeed);
+        }
+        return seedSet;
+    }
 
     /**
      * Default constructor. Creates an iterator pointing to
      * the end of the iterator range.
     */
-    ntHashIterator():
+    stHashIterator():
         m_hVec(NULL),
+        m_hStn(NULL),
         m_pos(std::numeric_limits<std::size_t>::max())
     {}
 
     /**
      * Constructor.
      * @param seq address of DNA sequence to be hashed
+     * @param seed address of spaced seed
      * @param k k-mer size
-     * @param h number of hashes
+     * @param h number of seeds
+     * @param h2 number of hashes per seed
     */
-    ntHashIterator(const std::string& seq, unsigned h, unsigned k):
-        m_seq(seq), m_h(h), m_k(k), m_hVec(new uint64_t[h]), m_pos(0)
+    stHashIterator(const std::string& seq, const std::vector<std::vector<unsigned> >& seed, unsigned h, unsigned h2, unsigned k):
+    m_seq(seq), m_seed(seed), m_h(h), m_h2(h2), m_k(k), m_hVec(new uint64_t[h * h2]), m_hStn(new bool[h * h2]), m_pos(0)
     {
         init();
     }
@@ -49,7 +64,7 @@ public:
             return;
         }
         unsigned locN=0;
-        while (m_pos<m_seq.length()-m_k+1 && !NTMC64(m_seq.data()+m_pos, m_k, m_h, m_fhVal, m_rhVal, locN, m_hVec, m_hStn))
+        while (m_pos<m_seq.length()-m_k+1 && !NTMSM64(m_seq.data()+m_pos, m_seed, m_k, m_h, m_h2, m_fhVal, m_rhVal, locN, m_hVec, m_hStn))
             m_pos+=locN+1;
         if (m_pos >= m_seq.length()-m_k+1)
             m_pos = std::numeric_limits<std::size_t>::max();
@@ -68,55 +83,58 @@ public:
             init();
         }
         else
-            NTMC64(m_seq.at(m_pos-1), m_seq.at(m_pos-1+m_k), m_k, m_h, m_fhVal, m_rhVal, m_hVec, m_hStn);
+            NTMSM64(m_seq.data()+m_pos, m_seed, m_seq.at(m_pos-1), m_seq.at(m_pos-1+m_k), m_k, m_h, m_h2, m_fhVal, m_rhVal, m_hVec, m_hStn);
     }
-    
+
     size_t pos() const{
     	return m_pos;
     }
 
-    /** get the starnd of hash value for current k-mer */
-    bool strand() const
+    /** get pointer to hash values for current k-mer */
+    const bool* strandArray() const
     {
         return m_hStn;
     }
 
-    
+
     /** get pointer to hash values for current k-mer */
     const uint64_t* operator*() const
     {
         return m_hVec;
     }
 
+
     /** test equality with another iterator */
-    bool operator==(const ntHashIterator& it) const
+    bool operator==(const stHashIterator& it) const
     {
         return m_pos == it.m_pos;
     }
 
     /** test inequality with another iterator */
-    bool operator!=(const ntHashIterator& it) const
+    bool operator!=(const stHashIterator& it) const
     {
         return !(*this == it);
     }
 
     /** pre-increment operator */
-    ntHashIterator& operator++()
+    stHashIterator& operator++()
     {
         next();
         return *this;
     }
 
     /** iterator pointing to one past last element */
-    static const ntHashIterator end()
+    static const stHashIterator end()
     {
-        return ntHashIterator();
+        return stHashIterator();
     }
 
     /** destructor */
-    ~ntHashIterator() {
-        if(m_hVec!=NULL)
+    ~stHashIterator() {
+        if(m_hVec!=NULL) {
             delete [] m_hVec;
+            delete [] m_hStn;
+        }
     }
 
 private:
@@ -124,16 +142,26 @@ private:
     /** DNA sequence */
     std::string m_seq;
 
-    /** number of hashes */
+    /** Spaced Seed sequence */
+    std::vector<std::vector<unsigned> > m_seed;
+
+    /** number of seeds */
     unsigned m_h;
+
+    /** number of hashes per seed */
+    unsigned m_h2;
 
     /** k-mer size */
     unsigned m_k;
 
-    /** hash values */
+    /** hash values
+     *  For m_h = n and m_h2 = m:
+     *  [seed1Hash1, seed1Hash2 ... seed(n)Hash(m-1), seed(n)Hash(m)]
+    */
     uint64_t *m_hVec;
-    
-    bool m_hStn;
+
+    /** hash strands, forward = 0, reverse-complement = 1 */
+    bool *m_hStn;
 
     /** position of current k-mer */
     size_t m_pos;
