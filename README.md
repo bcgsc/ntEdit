@@ -255,7 +255,7 @@ We recommend setting the jump parameter (j) to 1 when using the secondary Bloom 
 
 -j 1: all k combinations may be used
 -j 2: k31, k33, k35, k37, k39, k41, k43, k45, k47, k49, k51, k53, k55, k57, k59, k61 (odd k value) 
--j 3: k30, k33, k36, k39, k42, k45, k49, k52, k55, k58, k61
+-j 3: k31, k34, k37, k40, k43, k46, k49, k52, k55, k58, k61
 
 Faster ntEdit runs are achieved at -j 3. Higher values of j would not provide enough kmers in the k subset and have not been tested.
 
