@@ -776,32 +776,35 @@ writeEditsToFile(
 				if (substitution_record.front().altsupp1 > 0) { // XXRLWXX
 					rfout << "\t" << substitution_record.front().altbase1 << "\t"
 					      << substitution_record.front().altsupp1;
-					if (substitution_record.front().sub_base != substitution_record.front().altbase1) {
-					    base += ",";
-					    base += substitution_record.front().altbase1;
-					    support += ",";
-					   support += std::to_string(substitution_record.front().altsupp1);
+					if (substitution_record.front().draft_char !=
+					    substitution_record.front().altbase1) {
+						base += ",";
+						base += substitution_record.front().altbase1;
+						support += ",";
+						support += std::to_string(substitution_record.front().altsupp1);
 					}
 				}
 				if (substitution_record.front().altsupp2 > 0) { // XXRLWXX
 					rfout << "\t" << substitution_record.front().altbase2 << "\t"
 					      << substitution_record.front().altsupp2;
-					if (substitution_record.front().sub_base != substitution_record.front().altbase2) {
-					    base += ",";
-					    base += substitution_record.front().altbase2;
-					    support += ",";
-				        support += std::to_string(substitution_record.front().altsupp2);
-                    }
+					if (substitution_record.front().draft_char !=
+					    substitution_record.front().altbase2) {
+						base += ",";
+						base += substitution_record.front().altbase2;
+						support += ",";
+						support += std::to_string(substitution_record.front().altsupp2);
+					}
 				}
 				if (substitution_record.front().altsupp3 > 0) { // XXRLWXX
 					rfout << "\t" << substitution_record.front().altbase3 << "\t"
 					      << substitution_record.front().altsupp3;
-					if (substitution_record.front().sub_base != substitution_record.front().altbase3) {
-					    base += ",";
-					    base += substitution_record.front().altbase3;
-					    support += ",";
-					    support += std::to_string(substitution_record.front().altsupp1);
-                    }
+					if (substitution_record.front().draft_char !=
+					    substitution_record.front().altbase3) {
+						base += ",";
+						base += substitution_record.front().altbase3;
+						support += ",";
+						support += std::to_string(substitution_record.front().altsupp1);
+					}
 				}
 				rfout << "\n";
 
@@ -835,7 +838,8 @@ writeEditsToFile(
 
 				vfout << contigHdr.c_str() << "\t" << pos << "\t.\t"
 				      << contigSeq.substr(pos - 1, (curr_node.s_pos - pos) + 1).c_str() << "\t"
-				      << contigSeq.at(pos - 1) << "\t.\tPASS\tDP=" << curr_node.num_support << "\tGT\t0/1\n";
+				      << contigSeq.at(pos - 1) << "\t.\tPASS\tDP=" << curr_node.num_support
+				      << "\tGT\t0/1\n";
 			}
 		}
 	}
