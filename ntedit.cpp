@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <ctime>
 #include <utility>
 #include <getopt.h>
 #include <zlib.h>
@@ -726,6 +727,7 @@ void
 writeEditsToFile(
     std::ofstream& dfout,
     std::ofstream& rfout,
+	std::ofstream& vfout,
     const std::string& contigHdr,
     const std::string& contigSeq,
     std::vector<seqNode>& newSeq,
@@ -748,6 +750,10 @@ writeEditsToFile(
 			if (!insertion_bases.empty()) {
 				rfout << contigHdr.c_str() << "\t" << pos + 1 << "\t" << draft_char << "\t+"
 				      << insertion_bases.c_str() << "\t" << num_support << "\n";
+				if (opt::snv) {
+					vfout << contigHdr.c_str() << "\t" << pos + 1 << "\t.\t" << draft_char << "\t"
+						<< draft_char << insertion_bases.c_str() << "\t.\tPASS\tDP=" << num_support << "\n";
+				}
 				insertion_bases = "";
 				num_support = -1;
 			}
@@ -758,16 +764,35 @@ writeEditsToFile(
 				      << substitution_record.front().draft_char << "\t"
 				      << substitution_record.front().sub_base << "\t"
 				      << substitution_record.front().num_support;
+				std::string base(1, substitution_record.front().sub_base);
+				std::string support = ""; 
+				support += std::to_string(substitution_record.front().num_support);
 				if (substitution_record.front().altsupp1 > 0){//XXRLWXX
 					rfout << "\t" << substitution_record.front().altbase1 << "\t" << substitution_record.front().altsupp1;
+					base += ",";
+					base += substitution_record.front().altbase1;
+					support += ",";
+					support += std::to_string(substitution_record.front().altsupp1);
 				}
 				if (substitution_record.front().altsupp2 > 0){//XXRLWXX
 					rfout << "\t" << substitution_record.front().altbase2 << "\t" << substitution_record.front().altsupp2;
+					base += ",";
+					base += substitution_record.front().altbase2;
+					support += ",";
+					support += std::to_string(substitution_record.front().altsupp2);
 				}
 				if (substitution_record.front().altsupp3 > 0){//XXRLWXX
 					rfout << "\t" << substitution_record.front().altbase3 << "\t" << substitution_record.front().altsupp3;
+					base += ",";
+					base += substitution_record.front().altbase3;
+					support += ",";
+					support += std::to_string(substitution_record.front().altsupp1);
 				}
 				rfout << "\n";
+				if (opt::snv) {
+					vfout <<  contigHdr.c_str() << "\t" << substitution_record.front().pos + 1 << "\t.\t" << substitution_record.front().draft_char << "\t"
+						<< base << "\t.\tPASS\tDP=" << support << "\n";
+				}				
 				substitution_record.pop();
 			}
 			// fprintf(dfout, "%s", contigSeq.substr(curr_node.s_pos,
@@ -791,6 +816,11 @@ writeEditsToFile(
 				rfout << contigHdr.c_str() << "\t" << pos + 1 << "\t" << contigSeq.at(pos) << "\t-"
 				      << contigSeq.substr(pos, (curr_node.s_pos - pos)).c_str() << "\t"
 				      << curr_node.num_support << "\n";
+				if (opt::snv) {
+					vfout << contigHdr.c_str() << "\t" << pos << "\t.\t" << contigSeq.substr(pos-1, (curr_node.s_pos - pos)).c_str() << "\t"
+						  << contigSeq.at(pos - 1) << "\t.\tPASS\tDP="
+						  << curr_node.num_support << "\n";
+				}
 			}
 		}
 	}
@@ -1013,7 +1043,8 @@ tryDeletion(
     std::vector<seqNode>& newSeq,
     BloomFilter& bloom,
     BloomFilter& bloomrep,
-    std::string& deleted_bases)
+    std::string& deleted_bases,
+	std::string& prev_base)
 {
 
 	// set temporary values
@@ -1031,6 +1062,7 @@ tryDeletion(
 		deleted_bases += getCharacter(temp_t_seq_i, newSeq[temp_t_node_index], contigSeq);
 		increment(temp_t_seq_i, temp_t_node_index, newSeq);
 	}
+	prev_base = getCharacter(temp_t_seq_i, newSeq[temp_t_node_index], contigSeq);
 	NTMC64_changelast(
 	    draft_char,
 	    getCharacter(temp_t_seq_i, newSeq[temp_t_node_index], contigSeq),
@@ -1192,6 +1224,7 @@ tryIndels(
 
 		if (num_deletions <= opt::max_deletions) {
 			std::string deleted_bases;
+			std::string prev_base;
 			unsigned del_support = tryDeletion(
 			    draft_char,
 			    num_deletions,
@@ -1206,7 +1239,8 @@ tryIndels(
 			    newSeq,
 			    bloom,
 			    bloomrep,
-			    deleted_bases);
+			    deleted_bases,
+				prev_base);
 			if (del_support > 0) {
 				if (opt::mode == 0) {
 					best_edit_type = 3;
@@ -1253,7 +1287,8 @@ kmerizeAndCorrect(
     BloomFilter& bloom,
     BloomFilter& bloomrep,
     std::ofstream& dfout,
-    std::ofstream& rfout)
+    std::ofstream& rfout,
+	std::ofstream& vfout)
 {
 
 	// initialize values for hashing
@@ -1583,7 +1618,7 @@ kmerizeAndCorrect(
 #pragma omp critical(write)
 	{
 		// write this to file
-		writeEditsToFile(dfout, rfout, contigHdr, contigSeq, newSeq, substitution_record);
+		writeEditsToFile(dfout, rfout, vfout, contigHdr, contigSeq, newSeq, substitution_record);
 	}
 }
 
@@ -1601,8 +1636,10 @@ readAndCorrect(BloomFilter& bloom, BloomFilter& bloomrep)
 	// outfile handles
 	std::string d_filename = opt::outfile_prefix + "_edited.fa";
 	std::string r_filename = opt::outfile_prefix + "_changes.tsv";
+	std::string v_filename = opt::outfile_prefix + "_variants.vcf";
 	ofstream dfout;
 	ofstream rfout;
+	ofstream vfout;
 	dfout.open(d_filename);
 	rfout.open(r_filename);
 	//printf ( "OUT OF %.1f\n", ceil( double(opt::k) / double(opt::jump) ) );
@@ -1611,7 +1648,31 @@ readAndCorrect(BloomFilter& bloom, BloomFilter& bloomrep)
 	      << ceil( double(opt::k) / double(opt::jump)) << ")\tAlt.Base1\tAlt.Support1\t"
 	      << "Alt.Base2\tAlt.Support2\tAlt.Base3\tAlt.Support3\n"; // RLW
 
-#pragma omp parallel shared(seq, dfout, rfout)
+	if (opt::snv) {
+		vfout.open(v_filename);
+			  
+	vfout << "##fileformat=VCFv4.2" << std::endl;
+
+	time_t now = time(0);
+	tm *ltm = localtime(&now);
+    std::string year =  std::to_string(1900 + ltm->tm_year);
+    std::string month = std::to_string(1 + ltm->tm_mon);
+	if (month.size() < 2) {
+		month.insert(0, "0");
+	}
+	std::string day = std::to_string(ltm->tm_mday);
+	if (day.size() < 2) {
+		day.insert(0, "0");
+	}
+	
+	vfout << "##fileDate=" << year << month << day << std::endl;
+	vfout << "##source=ntEditV1.3.2" << std::endl;
+	vfout << "##reference=file:" << opt::draft_filename <<std::endl;
+	vfout << "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Kmer Depth\">" << std::endl;
+	vfout << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" << std::endl;
+	}
+
+#pragma omp parallel shared(seq, dfout, rfout, vfout)
 	{
 		std::string contigHdr;
 		std::string contigSeq;
@@ -1641,7 +1702,7 @@ readAndCorrect(BloomFilter& bloom, BloomFilter& bloomrep)
 				std::cout << contigName << std::endl;
 			}
 			if (seq_len >= opt::min_contig_len) {
-				kmerizeAndCorrect(contigName, contigSeq, seq_len, bloom, bloomrep, dfout, rfout);
+				kmerizeAndCorrect(contigName, contigSeq, seq_len, bloom, bloomrep, dfout, rfout, vfout);
 			}
 #pragma omp atomic
 			num_contigs++;
@@ -1655,6 +1716,9 @@ readAndCorrect(BloomFilter& bloom, BloomFilter& bloomrep)
 	gzclose(dfp);
 	dfout.close();
 	rfout.close();
+	if (opt::snv) {
+		vfout.close();
+	}
 }
 
 int
