@@ -759,7 +759,7 @@ writeEditsToFile(
 
 				vfout << contigHdr.c_str() << "\t" << pos + 1 << "\t.\t" << draft_char << "\t"
 				      << draft_char << insertion_bases.c_str() << "\t.\tPASS\tDP=" << num_support
-				      << "\n";
+				      << "\tGT\t0/1\n";
 
 				insertion_bases = "";
 				num_support = -1;
@@ -776,32 +776,38 @@ writeEditsToFile(
 				if (substitution_record.front().altsupp1 > 0) { // XXRLWXX
 					rfout << "\t" << substitution_record.front().altbase1 << "\t"
 					      << substitution_record.front().altsupp1;
-					base += ",";
-					base += substitution_record.front().altbase1;
-					support += ",";
-					support += std::to_string(substitution_record.front().altsupp1);
+					if (substitution_record.front().sub_base != substitution_record.front().altbase1) {
+					    base += ",";
+					    base += substitution_record.front().altbase1;
+					    support += ",";
+					   support += std::to_string(substitution_record.front().altsupp1);
+					}
 				}
 				if (substitution_record.front().altsupp2 > 0) { // XXRLWXX
 					rfout << "\t" << substitution_record.front().altbase2 << "\t"
 					      << substitution_record.front().altsupp2;
-					base += ",";
-					base += substitution_record.front().altbase2;
-					support += ",";
-					support += std::to_string(substitution_record.front().altsupp2);
+					if (substitution_record.front().sub_base != substitution_record.front().altbase2) {
+					    base += ",";
+					    base += substitution_record.front().altbase2;
+					    support += ",";
+				        support += std::to_string(substitution_record.front().altsupp2);
+                    }
 				}
 				if (substitution_record.front().altsupp3 > 0) { // XXRLWXX
 					rfout << "\t" << substitution_record.front().altbase3 << "\t"
 					      << substitution_record.front().altsupp3;
-					base += ",";
-					base += substitution_record.front().altbase3;
-					support += ",";
-					support += std::to_string(substitution_record.front().altsupp1);
+					if (substitution_record.front().sub_base != substitution_record.front().altbase3) {
+					    base += ",";
+					    base += substitution_record.front().altbase3;
+					    support += ",";
+					    support += std::to_string(substitution_record.front().altsupp1);
+                    }
 				}
 				rfout << "\n";
 
 				vfout << contigHdr.c_str() << "\t" << substitution_record.front().pos + 1 << "\t.\t"
 				      << substitution_record.front().draft_char << "\t" << base
-				      << "\t.\tPASS\tDP=" << support << "\n";
+				      << "\t.\tPASS\tDP=" << support << "\tGT\t0/1\n";
 
 				substitution_record.pop();
 			}
@@ -829,7 +835,7 @@ writeEditsToFile(
 
 				vfout << contigHdr.c_str() << "\t" << pos << "\t.\t"
 				      << contigSeq.substr(pos - 1, (curr_node.s_pos - pos) + 1).c_str() << "\t"
-				      << contigSeq.at(pos - 1) << "\t.\tPASS\tDP=" << curr_node.num_support << "\n";
+				      << contigSeq.at(pos - 1) << "\t.\tPASS\tDP=" << curr_node.num_support << "\tGT\t0/1\n";
 			}
 		}
 	}
@@ -1698,7 +1704,7 @@ readAndCorrect(BloomFilter& bloom, BloomFilter& bloomrep)
 	vfout << "##source=ntEditV1.3.2" << std::endl;
 	vfout << "##reference=file:" << opt::draft_filename << std::endl;
 	vfout << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Kmer Depth\">" << std::endl;
-	vfout << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" << std::endl;
+	vfout << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tINTEGRATION" << std::endl;
 
 #pragma omp parallel shared(seq, dfout, rfout, vfout)
 	{
