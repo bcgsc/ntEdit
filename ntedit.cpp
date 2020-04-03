@@ -727,7 +727,7 @@ void
 writeEditsToFile(
     std::ofstream& dfout,
     std::ofstream& rfout,
-	std::ofstream& vfout,
+    std::ofstream& vfout,
     const std::string& contigHdr,
     const std::string& contigSeq,
     std::vector<seqNode>& newSeq,
@@ -1043,8 +1043,7 @@ tryDeletion(
     std::vector<seqNode>& newSeq,
     BloomFilter& bloom,
     BloomFilter& bloomrep,
-    std::string& deleted_bases,
-	std::string& prev_base)
+    std::string& deleted_bases)
 {
 
 	// set temporary values
@@ -1062,7 +1061,6 @@ tryDeletion(
 		deleted_bases += getCharacter(temp_t_seq_i, newSeq[temp_t_node_index], contigSeq);
 		increment(temp_t_seq_i, temp_t_node_index, newSeq);
 	}
-	prev_base = getCharacter(temp_t_seq_i, newSeq[temp_t_node_index], contigSeq);
 	NTMC64_changelast(
 	    draft_char,
 	    getCharacter(temp_t_seq_i, newSeq[temp_t_node_index], contigSeq),
@@ -1224,7 +1222,6 @@ tryIndels(
 
 		if (num_deletions <= opt::max_deletions) {
 			std::string deleted_bases;
-			std::string prev_base;
 			unsigned del_support = tryDeletion(
 			    draft_char,
 			    num_deletions,
@@ -1239,8 +1236,7 @@ tryIndels(
 			    newSeq,
 			    bloom,
 			    bloomrep,
-			    deleted_bases,
-				prev_base);
+			    deleted_bases);
 			if (del_support > 0) {
 				if (opt::mode == 0) {
 					best_edit_type = 3;
@@ -1288,7 +1284,7 @@ kmerizeAndCorrect(
     BloomFilter& bloomrep,
     std::ofstream& dfout,
     std::ofstream& rfout,
-	std::ofstream& vfout)
+    std::ofstream& vfout)
 {
 
 	// initialize values for hashing
@@ -1648,29 +1644,29 @@ readAndCorrect(BloomFilter& bloom, BloomFilter& bloomrep)
 	      << ceil( double(opt::k) / double(opt::jump)) << ")\tAlt.Base1\tAlt.Support1\t"
 	      << "Alt.Base2\tAlt.Support2\tAlt.Base3\tAlt.Support3\n"; // RLW
 
-	if (opt::snv) {
-		vfout.open(v_filename);
-			  
-	vfout << "##fileformat=VCFv4.2" << std::endl;
+    if (opt::snv) {
+        vfout.open(v_filename);
+              
+    vfout << "##fileformat=VCFv4.2" << std::endl;
 
-	time_t now = time(0);
-	tm *ltm = localtime(&now);
+    time_t now = time(0);
+    tm *ltm = localtime(&now);
     std::string year =  std::to_string(1900 + ltm->tm_year);
     std::string month = std::to_string(1 + ltm->tm_mon);
-	if (month.size() < 2) {
-		month.insert(0, "0");
-	}
-	std::string day = std::to_string(ltm->tm_mday);
-	if (day.size() < 2) {
-		day.insert(0, "0");
-	}
-	
-	vfout << "##fileDate=" << year << month << day << std::endl;
-	vfout << "##source=ntEditV1.3.2" << std::endl;
-	vfout << "##reference=file:" << opt::draft_filename <<std::endl;
-	vfout << "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Kmer Depth\">" << std::endl;
-	vfout << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" << std::endl;
-	}
+    if (month.size() < 2) {
+        month.insert(0, "0");
+    }
+    std::string day = std::to_string(ltm->tm_mday);
+    if (day.size() < 2) {
+        day.insert(0, "0");
+    }
+    
+    vfout << "##fileDate=" << year << month << day << std::endl;
+    vfout << "##source=ntEditV1.3.2" << std::endl;
+    vfout << "##reference=file:" << opt::draft_filename <<std::endl;
+    vfout << "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Kmer Depth\">" << std::endl;
+    vfout << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO" << std::endl;
+    }
 
 #pragma omp parallel shared(seq, dfout, rfout, vfout)
 	{
@@ -1716,9 +1712,9 @@ readAndCorrect(BloomFilter& bloom, BloomFilter& bloomrep)
 	gzclose(dfp);
 	dfout.close();
 	rfout.close();
-	if (opt::snv) {
-		vfout.close();
-	}
+    if (opt::snv) {
+        vfout.close();
+    }
 }
 
 int
