@@ -796,7 +796,7 @@ writeEditsToFile(
 				}
 				rfout << "\n";
 				unsigned curr_best_alt_supp = 0;
-				char best_alt_base;
+				char best_alt_base = '1';
 				std::string best_alt_supp;
 				std::string genotype;
 				// If there are alt bases
