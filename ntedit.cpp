@@ -759,11 +759,14 @@ writeEditsToFile(
 
 				vfout << contigHdr.c_str() << "\t" << pos + 1 << "\t.\t" << draft_char << "\t"
 				      << draft_char << insertion_bases.c_str() << "\t.\tPASS\tDP=" << num_support
-				      << "\tGT\t0/1\n";
+				      << "\tGT\t1/1\n";
 
 				insertion_bases = "";
 				num_support = -1;
 			}
+			std::vector<char> alt_base_vcf;
+			std::vector<unsigned> alt_supp_vcf;
+
 			// log all the substitutions up to this point
 			while (!substitution_record.empty() &&
 			       substitution_record.front().pos <= curr_node.e_pos) {
@@ -776,41 +779,75 @@ writeEditsToFile(
 				if (substitution_record.front().altsupp1 > 0) { // XXRLWXX
 					rfout << "\t" << substitution_record.front().altbase1 << "\t"
 					      << substitution_record.front().altsupp1;
-					if (substitution_record.front().draft_char !=
-					    substitution_record.front().altbase1) {
-						base += ",";
-						base += substitution_record.front().altbase1;
-						support += ",";
-						support += std::to_string(substitution_record.front().altsupp1);
-					}
+					alt_base_vcf.emplace_back(substitution_record.front().altbase1);
+					alt_supp_vcf.emplace_back(substitution_record.front().altsupp1);
 				}
 				if (substitution_record.front().altsupp2 > 0) { // XXRLWXX
 					rfout << "\t" << substitution_record.front().altbase2 << "\t"
 					      << substitution_record.front().altsupp2;
-					if (substitution_record.front().draft_char !=
-					    substitution_record.front().altbase2) {
-						base += ",";
-						base += substitution_record.front().altbase2;
-						support += ",";
-						support += std::to_string(substitution_record.front().altsupp2);
-					}
+					alt_base_vcf.emplace_back(substitution_record.front().altbase2);
+					alt_supp_vcf.emplace_back(substitution_record.front().altsupp2);
 				}
 				if (substitution_record.front().altsupp3 > 0) { // XXRLWXX
 					rfout << "\t" << substitution_record.front().altbase3 << "\t"
 					      << substitution_record.front().altsupp3;
-					if (substitution_record.front().draft_char !=
-					    substitution_record.front().altbase3) {
-						base += ",";
-						base += substitution_record.front().altbase3;
-						support += ",";
-						support += std::to_string(substitution_record.front().altsupp1);
-					}
+					alt_base_vcf.emplace_back(substitution_record.front().altbase3);
+					alt_supp_vcf.emplace_back(substitution_record.front().altsupp3);
 				}
 				rfout << "\n";
+				unsigned curr_best_alt_supp = 0;
+				char best_alt_base;
+				std::string best_alt_supp;
+				std::string genotype;
+				// If there are alt bases
+				if (alt_base_vcf.size() != 0) {
+					unsigned curr_best_supp = 0;
+					if (opt::snv) {
+						bool ref = false;
+						for (int i = 0; i < alt_base_vcf.size(); ++i) {
+							// Prioritize ref base over other alt base
+							if (substitution_record.front().draft_char == alt_base_vcf[i]) {
+								curr_best_alt_supp = alt_supp_vcf[i];
+								ref = true;
+								break;
+							}
+							if (alt_supp_vcf[i] > curr_best_alt_supp) {
+								curr_best_alt_supp = alt_supp_vcf[i];
+								best_alt_base = alt_base_vcf[i];
+							}
+						}
+						best_alt_supp = std::to_string(curr_best_alt_supp);
+						if (ref == true) {
+							support = best_alt_supp + "," + support;
+							genotype = "0/1";
+						} else {
+							genotype = "1/2";
+							support = support + "," + best_alt_supp;
+							base = base + "," + best_alt_base;
+						}
+					} else {
+						for (int i = 0; i < alt_base_vcf.size(); ++i) {
+							// Skip ref base in non snv mode
+							if (substitution_record.front().draft_char == alt_base_vcf[i]) {
+								continue;
+							}
+							if (alt_supp_vcf[i] > curr_best_alt_supp) {
+								curr_best_alt_supp = alt_supp_vcf[i];
+								best_alt_base = alt_base_vcf[i];
+							}
+						}
+						best_alt_supp = std::to_string(curr_best_alt_supp);
+						genotype = "1/2";
+						support = support + "," + best_alt_supp;
+						base = base + "," + best_alt_base;
+					}
+				} else {
+					genotype = "1/1";
+				}
 
 				vfout << contigHdr.c_str() << "\t" << substitution_record.front().pos + 1 << "\t.\t"
 				      << substitution_record.front().draft_char << "\t" << base
-				      << "\t.\tPASS\tDP=" << support << "\tGT\t0/1\n";
+				      << "\t.\tPASS\tDP=" << support << "\tGT\t" << genotype << "\n";
 
 				substitution_record.pop();
 			}
@@ -839,7 +876,7 @@ writeEditsToFile(
 				vfout << contigHdr.c_str() << "\t" << pos << "\t.\t"
 				      << contigSeq.substr(pos - 1, (curr_node.s_pos - pos) + 1).c_str() << "\t"
 				      << contigSeq.at(pos - 1) << "\t.\tPASS\tDP=" << curr_node.num_support
-				      << "\tGT\t0/1\n";
+				      << "\tGT\t1/1\n";
 			}
 		}
 	}
@@ -1707,7 +1744,7 @@ readAndCorrect(BloomFilter& bloom, BloomFilter& bloomrep)
 	vfout << "##fileDate=" << year << month << day << std::endl;
 	vfout << "##source=ntEditV1.3.2" << std::endl;
 	vfout << "##reference=file:" << opt::draft_filename << std::endl;
-	vfout << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Kmer Depth\">" << std::endl;
+	vfout << "##INFO=<ID=DP,Number=2,Type=Integer,Description=\"Kmer Depth\">" << std::endl;
 	vfout << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tINTEGRATION" << std::endl;
 
 #pragma omp parallel shared(seq, dfout, rfout, vfout)
