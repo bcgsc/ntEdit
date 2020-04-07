@@ -30,13 +30,13 @@ KSEQ_INIT(gzFile, gzread)
 
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)
 static const char VERSION_MESSAGE[] =
-    PROGRAM " version 1.3.1\n"
+    PROGRAM " version 1.3.2\n"
             "written by Rene Warren, Hamid Mohamadi, and Jessica Zhang.\n"
             "copyright 2018-2020 Canada's Michael smith Genome Science Centre\n";
 
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)
 static const char USAGE_MESSAGE[] = PROGRAM
-    " v1.3.1\n"
+    " v1.3.2\n"
     "\n"
     "Scalable genome sequence polishing.\n"
     "\n"
