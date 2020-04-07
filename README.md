@@ -1,5 +1,5 @@
 [![Release](https://img.shields.io/github/release/bcgsc/ntEdit.svg)](https://github.com/bcgsc/ntEdit/releases)
-[![Downloads](https://img.shields.io/github/downloads/bcgsc/ntEdit/total?logo=github)](https://github.com/bcgsc/ntEdit/releases/download/v1.3.1/ntEdit_v1-3-1.tar.gz)
+[![Downloads](https://img.shields.io/github/downloads/bcgsc/ntEdit/total?logo=github)](https://github.com/bcgsc/ntEdit/releases/download/v1.3.2/ntEdit_v1-3-2.tar.gz)
 [![Conda](https://img.shields.io/conda/dn/bioconda/ntedit?label=Conda)](https://anaconda.org/bioconda/ntedit)
 [![Issues](https://img.shields.io/github/issues/bcgsc/ntEdit.svg)](https://github.com/bcgsc/ntEdit/issues)
 
@@ -21,7 +21,7 @@ ntEdit is a fast and scalable genomics application for polishing genome assembly
 It simplifies polishing and "haploidization" of gene and genome sequences with its re-usable Bloom filter design.
 We expect ntEdit to have additional applications in fast mapping of simple nucleotide variations between any two individuals or species’ genomes.
 ```diff
-! NOTE: In v1.3.1 the parameter k is automatically detected from supplied Bloom filters
+! NOTE: In v1.3.1 onwards, the parameter k is automatically detected from supplied Bloom filters
 ```
 
 ### Implementation and requirements
@@ -91,7 +91,7 @@ ntedit (concept, algorithm design and prototype): Rene Warren
 
 nthits / nthash / BloomFilter.pm: Hamid Mohamadi
 
-C++ implementation: Jessica Zhang, Rene Warren
+C++ implementation: Jessica Zhang, Rene Warren, Johnathan Wong
 
 
 ### How to run in a pipeline
@@ -161,7 +161,7 @@ eg.
 <pre>
 e.g. ./ntedit -f ecoliWithMismatches001Indels0001.fa -r solidBF_k25.bf -b ntEditEcolik25
 
-ntEdit v1.3.1
+ntEdit v1.3.2
 
 Scalable genome sequence polishing.
 
@@ -324,6 +324,7 @@ Sequence reads are first shredded into kmers using ntHits, keeping track of kmer
 |---|---|
 |_changes.tsv                 | tab-separated file; ID      bpPosition+1    OriginalBase    NewBase Support k-mers (out of k/j)   AlternateNewBase   Alt.Support k-mers   eg. U00096.3_MG1655_k12     117     A       T       9|
 |_edited.fa                   | fasta file; contains the polished genome assembly |
+|_variants.vcf                   | vcf file; contains variant calls |
 
 
 
