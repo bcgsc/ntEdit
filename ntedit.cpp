@@ -800,7 +800,7 @@ writeEditsToFile(
 				std::string best_alt_supp;
 				std::string genotype;
 				// If there are alt bases
-				if (alt_base_vcf.size() != 0) {
+				if (!alt_base_vcf.empty()) {
 					unsigned curr_best_supp = 0;
 					if (opt::snv) {
 						bool ref = false;
@@ -817,13 +817,16 @@ writeEditsToFile(
 							}
 						}
 						best_alt_supp = std::to_string(curr_best_alt_supp);
-						if (ref == true) {
-							support = best_alt_supp + "," + support;
+						if (ref) {
+							support.append(",");
+							support.append(best_alt_supp);
 							genotype = "0/1";
 						} else {
 							genotype = "1/2";
-							support = support + "," + best_alt_supp;
-							base = base + "," + best_alt_base;
+							support += ",";
+							support += best_alt_supp;
+							base += ",";
+							base += best_alt_base;
 						}
 					} else {
 						for (int i = 0; i < alt_base_vcf.size(); ++i) {
@@ -838,8 +841,10 @@ writeEditsToFile(
 						}
 						best_alt_supp = std::to_string(curr_best_alt_supp);
 						genotype = "1/2";
-						support = support + "," + best_alt_supp;
-						base = base + "," + best_alt_base;
+						support += ",";
+						support += best_alt_supp;
+						base += ",";
+						base += best_alt_base;
 					}
 				} else {
 					genotype = "1/1";
