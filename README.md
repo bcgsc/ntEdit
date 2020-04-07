@@ -222,6 +222,8 @@ Caveats: Variations occurring within 2*k are not reported. Because kmers are sho
 
 This option is provided as a convenience feature, implemented to do a quick and dirty variation detection analysis on large genomes. It is a basic presence/absence detector based on kmer subsets. For robust variant identification, we recommend statistically principled approaches.
 
+VCF output (v1.3.2+ _variants.vcf): We assume a diploid genome for reporting on the possible genotype (GT). Users working on polyploid genomes should chose to ignore the last two columns of the VCF file (ie. FORMAT INTEGRATION)
+
 </pre>
 
 ### ntEdit -e Secondary Bloom filter, with kmers to exclude. EXPERIMENTAL option
