@@ -218,7 +218,7 @@ Version 1.3 implements a new mode (-s 1) to help detect simple base variation in
 
 It works by overriding the kmer absence verification stage of ntEdit, effectively testing every base position for possible alternate k kmers. At the moment, ntEdit only reports possible base substitutions (no indels), along with the number of supported kmers (the latter is NOT a proxy for read/kmer coverage). In our tests on simulated (C. elegans, H. sapiens) and experimental (GIAB, HG001/HG004), we find k52/k55 (-j 3 -- see below) to give the best performance.
 
-Caveats: Variations occurring within 2*k are not reported. Because kmers are shorter and have less context than reads and read pairs, kmer variations that occur within a genomic allele (intra allelic) may be reported. In order to minimize false discovery, we recommend using a secondary Bloom filter built with repeat kmers (see details on the -e Secondary Bloom filter option below). 
+Caveats: Variations occurring within 2*k are not reported. Because kmers are shorter and have less sequence context than reads and read pairs, kmer variations that occur within a genomic allele (intra allelic) may be reported. In order to minimize false discovery, we recommend using a secondary Bloom filter built with repeat kmers (see details on the -e Secondary Bloom filter option below). 
 
 This option is provided as a convenience feature, implemented to do a quick and dirty variation detection analysis on large genomes. It is a basic presence/absence detector based on kmer subsets. For robust variant identification, we recommend statistically principled approaches.
 
