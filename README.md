@@ -1,5 +1,5 @@
 [![Release](https://img.shields.io/github/release/bcgsc/ntEdit.svg)](https://github.com/bcgsc/ntEdit/releases)
-[![Downloads](https://img.shields.io/github/downloads/bcgsc/ntEdit/total?logo=github)](https://github.com/bcgsc/ntEdit/releases/download/v1.3.2/ntEdit_v1-3-2.tar.gz)
+[![Downloads](https://img.shields.io/github/downloads/bcgsc/ntEdit/total?logo=github)](https://github.com/bcgsc/ntEdit/releases/download/v1.3.3/ntEdit_v1-3-3.tar.gz)
 [![Conda](https://img.shields.io/conda/dn/bioconda/ntedit?label=Conda)](https://anaconda.org/bioconda/ntedit)
 [![Issues](https://img.shields.io/github/issues/bcgsc/ntEdit.svg)](https://github.com/bcgsc/ntEdit/issues)
 Thank you for your [![Stars](https://img.shields.io/github/stars/bcgsc/ntEdit.svg)](https://github.com/bcgsc/ntEdit/stargazers)
@@ -161,7 +161,7 @@ eg.
 <pre>
 e.g. ./ntedit -f ecoliWithMismatches001Indels0001.fa -r solidBF_k25.bf -b ntEditEcolik25
 
-ntEdit v1.3.2
+ntEdit v1.3.3
 
 Scalable genome sequence polishing.
 

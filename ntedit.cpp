@@ -30,15 +30,15 @@ KSEQ_INIT(gzFile, gzread)
 
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)
 static const char VERSION_MESSAGE[] =
-    PROGRAM " version 1.3.2\n"
+    PROGRAM " version 1.3.3\n"
             "written by Rene Warren, Hamid Mohamadi, and Jessica Zhang.\n"
             "copyright 2018-2020 Canada's Michael smith Genome Science Centre\n";
 
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)
 static const char USAGE_MESSAGE[] = PROGRAM
-    " v1.3.2\n"
+    " v1.3.3\n"
     "\n"
-    "Scalable genome sequence polishing.\n"
+    "Fast, lightweight, scalable genome sequence polishing & snv detection*\n"
     "\n"
     " Options:\n"
     "	-t,	number of threads [default=1]\n"
@@ -149,6 +149,16 @@ std::unordered_map<unsigned char, std::vector<unsigned char>> bases_array = {
 	{ 'T', { 'A', 'C', 'G' } },
 	{ 'C', { 'A', 'T', 'G' } },
 	{ 'G', { 'A', 'T', 'C' } },
+	{ 'R', { 'T', 'C' } },
+	{ 'Y', { 'A', 'G' } },
+	{ 'S', { 'A', 'T' } },
+	{ 'W', { 'C', 'G' } },
+	{ 'K', { 'A', 'C' } },
+	{ 'M', { 'T', 'G' } },
+	{ 'B', { 'A' } },
+	{ 'D', { 'C' } },
+	{ 'H', { 'G' } },
+	{ 'V', { 'T' } },
 	{ 'N', { 'A', 'T', 'C', 'G' } }
 };
 
@@ -315,7 +325,7 @@ assert_readable(const std::string& path)
 bool
 isAcceptedBase(unsigned char C)
 {
-	return (C == 'A' || C == 'T' || C == 'G' || C == 'C');
+	return (C == 'A' || C == 'T' || C == 'G' || C == 'C' || C == 'R' || C == 'Y' || C == 'S' || C == 'W' || C == 'K' || C == 'M' || C == 'B' || C == 'D' || C == 'H' || C == 'V');
 }
 
 char
@@ -1747,7 +1757,7 @@ readAndCorrect(BloomFilter& bloom, BloomFilter& bloomrep)
 	}
 
 	vfout << "##fileDate=" << year << month << day << std::endl;
-	vfout << "##source=ntEditV1.3.2" << std::endl;
+	vfout << "##source=ntEditV1.3.3" << std::endl;
 	vfout << "##reference=file:" << opt::draft_filename << std::endl;
 	vfout << "##INFO=<ID=DP,Number=2,Type=Integer,Description=\"Kmer Depth\">" << std::endl;
 	vfout << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tINTEGRATION" << std::endl;
@@ -2030,11 +2040,11 @@ main(int argc, char** argv)
 		// print bloom filter details
 		bloomrep.printBloomFilterDetails();
 
-		std::cout << "\n---------- reading and polishing draft              : " << ctime(&rawtime);
+		std::cout << "\n---------- reading/processing input sequence        : " << ctime(&rawtime);
 		readAndCorrect(bloom, bloomrep);
 
 	} else {
-		std::cout << "---------- reading and polishing draft              : " << ctime(&rawtime);
+		std::cout << "---------- reading/processing input sequence        : " << ctime(&rawtime);
 		BloomFilter bloomrep(1000, 1, 1);
 		readAndCorrect(bloom, bloomrep);
 	}
