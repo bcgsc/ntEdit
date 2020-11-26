@@ -143,7 +143,7 @@ static const struct option longopts[] = {
 std::vector<int> num_tries = { 0, 1, 5, 21, 85, 341 }; // NOLINT
 
 // Initialize current base array
-std::unordered_map<unsigned char, std::vector<unsigned char>> current_bases_array;
+std::unordered_map<unsigned char, std::vector<unsigned char>> current_bases_array = {};
 
 // Setting up polish base array
 // NOLINTNEXTLINE
@@ -1963,9 +1963,9 @@ main(int argc, char** argv)
 		opt::max_deletions = 0;
 		std::cerr << PROGRAM ": EXPERIMENTAL feature note: i and d set to 0 when s is set to 1; "
 		                     "Only tracking single-base variants.\n";
-		current_bases_array = snv_bases_array;
+		current_bases_array = snv_bases_array;    // XXRLWnov2020
 	}else{
-		current_bases_array = polish_bases_array;
+		current_bases_array = polish_bases_array; // XXRLWnov2020
 	}
 
 	// get the basename for the file
