@@ -30,13 +30,13 @@ KSEQ_INIT(gzFile, gzread)
 
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)
 static const char VERSION_MESSAGE[] =
-    PROGRAM " version 1.3.3\n"
-            "written by Rene Warren, Hamid Mohamadi, and Jessica Zhang.\n"
+    PROGRAM " version 1.3.4\n"
+            "written by Rene L Warren, Jessica Zhang, Hamid Mohamadi and Johnathan Wong.\n"
             "copyright 2018-2020 Canada's Michael smith Genome Science Centre\n";
 
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)
 static const char USAGE_MESSAGE[] = PROGRAM
-    " v1.3.3\n"
+    " v1.3.4\n"
     "\n"
     "Fast, lightweight, scalable genome sequence polishing & snv detection*\n"
     "\n"
@@ -142,9 +142,12 @@ static const struct option longopts[] = {
 // Setting up the number of tries when for each number of base insertion
 std::vector<int> num_tries = { 0, 1, 5, 21, 85, 341 }; // NOLINT
 
-// Setting up base array
+// Initialize current base array
+std::unordered_map<unsigned char, std::vector<unsigned char>> current_bases_array;
+
+// Setting up polish base array
 // NOLINTNEXTLINE
-std::unordered_map<unsigned char, std::vector<unsigned char>> bases_array = {
+std::unordered_map<unsigned char, std::vector<unsigned char>> polish_bases_array = {
 	{ 'A', { 'T', 'C', 'G' } },
 	{ 'T', { 'A', 'C', 'G' } },
 	{ 'C', { 'A', 'T', 'G' } },
@@ -160,6 +163,26 @@ std::unordered_map<unsigned char, std::vector<unsigned char>> bases_array = {
 	{ 'H', { 'G' } },
 	{ 'V', { 'T' } },
 	{ 'N', { 'A', 'T', 'C', 'G' } }
+};
+
+// setting up snv base array XXRLWnov2020
+// NOLINTNEXTLINE
+std::unordered_map<unsigned char, std::vector<unsigned char>> snv_bases_array = {
+        { 'A', { 'T', 'C', 'G' } },
+        { 'T', { 'A', 'C', 'G' } },
+        { 'C', { 'A', 'T', 'G' } },
+        { 'G', { 'A', 'T', 'C' } },
+        { 'R', { 'A', 'T', 'C', 'G' } },
+        { 'Y', { 'A', 'T', 'C', 'G' } },
+        { 'S', { 'A', 'T', 'C', 'G' } },
+        { 'W', { 'A', 'T', 'C', 'G' } },
+        { 'K', { 'A', 'T', 'C', 'G' } },
+        { 'M', { 'A', 'T', 'C', 'G' } },
+        { 'B', { 'A', 'T', 'C', 'G' } },
+        { 'D', { 'A', 'T', 'C', 'G' } },
+        { 'H', { 'A', 'T', 'C', 'G' } },
+        { 'V', { 'A', 'T', 'C', 'G' } },
+        { 'N', { 'A', 'T', 'C', 'G' } }
 };
 
 // Setting all the indel combos
@@ -322,6 +345,13 @@ assert_readable(const std::string& path)
 }
 
 /* Checks if the base is ATGC. */
+bool
+isATGCBase(unsigned char C)
+{
+        return (C == 'A' || C == 'T' || C == 'G' || C == 'C');
+}
+
+/* Checks if the base is ATGC and IUPAC. */
 bool
 isAcceptedBase(unsigned char C)
 {
@@ -1430,25 +1460,26 @@ kmerizeAndCorrect(
 			unsigned check_missing = 0;
 			unsigned check_there = 0; // RLW
 			bool do_not_fix = false;
+
 			for (unsigned k = 0; k < opt::k && temp_h_seq_i < seqLen;
-			     k++) { // RLW -- below roll may be adjusted/dupli to account for gapped seed
+		     	k++) { // RLW -- below roll may be adjusted/dupli to account for gapped seed
 				if (roll(
-				        temp_h_seq_i,
-				        temp_t_seq_i,
-				        temp_h_node_index,
-				        temp_t_node_index,
-				        contigSeq,
-				        newSeq,
+			        	temp_h_seq_i,
+			  	     	temp_t_seq_i,
+			       		temp_h_node_index,
+			        	temp_t_node_index,
+			        	contigSeq,
+			        	newSeq,
 				        charOut,
-				        charIn)) {
+			        	charIn)) {
 					NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
 					if (!isAcceptedBase(toupper(charIn))) {
 						do_not_fix = true;
 						break;
 					}
-					if (k % opt::jump == 0 && !bloom.contains(hVal)) { // RLW
+					if (k % opt::jump == 0 && !bloom.contains(hVal)) { // XXRLWnov2020 important to not screen for IUPAC here, may filter out some bases
 						check_missing++;
-					} else if (k % opt::jump == 0 && bloom.contains(hVal)) { // XXRLWXX
+					} else if (isATGCBase(draft_char) && k % opt::jump == 0 && bloom.contains(hVal)) { // XXRLWnov2020 important to screen for ACGT
 						check_there++;
 					}
 				} else {
@@ -1502,7 +1533,7 @@ kmerizeAndCorrect(
 				}
 
 				// try substitution
-				for (const unsigned char sub_base : bases_array[draft_char]) {
+				for (const unsigned char sub_base : current_bases_array[draft_char]) {
 					// reset the temporary values
 					temp_fhVal = fhVal;
 					temp_rhVal = rhVal;
@@ -1757,7 +1788,7 @@ readAndCorrect(BloomFilter& bloom, BloomFilter& bloomrep)
 	}
 
 	vfout << "##fileDate=" << year << month << day << std::endl;
-	vfout << "##source=ntEditV1.3.3" << std::endl;
+	vfout << "##source=ntEditV1.3.4" << std::endl;
 	vfout << "##reference=file:" << opt::draft_filename << std::endl;
 	vfout << "##INFO=<ID=DP,Number=2,Type=Integer,Description=\"Kmer Depth\">" << std::endl;
 	vfout << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tINTEGRATION" << std::endl;
@@ -1932,6 +1963,9 @@ main(int argc, char** argv)
 		opt::max_deletions = 0;
 		std::cerr << PROGRAM ": EXPERIMENTAL feature note: i and d set to 0 when s is set to 1; "
 		                     "Only tracking single-base variants.\n";
+		current_bases_array = snv_bases_array;
+	}else{
+		current_bases_array = polish_bases_array;
 	}
 
 	// get the basename for the file
