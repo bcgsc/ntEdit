@@ -163,6 +163,7 @@ std::unordered_map<unsigned char, std::vector<unsigned char>> polish_bases_array
 };
 
 // Initialize current base array
+// NOLINTNEXTLINE
 std::unordered_map<unsigned char, std::vector<unsigned char>> current_bases_array = {
 	{ 'A', { 'T', 'C', 'G' } },
 	{ 'T', { 'A', 'C', 'G' } },
