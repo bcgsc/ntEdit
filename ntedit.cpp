@@ -163,7 +163,23 @@ std::unordered_map<unsigned char, std::vector<unsigned char>> polish_bases_array
 };
 
 // Initialize current base array
-std::unordered_map<unsigned char, std::vector<unsigned char>> current_bases_array = polish_bases_array;
+std::unordered_map<unsigned char, std::vector<unsigned char>> current_bases_array = {
+	{ 'A', { 'T', 'C', 'G' } },
+	{ 'T', { 'A', 'C', 'G' } },
+	{ 'C', { 'A', 'T', 'G' } },
+	{ 'G', { 'A', 'T', 'C' } },
+	{ 'R', { 'T', 'C' } },
+	{ 'Y', { 'A', 'G' } },
+	{ 'S', { 'A', 'T' } },
+	{ 'W', { 'C', 'G' } },
+	{ 'K', { 'A', 'C' } },
+	{ 'M', { 'T', 'G' } },
+	{ 'B', { 'A' } },
+	{ 'D', { 'C' } },
+	{ 'H', { 'G' } },
+	{ 'V', { 'T' } },
+	{ 'N', { 'A', 'T', 'C', 'G' } }
+}; 
 
 // setting up snv base array XXRLWnov2020
 // NOLINTNEXTLINE
