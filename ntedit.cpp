@@ -142,6 +142,9 @@ static const struct option longopts[] = {
 // Setting up the number of tries when for each number of base insertion
 std::vector<int> num_tries = { 0, 1, 5, 21, 85, 341 }; // NOLINT
 
+// Initialize current base array
+std::unordered_map<unsigned char, std::vector<unsigned char>> current_bases_array;
+
 // Setting up polish base array
 // NOLINTNEXTLINE
 std::unordered_map<unsigned char, std::vector<unsigned char>> polish_bases_array = {
@@ -161,26 +164,6 @@ std::unordered_map<unsigned char, std::vector<unsigned char>> polish_bases_array
 	{ 'V', { 'T' } },
 	{ 'N', { 'A', 'T', 'C', 'G' } }
 };
-
-// Initialize current base array
-// NOLINTNEXTLINE
-std::unordered_map<unsigned char, std::vector<unsigned char>> current_bases_array = {
-	{ 'A', { 'T', 'C', 'G' } },
-	{ 'T', { 'A', 'C', 'G' } },
-	{ 'C', { 'A', 'T', 'G' } },
-	{ 'G', { 'A', 'T', 'C' } },
-	{ 'R', { 'T', 'C' } },
-	{ 'Y', { 'A', 'G' } },
-	{ 'S', { 'A', 'T' } },
-	{ 'W', { 'C', 'G' } },
-	{ 'K', { 'A', 'C' } },
-	{ 'M', { 'T', 'G' } },
-	{ 'B', { 'A' } },
-	{ 'D', { 'C' } },
-	{ 'H', { 'G' } },
-	{ 'V', { 'T' } },
-	{ 'N', { 'A', 'T', 'C', 'G' } }
-}; 
 
 // setting up snv base array XXRLWnov2020
 // NOLINTNEXTLINE
@@ -815,18 +798,19 @@ writeEditsToFile(
 				      << insertion_bases.c_str() << "\t" << num_support << "\n";
 
 				vfout << contigHdr.c_str() << "\t" << pos + 1 << "\t.\t" << draft_char << "\t"
-				      << draft_char << insertion_bases.c_str() << "\t.\tPASS\tDP=" << num_support
+				      << draft_char << insertion_bases.c_str() << "\t.\tPASS\tAD=" << num_support
 				      << "\tGT\t1/1\n";
 
 				insertion_bases = "";
 				num_support = -1;
 			}
-			std::vector<char> alt_base_vcf;
-			std::vector<unsigned> alt_supp_vcf;
+
 
 			// log all the substitutions up to this point
 			while (!substitution_record.empty() &&
 			       substitution_record.front().pos <= curr_node.e_pos) {
+				std::vector<char> alt_base_vcf(0);
+				std::vector<unsigned> alt_supp_vcf(0);
 				rfout << contigHdr.c_str() << "\t" << substitution_record.front().pos + 1 << "\t"
 				      << substitution_record.front().draft_char << "\t"
 				      << substitution_record.front().sub_base << "\t"
@@ -909,7 +893,7 @@ writeEditsToFile(
 
 				vfout << contigHdr.c_str() << "\t" << substitution_record.front().pos + 1 << "\t.\t"
 				      << substitution_record.front().draft_char << "\t" << base
-				      << "\t.\tPASS\tDP=" << support << "\tGT\t" << genotype << "\n";
+				      << "\t.\tPASS\tAD=" << support << "\tGT\t" << genotype << "\n";
 
 				substitution_record.pop();
 			}
@@ -937,7 +921,7 @@ writeEditsToFile(
 
 				vfout << contigHdr.c_str() << "\t" << pos << "\t.\t"
 				      << contigSeq.substr(pos - 1, (curr_node.s_pos - pos) + 1).c_str() << "\t"
-				      << contigSeq.at(pos - 1) << "\t.\tPASS\tDP=" << curr_node.num_support
+				      << contigSeq.at(pos - 1) << "\t.\tPASS\tAD=" << curr_node.num_support
 				      << "\tGT\t1/1\n";
 			}
 		}
@@ -1807,7 +1791,7 @@ readAndCorrect(BloomFilter& bloom, BloomFilter& bloomrep)
 	vfout << "##fileDate=" << year << month << day << std::endl;
 	vfout << "##source=ntEditV1.3.4" << std::endl;
 	vfout << "##reference=file:" << opt::draft_filename << std::endl;
-	vfout << "##INFO=<ID=DP,Number=2,Type=Integer,Description=\"Kmer Depth\">" << std::endl;
+	vfout << "##INFO=<ID=AD,Number=2,Type=Integer,Description=\"Kmer Depth\">" << std::endl;
 	vfout << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tINTEGRATION" << std::endl;
 
 #pragma omp parallel shared(seq, dfout, rfout, vfout)
@@ -1980,7 +1964,9 @@ main(int argc, char** argv)
 		opt::max_deletions = 0;
 		std::cerr << PROGRAM ": EXPERIMENTAL feature note: i and d set to 0 when s is set to 1; "
 		                     "Only tracking single-base variants.\n";
-		current_bases_array = snv_bases_array;    // XXRLWnov2020
+		current_bases_array = snv_bases_array;
+	}else{
+		current_bases_array = polish_bases_array;
 	}
 
 	// get the basename for the file
