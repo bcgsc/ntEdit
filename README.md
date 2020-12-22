@@ -25,7 +25,7 @@ We expect ntEdit to have additional applications in fast mapping of simple nucle
 ```
 
 *ntEdit v1.3.4 was used to map nucleotide variation in over 195,000 SARS-CoV-2 coronavirus genomes since the beginning of the pandemic early January 2020.
-![SARS-CoV-2 evolution in human hosts.  SNVs mapped with ntedit k25, -s 1](https://warrenlr.github.io/papers/SARS-CoV-2_MutationTimeMap_RLWdec2020dark.png)
+![SARS-CoV-2 evolution in human hosts.  SNVs mapped with ntedit k25, -s 1](https://warrenlr.github.io/papers/SARS-CoV-2_MutationTimeMap_RLWdec2020dark.png?raw=true)
 
 
 
