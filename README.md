@@ -17,12 +17,17 @@ Thank you for your [![Stars](https://img.shields.io/github/stars/bcgsc/ntEdit.sv
 ### Description
 -----------
 
-ntEdit is a fast and scalable genomics application for polishing genome assembly drafts.
-It simplifies polishing and "haploidization" of gene and genome sequences with its re-usable Bloom filter design.
+ntEdit is a fast and scalable genomics application for polishing genome assembly drafts, with best performance on long read assemblies.
+It simplifies polishing, variant detection* and "haploidization" of gene and genome sequences with its re-usable Bloom filter design.
 We expect ntEdit to have additional applications in fast mapping of simple nucleotide variations between any two individuals or species’ genomes.
 ```diff
 ! NOTE: In v1.3.1 onwards, the parameter k is automatically detected from supplied Bloom filters
 ```
+
+*ntEdit v1.3.4 was used to map nucleotide variation in over 195,000 SARS-CoV-2 coronavirus genomes since the beginning of the pandemic early January 2020.
+![Logo](https://warrenlr.github.io/papers/SARS-CoV-2_MutationTimeMap_RLWdec2020dark.png)
+SARS-CoV-2 evolution in human hosts.  SNVs mapped with ntedit k25, -s 1
+
 
 ### Implementation and requirements
 -------------------------------
