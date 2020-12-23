@@ -24,7 +24,7 @@ We expect ntEdit to have additional applications in fast mapping of simple nucle
 ! NOTE: In v1.3.1 onwards, the parameter k is automatically detected from supplied Bloom filters
 ```
 
-*ntEdit v1.3.4 was used to map nucleotide variation between the first published isolate and over 195,000 SARS-CoV-2 coronavirus genomes.
+*ntEdit v1.3.4 was used to map nucleotide variation between the first published isolate and over 195,000 SARS-CoV-2 genomes.
 ![SARS-CoV-2 evolution in human hosts](https://warrenlr.github.io/papers/SARS-CoV-2_MutationTimeMap_RLWdec2020dark350DPI.png?raw=true)
 
 
