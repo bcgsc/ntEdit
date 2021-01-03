@@ -24,8 +24,8 @@ We expect ntEdit to have additional applications in fast mapping of simple nucle
 ! NOTE: In v1.3.1 onwards, the parameter k is automatically detected from supplied Bloom filters
 ```
 
-* **SARS-CoV-2 evolution in human hosts**. ntEdit v1.3.4 was used to map nucleotide variation between the first published coronavirus isolate from Wuhan in early January and over 195,000 SARS-CoV-2 genomes sampled from around the globe during the 2020 COVID-19 pandemic.
-![SARS-CoV-2 evolution in human hosts](https://warrenlr.github.io/papers/SARS-CoV-2_MutationTimeMap_RLWdec2020dark350DPI.png?raw=true)
+* **SARS-CoV-2 evolution in human hosts**. ntEdit v1.3.4 was used to map nucleotide variation between the first published coronavirus isolate from Wuhan in early January and over 200,000 SARS-CoV-2 genomes sampled from around the globe during the 2020 COVID-19 pandemic. [Additional maps are available here.](https://bcgsc.github.io/SARS2/)
+![SARS-CoV-2 evolution in human hosts](https://bcgsc.github.io/SARS2/fig1.png?raw=true)
 
 
 
