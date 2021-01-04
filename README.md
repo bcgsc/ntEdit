@@ -9,7 +9,7 @@ Thank you for your [![Stars](https://img.shields.io/github/stars/bcgsc/ntEdit.sv
 # ntEdit
 
 ## Fast, lightweight, scalable genome sequence polishing & snv detection*
-### 2018-2020
+### 2018-2021
 ### email: rwarren [at] bcgsc [dot] ca
 ### *experimental feature
 
@@ -338,7 +338,7 @@ Sequence reads are first shredded into kmers using ntHits, keeping track of kmer
 ### License
 -------
 
-ntEdit Copyright (c) 2018-2020 British Columbia Cancer Agency Branch.  All rights reserved.
+ntEdit Copyright (c) 2018-2021 British Columbia Cancer Agency Branch.  All rights reserved.
 
 ntEdit is released under the GNU General Public License v3
 
