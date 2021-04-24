@@ -98,6 +98,8 @@ nthits / nthash / BloomFilter.pm: Hamid Mohamadi
 
 C++ implementation: Jessica Zhang, Rene Warren, Johnathan Wong
 
+Integration tests: Murathan T Goktas
+
 
 ### How to run in a pipeline
 -------
@@ -166,9 +168,9 @@ eg.
 <pre>
 e.g. ./ntedit -f ecoliWithMismatches001Indels0001.fa -r solidBF_k25.bf -b ntEditEcolik25
 
-ntEdit v1.3.4
+ntEdit v1.3.5
 
-Scalable genome sequence polishing.
+Fast, lightweight, scalable genome sequence polishing & snv detection*
 
  Options:
 	-t,	number of threads [default=1]
@@ -190,6 +192,7 @@ Scalable genome sequence polishing.
 			1: best substitution, or best indel
 			2: best edit overall (suggestion that you reduce i and d for performance)
 	-s,     SNV mode. Overrides draft kmer checks, forcing reassessment at each position (-s 1 = yes, default = 0, no. EXPERIMENTAL)
+	-a,	Soft masks missing kmer positions having no fix (-v 1 = yes, default = 0, no)
 	-v,	verbose mode (-v 1 = yes, default = 0, no)
 
 	--help,		display this message and exit 
