@@ -146,6 +146,7 @@ static const struct option longopts[] = {
 std::vector<int> num_tries = { 0, 1, 5, 21, 85, 341 }; // NOLINT
 
 // Initialize current base array
+// NOLINTNEXTLINE
 std::unordered_map<unsigned char, std::vector<unsigned char>> current_bases_array;
 
 // Setting up polish base array
