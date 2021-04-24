@@ -30,13 +30,13 @@ KSEQ_INIT(gzFile, gzread)
 
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)
 static const char VERSION_MESSAGE[] =
-    PROGRAM " version 1.3.4\n"
-            "written by Rene L Warren, Jessica Zhang, Hamid Mohamadi and Johnathan Wong.\n"
+    PROGRAM " version 1.3.5\n"
+            "written by Rene L Warren, Jessica Zhang, Murathan T Goktas, Hamid Mohamadi and Johnathan Wong.\n"
             "copyright 2018-2020 Canada's Michael smith Genome Science Centre\n";
 
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)
 static const char USAGE_MESSAGE[] = PROGRAM
-    " v1.3.4\n"
+    " v1.3.5\n"
     "\n"
     "Fast, lightweight, scalable genome sequence polishing & snv detection*\n"
     "\n"
@@ -66,6 +66,7 @@ static const char USAGE_MESSAGE[] = PROGRAM
     "			2: best edit overall (suggestion that you reduce i and d for performance)\n"
     "	-s,     SNV mode. Overrides draft kmer checks, forcing reassessment at each position (-s 1 "
     "= yes, default = 0, no. EXPERIMENTAL)\n"
+    "	-a,	Soft masks missing kmer positions having no fix (-v 1 = yes, default = 0, no)\n"
     "	-v,	verbose mode (-v 1 = yes, default = 0, no)\n"
     "\n"
     "	--help,		display this message and exit \n"
@@ -103,11 +104,12 @@ float missing_threshold = default_missing_threshold;
 unsigned insertion_cap;
 int mode = 0;
 int snv = 0;
+int mask = 0; // RLW2021
 int verbose = 0;
 int secbf = 0;
 } // namespace opt
 
-static const char shortopts[] = "t:f:s:k:z:b:r:v:d:i:X:Y:x:y:m:c:j:s:e:";
+static const char shortopts[] = "t:f:s:k:z:b:r:v:d:i:X:Y:x:y:m:c:j:s:e:a:"; // RLW2021
 
 enum
 {
@@ -133,6 +135,7 @@ static const struct option longopts[] = {
 	{ "outfile_prefix", required_argument, nullptr, 'b' },
 	{ "mode", required_argument, nullptr, 'm' },
 	{ "snv", required_argument, nullptr, 's' },
+	{ "mask", required_argument, nullptr, 'a' },
 	{ "verbose", required_argument, nullptr, 'v' },
 	{ "help", no_argument, nullptr, OPT_HELP },
 	{ "version", no_argument, nullptr, OPT_VERSION },
@@ -143,7 +146,6 @@ static const struct option longopts[] = {
 std::vector<int> num_tries = { 0, 1, 5, 21, 85, 341 }; // NOLINT
 
 // Initialize current base array
-// NOLINTNEXTLINE
 std::unordered_map<unsigned char, std::vector<unsigned char>> current_bases_array;
 
 // Setting up polish base array
@@ -1121,6 +1123,21 @@ makeEdit(
 		    hVal);
 		break;
 	case 0:
+		if(opt::mask) {
+	                // apply the change to the actual contigSequence, not other records // RLW2021
+		        if (tNode.node_type == 0) {
+				contigSeq[t_seq_i] = tolower(draft_char);
+				sRec subst;
+				subst.draft_char = draft_char;
+				subst.pos = t_seq_i;
+				subst.sub_base = tolower(draft_char);
+				subst.num_support = opt::k;
+				// DO NOT RECORD -- JUST LOWER case substitution_record.push(subst);
+			} else if (tNode.node_type == 1) {
+				newSeq[t_node_index].c = tolower(draft_char);
+			}
+			NTMC64_changelast(draft_char, tolower(draft_char), opt::k, opt::h, fhVal, rhVal, hVal);
+		}
 		if (opt::verbose) {
 			std::cout << "\tt_seq_i: " << t_seq_i << " FIX NOT FOUND" << std::endl;
 		}
@@ -1587,8 +1604,10 @@ kmerizeAndCorrect(
 						// revert the substitution
 						if (newSeq[t_node_index].node_type == 0) {
 							contigSeq.at(t_seq_i) = draft_char;
+							// contigSeq.at(t_seq_i) = tolower(draft_char);
 						} else if (newSeq[t_node_index].node_type == 1) {
 							newSeq[t_node_index].c = draft_char;
+							// newSeq[t_node_index].c = tolower(draft_char);
 						}
 						if (opt::verbose) {
 							std::cout << "\t\tsub: " << sub_base
@@ -1903,6 +1922,9 @@ main(int argc, char** argv)
 		case 's':
 			arg >> opt::snv;
 			break;
+		case 'a':
+			arg >> opt::mask;
+			break;
 		case 'v':
 			arg >> opt::verbose;
 			break;
@@ -2046,7 +2068,7 @@ main(int argc, char** argv)
 		std::cout << "\n -x " << opt::missing_threshold << "\n -y " << opt::edit_threshold;
 	}
 
-	std::cout << "\n -j " << opt::jump << "\n -m " << opt::mode << "\n -s " << opt::snv << "\n -t "
+	std::cout << "\n -j " << opt::jump << "\n -m " << opt::mode << "\n -s " << opt::snv << "\n -a " << opt::mask << "\n -t "
 	          << opt::nthreads << "\n -v " << opt::verbose << "\n"
 	          << std::endl;
 
