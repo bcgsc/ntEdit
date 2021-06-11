@@ -24,6 +24,7 @@ m=0
 v=0
 a=0
 j=3
+s=0
 
 SHELL=bash -e -o pipefail
 ifeq ($(shell zsh -e -o pipefail -c 'true' 2>/dev/null; echo $$?), 0)
@@ -84,6 +85,7 @@ help:
 	@echo "			1: best substitution, or best indel"
 	@echo "			2: best edit overall (suggestion that you reduce i and d for performance)"
 	@echo "	a	Soft masks missing kmer positions having no fix (-v 1 = yes, default = 0, no)"
+	@echo "	s	SNV mode. Overrides draft kmer checks, forcing reassessment at each position (1 = yes, default = 0, no. EXPERIMENTAL)"
 	@echo "	v	verbose mode (1 = yes, default = 0, no)"
 	@echo ""
 	@echo "Example: Polishing myDraft.fa with myReads1.fq and myReads2.fq"
@@ -131,7 +133,7 @@ X?=0.5
 endif
 $(draftPrefix)_k$k_edited.fa: $p_k$k.bf $(draft)
 ifdef X
-	$(gtimeNtedit) ntedit -r $< -f $(word 2,$^) -b $b -t $t -z $z -i $i -d $d -x $x -y $y -c $(cap) -m $m -v $v -a $a -j $j -X $X -Y $Y
+	$(gtimeNtedit) ntedit -r $< -f $(word 2,$^) -b $b -t $t -z $z -i $i -d $d -x $x -y $y -c $(cap) -m $m -v $v -a $a -j $j -X $X -Y $Y -s $s
 else
-	$(gtimeNtedit) ntedit -r $< -f $(word 2,$^) -b $b -t $t -z $z -i $i -d $d -x $x -y $y -c $(cap) -m $m -v $v -a $a -j $j
+	$(gtimeNtedit) ntedit -r $< -f $(word 2,$^) -b $b -t $t -z $z -i $i -d $d -x $x -y $y -c $(cap) -m $m -v $v -a $a -j $j -s $s
 endif
