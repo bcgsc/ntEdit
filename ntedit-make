@@ -24,6 +24,8 @@ m=0
 v=0
 a=0
 j=3
+X=
+Y=
 
 SHELL=bash -e -o pipefail
 ifeq ($(shell zsh -e -o pipefail -c 'true' 2>/dev/null; echo $$?), 0)
@@ -77,6 +79,8 @@ help:
 	@echo "	y	k/y ratio for the number of editted kmers that should be present, [default=9.000]"
 	@echo "	j	controls size of kmer subset. When checking subset of kmers, check every jth kmer, [default=3]"
 	@echo "	cap	cap for the number of base insertions that can be made at one position, [default=k*1.5]"
+	@echo "	X	ratio of number of kmers in the k subset that should be missing in order to attempt fix (higher=stringent), [default=0.5]"
+	@echo "	Y	ratio of number of kmers in the k subset that should be present to accept an edit (higher=stringent), [default=0.5]"
 	@echo "	m	mode of editing, range 0-2, [default=0]"
 	@echo "			0: best substitution, or first good indel"
 	@echo "			1: best substitution, or best indel"
@@ -91,6 +95,7 @@ help:
 	@echo "Make sure your read files all have the same prefix, as indicated by 'reads=<prefix>'. The makefile will use all files in the current working directory with this prefix for polishing."
 	@echo "To ensure that the pipeline runs correctly, make sure that the following tools are in your PATH: ntedit, nthits"
 	@echo "You must either specify the cutoff parameter or define solid=true in your command to set it automatically"
+	@echo "If one of X/Y is set, ntEdit will use those parameters instead. Otherwise, it uses x/y by default."
 
 #Run ntEdit
 ntedit: check $(draftPrefix)_k$k_edited.fa
@@ -120,5 +125,15 @@ else
 	$(gtimeNthits) nthits -c$(cutoff) --outbloom -p$p -k$k -t$t $^
 endif
 
+ifdef X
+	Y?=0.5
+endif
+ifdef Y
+	X?=0.5
+endif
 $(draftPrefix)_k$k_edited.fa: $p_k$k.bf $(draft)
+ifdef X
+	$(gtimeNtedit) ntedit -r $< -f $(word 2,$^) -b $b -t $t -z $z -i $i -d $d -x $x -y $y -c $(cap) -m $m -v $v -a $a -j $j -X$X -Y$Y
+else
 	$(gtimeNtedit) ntedit -r $< -f $(word 2,$^) -b $b -t $t -z $z -i $i -d $d -x $x -y $y -c $(cap) -m $m -v $v -a $a -j $j
+endif
