@@ -24,8 +24,6 @@ m=0
 v=0
 a=0
 j=3
-X=
-Y=
 
 SHELL=bash -e -o pipefail
 ifeq ($(shell zsh -e -o pipefail -c 'true' 2>/dev/null; echo $$?), 0)
@@ -126,14 +124,14 @@ else
 endif
 
 ifdef X
-	Y?=0.5
+Y?=0.5
 endif
 ifdef Y
-	X?=0.5
+X?=0.5
 endif
 $(draftPrefix)_k$k_edited.fa: $p_k$k.bf $(draft)
 ifdef X
-	$(gtimeNtedit) ntedit -r $< -f $(word 2,$^) -b $b -t $t -z $z -i $i -d $d -x $x -y $y -c $(cap) -m $m -v $v -a $a -j $j -X$X -Y$Y
+	$(gtimeNtedit) ntedit -r $< -f $(word 2,$^) -b $b -t $t -z $z -i $i -d $d -x $x -y $y -c $(cap) -m $m -v $v -a $a -j $j -X $X -Y $Y
 else
 	$(gtimeNtedit) ntedit -r $< -f $(word 2,$^) -b $b -t $t -z $z -i $i -d $d -x $x -y $y -c $(cap) -m $m -v $v -a $a -j $j
 endif
