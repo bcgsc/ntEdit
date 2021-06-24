@@ -49,7 +49,7 @@ static const char USAGE_MESSAGE[] = PROGRAM
     "	-b,	output file prefix, OPTIONAL\n"
     "	-z,	minimum contig length [default=100]\n"
     "	-i,	maximum number of insertion bases to try, range 0-5, [default=4]\n"
-    "	-d,	maximum number of deletions bases to try, range 0-5, [default=5]\n"
+    "	-d,	maximum number of deletions bases to try, range 0-10, [default=10]\n"
     "	-x,	k/x ratio for the number of kmers that should be missing, [default=5.000]\n"
     "	-y, 	k/y ratio for the number of editted kmers that should be present, [default=9.000]\n"
     "	-X, 	ratio of number of kmers in the k subset that should be missing in order to "
@@ -802,7 +802,7 @@ writeEditsToFile(
 				      << insertion_bases.c_str() << "\t" << num_support << "\n";
 
 				vfout << contigHdr.c_str() << "\t" << pos + 1 << "\t.\t" << draft_char << "\t"
-				      << draft_char << insertion_bases.c_str() << "\t.\tPASS\tAD=" << num_support
+				      << insertion_bases.c_str() << draft_char << "\t.\tPASS\tAD=" << num_support
 				      << "\tGT\t1/1\n";
 
 				insertion_bases = "";
@@ -1810,7 +1810,7 @@ readAndCorrect(BloomFilter& bloom, BloomFilter& bloomrep)
 	}
 
 	vfout << "##fileDate=" << year << month << day << std::endl;
-	vfout << "##source=ntEditV1.3.4" << std::endl;
+	vfout << "##source=ntEditV1.3.5" << std::endl;
 	vfout << "##reference=file:" << opt::draft_filename << std::endl;
 	vfout << "##INFO=<ID=AD,Number=2,Type=Integer,Description=\"Kmer Depth\">" << std::endl;
 	vfout << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tINTEGRATION" << std::endl;
