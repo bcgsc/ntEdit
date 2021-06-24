@@ -32,7 +32,7 @@ KSEQ_INIT(gzFile, gzread)
 static const char VERSION_MESSAGE[] =
     PROGRAM " version 1.3.5\n"
             "written by Rene L Warren, Jessica Zhang, Murathan T Goktas, Hamid Mohamadi and Johnathan Wong.\n"
-            "copyright 2018-2020 Canada's Michael smith Genome Science Centre\n";
+            "copyright 2018-2021 Canada's Michael smith Genome Science Centre\n";
 
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)
 static const char USAGE_MESSAGE[] = PROGRAM
