@@ -48,8 +48,8 @@ static const char USAGE_MESSAGE[] = PROGRAM
     "EXPERIMENTAL\n"
     "	-b,	output file prefix, OPTIONAL\n"
     "	-z,	minimum contig length [default=100]\n"
-    "	-i,	maximum number of insertion bases to try, range 0-5, [default=4]\n"
-    "	-d,	maximum number of deletions bases to try, range 0-10, [default=10]\n"
+    "	-i,	maximum number of insertion bases to try, range 0-5, [default=5]\n"
+    "	-d,	maximum number of deletions bases to try, range 0-10, [default=5]\n"
     "	-x,	k/x ratio for the number of kmers that should be missing, [default=5.000]\n"
     "	-y, 	k/y ratio for the number of editted kmers that should be present, [default=9.000]\n"
     "	-X, 	ratio of number of kmers in the k subset that should be missing in order to "
@@ -79,7 +79,7 @@ static const char USAGE_MESSAGE[] = PROGRAM
 namespace opt {
 /* Defining magical numbers. */
 constexpr int default_min_contig_len = 100;
-constexpr int default_max_insertions = 4;
+constexpr int default_max_insertions = 5;
 constexpr int default_max_deletions = 5;
 constexpr float default_edit_threshold = 9.0000;
 constexpr float default_missing_threshold = 5.0000;
@@ -2048,6 +2048,16 @@ main(int argc, char** argv)
 		opt::max_deletions = opt::max_insertions;
 	}
 
+	if( opt::max_insertions > 5 ) {
+		std::cerr << PROGRAM ": warning: i parameter too high, adjusting to maximum -i 5";
+		opt::max_insertions = 5;
+	}
+
+	if( opt::max_deletions > 10 ) {
+ 		std::cerr << PROGRAM ": warning: d parameter too high, adjusting to maximum -d 10";
+ 		opt::max_deletions = 10;
+	}
+	
 	// set the outfile prefix if it wasn't given
 	if (opt::outfile_prefix.empty()) {
 		std::ostringstream outfile_name;
