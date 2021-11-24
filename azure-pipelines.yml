@@ -6,7 +6,7 @@ pool:
 steps:
 - script: |
     curl https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-    sudo apt-add-repository "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main"
+    sudo apt-add-repository "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-11 main"
     sudo apt-get update -qq
     sudo apt-get install -qq gcc g++ libopenmpi-dev libgtest-dev
     sudo apt-get install -y --no-install-recommends clang-format clang-tidy
