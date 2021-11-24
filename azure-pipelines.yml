@@ -1,7 +1,7 @@
 #https://aka.ms/yaml
 
 pool:
-  vmImage: Ubuntu 16.04
+  vmImage: 'ubuntu-latest'
 
 steps:
 - script: |
