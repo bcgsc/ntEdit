@@ -1,17 +1,15 @@
 #https://aka.ms/yaml
 
 pool:
-  vmImage: Ubuntu 16.04
+  vmImage: 'ubuntu-latest'
 
 steps:
 - script: |
     curl https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-    sudo apt-add-repository "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main"
+    sudo apt-add-repository "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-11 main"
     sudo apt-get update -qq
     sudo apt-get install -qq gcc g++ libopenmpi-dev libgtest-dev
-    sudo apt-get install -y --no-install-recommends clang-format-7 clang-tidy-7
-    sudo ln -s clang-format-7 /usr/bin/clang-format
-    sudo ln -s clang-tidy-7 /usr/bin/clang-tidy
+    sudo apt-get install -y --no-install-recommends clang-format clang-tidy
   displayName: Install dependencies
 - script: |
     make ntedit
