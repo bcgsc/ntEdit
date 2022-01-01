@@ -10,7 +10,7 @@ Thank you for your [![Stars](https://img.shields.io/github/stars/bcgsc/ntEdit.sv
 # ntEdit
 
 ## Fast, lightweight, scalable genome sequence polishing & snv detection*
-### 2018-2021
+### 2018-2022
 ### email: rwarren [at] bcgsc [dot] ca
 ### *experimental feature
 
