@@ -8,7 +8,7 @@ steps:
     curl https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
     sudo apt-add-repository "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-11 main"
     sudo apt-get update -qq
-    sudo apt-get install -qq gcc g++ libopenmpi-dev libgtest-dev
+    sudo apt-get install -qq gcc g++ libopenmpi-dev libgtest-dev libomp-dev
     sudo apt-get install -y --no-install-recommends clang-format clang-tidy
   displayName: Install dependencies
 - script: |
@@ -16,8 +16,10 @@ steps:
   displayName: Compile ntedit
 - script : |
     make clang-format
+  displayName: Clang-format
+- script: |
     make clang-tidy
-  displayName: Clang-format and clang-tidy
+  displayName: Clang-tidy
 - script : |
     make check
   displayName: Check output files
