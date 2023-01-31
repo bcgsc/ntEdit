@@ -55,7 +55,7 @@ make ntedit
 ### Dependencies
 -------
 
-1. ntHits (https://github.com/bcgsc/nthits)
+1. ntHits (v0.0.1, https://github.com/bcgsc/nthits)
 2. BloomFilter utilities (provided in ./lib)
 3. kseq (provided in ./lib)
 
