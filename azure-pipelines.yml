@@ -16,8 +16,10 @@ steps:
   displayName: Compile ntedit
 - script : |
     make clang-format
+  displayName: Clang-format
+- script: |
     make clang-tidy
-  displayName: Clang-format and clang-tidy
+  displayName: Clang-tidy
 - script : |
     make check
   displayName: Check output files

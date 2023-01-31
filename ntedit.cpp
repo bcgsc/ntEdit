@@ -31,7 +31,8 @@ KSEQ_INIT(gzFile, gzread)
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)
 static const char VERSION_MESSAGE[] =
     PROGRAM " version 1.3.5\n"
-            "written by Rene L Warren, Jessica Zhang, Murathan T Goktas, Hamid Mohamadi and Johnathan Wong.\n"
+            "written by Rene L Warren, Jessica Zhang, Murathan T Goktas, Hamid Mohamadi and "
+            "Johnathan Wong.\n"
             "copyright 2018-2021 Canada's Michael smith Genome Science Centre\n";
 
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)
@@ -152,41 +153,24 @@ std::unordered_map<unsigned char, std::vector<unsigned char>> current_bases_arra
 // Setting up polish base array
 // NOLINTNEXTLINE
 std::unordered_map<unsigned char, std::vector<unsigned char>> polish_bases_array = {
-	{ 'A', { 'T', 'C', 'G' } },
-	{ 'T', { 'A', 'C', 'G' } },
-	{ 'C', { 'A', 'T', 'G' } },
-	{ 'G', { 'A', 'T', 'C' } },
-	{ 'R', { 'T', 'C' } },
-	{ 'Y', { 'A', 'G' } },
-	{ 'S', { 'A', 'T' } },
-	{ 'W', { 'C', 'G' } },
-	{ 'K', { 'A', 'C' } },
-	{ 'M', { 'T', 'G' } },
-	{ 'B', { 'A' } },
-	{ 'D', { 'C' } },
-	{ 'H', { 'G' } },
-	{ 'V', { 'T' } },
-	{ 'N', { 'A', 'T', 'C', 'G' } }
+	{ 'A', { 'T', 'C', 'G' } }, { 'T', { 'A', 'C', 'G' } }, { 'C', { 'A', 'T', 'G' } },
+	{ 'G', { 'A', 'T', 'C' } }, { 'R', { 'T', 'C' } },      { 'Y', { 'A', 'G' } },
+	{ 'S', { 'A', 'T' } },      { 'W', { 'C', 'G' } },      { 'K', { 'A', 'C' } },
+	{ 'M', { 'T', 'G' } },      { 'B', { 'A' } },           { 'D', { 'C' } },
+	{ 'H', { 'G' } },           { 'V', { 'T' } },           { 'N', { 'A', 'T', 'C', 'G' } }
 };
 
 // setting up snv base array XXRLWnov2020
 // NOLINTNEXTLINE
 std::unordered_map<unsigned char, std::vector<unsigned char>> snv_bases_array = {
-        { 'A', { 'T', 'C', 'G' } },
-        { 'T', { 'A', 'C', 'G' } },
-        { 'C', { 'A', 'T', 'G' } },
-        { 'G', { 'A', 'T', 'C' } },
-        { 'R', { 'A', 'T', 'C', 'G' } },
-        { 'Y', { 'A', 'T', 'C', 'G' } },
-        { 'S', { 'A', 'T', 'C', 'G' } },
-        { 'W', { 'A', 'T', 'C', 'G' } },
-        { 'K', { 'A', 'T', 'C', 'G' } },
-        { 'M', { 'A', 'T', 'C', 'G' } },
-        { 'B', { 'A', 'T', 'C', 'G' } },
-        { 'D', { 'A', 'T', 'C', 'G' } },
-        { 'H', { 'A', 'T', 'C', 'G' } },
-        { 'V', { 'A', 'T', 'C', 'G' } },
-        { 'N', { 'A', 'T', 'C', 'G' } }
+	{ 'A', { 'T', 'C', 'G' } },      { 'T', { 'A', 'C', 'G' } },
+	{ 'C', { 'A', 'T', 'G' } },      { 'G', { 'A', 'T', 'C' } },
+	{ 'R', { 'A', 'T', 'C', 'G' } }, { 'Y', { 'A', 'T', 'C', 'G' } },
+	{ 'S', { 'A', 'T', 'C', 'G' } }, { 'W', { 'A', 'T', 'C', 'G' } },
+	{ 'K', { 'A', 'T', 'C', 'G' } }, { 'M', { 'A', 'T', 'C', 'G' } },
+	{ 'B', { 'A', 'T', 'C', 'G' } }, { 'D', { 'A', 'T', 'C', 'G' } },
+	{ 'H', { 'A', 'T', 'C', 'G' } }, { 'V', { 'A', 'T', 'C', 'G' } },
+	{ 'N', { 'A', 'T', 'C', 'G' } }
 };
 
 // Setting all the indel combos
@@ -352,14 +336,16 @@ assert_readable(const std::string& path)
 bool
 isATGCBase(unsigned char C)
 {
-        return (C == 'A' || C == 'T' || C == 'G' || C == 'C');
+	return (C == 'A' || C == 'T' || C == 'G' || C == 'C');
 }
 
 /* Checks if the base is ATGC and IUPAC. */
 bool
 isAcceptedBase(unsigned char C)
 {
-	return (C == 'A' || C == 'T' || C == 'G' || C == 'C' || C == 'R' || C == 'Y' || C == 'S' || C == 'W' || C == 'K' || C == 'M' || C == 'B' || C == 'D' || C == 'H' || C == 'V');
+	return (
+	    C == 'A' || C == 'T' || C == 'G' || C == 'C' || C == 'R' || C == 'Y' || C == 'S' ||
+	    C == 'W' || C == 'K' || C == 'M' || C == 'B' || C == 'D' || C == 'H' || C == 'V');
 }
 
 char
@@ -809,7 +795,6 @@ writeEditsToFile(
 				num_support = -1;
 			}
 
-
 			// log all the substitutions up to this point
 			while (!substitution_record.empty() &&
 			       substitution_record.front().pos <= curr_node.e_pos) {
@@ -1124,9 +1109,9 @@ makeEdit(
 		    hVal);
 		break;
 	case 0:
-		if(opt::mask) {
-	                // apply the change to the actual contigSequence, not other records // RLW2021
-		        if (tNode.node_type == 0) {
+		if (opt::mask) {
+			// apply the change to the actual contigSequence, not other records // RLW2021
+			if (tNode.node_type == 0) {
 				contigSeq[t_seq_i] = tolower(draft_char);
 				sRec subst;
 				subst.draft_char = draft_char;
@@ -1482,24 +1467,28 @@ kmerizeAndCorrect(
 			bool do_not_fix = false;
 
 			for (unsigned k = 0; k < opt::k && temp_h_seq_i < seqLen;
-		     	k++) { // RLW -- below roll may be adjusted/dupli to account for gapped seed
+			     k++) { // RLW -- below roll may be adjusted/dupli to account for gapped seed
 				if (roll(
-			        	temp_h_seq_i,
-			  	     	temp_t_seq_i,
-			       		temp_h_node_index,
-			        	temp_t_node_index,
-			        	contigSeq,
-			        	newSeq,
+				        temp_h_seq_i,
+				        temp_t_seq_i,
+				        temp_h_node_index,
+				        temp_t_node_index,
+				        contigSeq,
+				        newSeq,
 				        charOut,
-			        	charIn)) {
+				        charIn)) {
 					NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
 					if (!isAcceptedBase(toupper(charIn))) {
 						do_not_fix = true;
 						break;
 					}
-					if (k % opt::jump == 0 && !bloom.contains(hVal)) { // XXRLWnov2020 important to not screen for IUPAC here, may filter out some bases
+					if (k % opt::jump == 0 &&
+					    !bloom.contains(hVal)) { // XXRLWnov2020 important to not screen for
+						                         // IUPAC here, may filter out some bases
 						check_missing++;
-					} else if (isATGCBase(draft_char) && k % opt::jump == 0 && bloom.contains(hVal)) { // XXRLWnov2020 important to screen for ACGT
+					} else if (
+					    isATGCBase(draft_char) && k % opt::jump == 0 &&
+					    bloom.contains(hVal)) { // XXRLWnov2020 important to screen for ACGT
 						check_there++;
 					}
 				} else {
@@ -1989,7 +1978,7 @@ main(int argc, char** argv)
 		std::cerr << PROGRAM ": EXPERIMENTAL feature note: i and d set to 0 when s is set to 1; "
 		                     "Only tracking single-base variants.\n";
 		current_bases_array = snv_bases_array;
-	}else{
+	} else {
 		current_bases_array = polish_bases_array;
 	}
 
@@ -2048,16 +2037,16 @@ main(int argc, char** argv)
 		opt::max_deletions = opt::max_insertions;
 	}
 
-	if( opt::max_insertions > 5 ) {
+	if (opt::max_insertions > 5) {
 		std::cerr << PROGRAM ": warning: i parameter too high, adjusting to maximum -i 5";
 		opt::max_insertions = 5;
 	}
 
-	if( opt::max_deletions > 10 ) {
- 		std::cerr << PROGRAM ": warning: d parameter too high, adjusting to maximum -d 10";
- 		opt::max_deletions = 10;
+	if (opt::max_deletions > 10) {
+		std::cerr << PROGRAM ": warning: d parameter too high, adjusting to maximum -d 10";
+		opt::max_deletions = 10;
 	}
-	
+
 	// set the outfile prefix if it wasn't given
 	if (opt::outfile_prefix.empty()) {
 		std::ostringstream outfile_name;
@@ -2079,8 +2068,8 @@ main(int argc, char** argv)
 		std::cout << "\n -x " << opt::missing_threshold << "\n -y " << opt::edit_threshold;
 	}
 
-	std::cout << "\n -j " << opt::jump << "\n -m " << opt::mode << "\n -s " << opt::snv << "\n -a " << opt::mask << "\n -t "
-	          << opt::nthreads << "\n -v " << opt::verbose << "\n"
+	std::cout << "\n -j " << opt::jump << "\n -m " << opt::mode << "\n -s " << opt::snv << "\n -a "
+	          << opt::mask << "\n -t " << opt::nthreads << "\n -v " << opt::verbose << "\n"
 	          << std::endl;
 
 	// Read & edit contigs
