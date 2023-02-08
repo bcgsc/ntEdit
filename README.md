@@ -229,7 +229,7 @@ It works by overriding the kmer absence verification stage of ntEdit, effectivel
 
 Caveats: Variations occurring within 2*k are not reported. Because kmers are shorter and have less sequence context than reads and read pairs, kmer variations that occur within a genomic allele (intra allelic) may be reported. In order to minimize false discovery, we recommend using a secondary Bloom filter built with repeat kmers (see details on the -e Secondary Bloom filter option below). 
 
-This option is provided as a convenience feature, implemented to do a quick and dirty variation detection analysis on large genomes. It is a basic presence/absence detector based on kmer subsets. For robust variant identification, we recommend statistically principled approaches.
+This option is provided as a convenience feature, implemented to do a quick and dirty variant detection analysis on large genomes. It is a basic presence/absence detector based on kmer subsets. For robust variant identification, we recommend statistically principled approaches.
 
 VCF output (v1.3.2+ _variants.vcf): We assume a diploid genome for reporting on the possible genotype (GT). Users working on polyploid genomes should chose to ignore the last two columns of the VCF file (ie. FORMAT INTEGRATION)
 
