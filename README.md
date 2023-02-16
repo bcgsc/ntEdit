@@ -14,7 +14,7 @@ Thank you for your [![Stars](https://img.shields.io/github/stars/bcgsc/ntEdit.sv
 ### email: rwarren [at] bcgsc [dot] ca
 
 ## CONTENTS
---------
+
 1. [Description](#description)
 2. [Implementation and requirements](#implementation)
 3. [Install](#install)
@@ -34,7 +34,6 @@ Thank you for your [![Stars](https://img.shields.io/github/stars/bcgsc/ntEdit.sv
 17. [License](#license)
 
 ## Description <a name=description></a>
------------
 
 ntEdit is a fast and scalable genomics application for polishing genome assembly drafts, with best performance on long read assemblies.
 It simplifies polishing, variant detection* and "haploidization" of gene and genome sequences with its re-usable Bloom filter design.
@@ -49,7 +48,6 @@ We expect ntEdit to have additional application in fast mapping of simple nucleo
 
 
 ## Implementation and requirements <a name=implementation></a>
--------------------------------
 
 ntEdit v1.2 and subsequent versions are written in C++. 
 
@@ -57,7 +55,6 @@ ntEdit v1.2 and subsequent versions are written in C++.
 
 
 ## Install <a name=install></a>
--------
 
 Clone and enter the ntEdit directory.
 <pre>
@@ -71,7 +68,6 @@ make ntedit
 
 
 ## Dependencies <a name=dependencies></a>
--------
 
 1. ntHits (v0.0.1, https://github.com/bcgsc/nthits)
 2. BloomFilter utilities (provided in ./lib)
@@ -79,7 +75,6 @@ make ntedit
 
 
 ## Documentation <a name=docs></a>
--------------
 
 Refer to the README.md file on how to install and run ntEdit.
 Our [manuscript](http://dx.doi.org/10.1093/bioinformatics/btz400) contains information about the software and its performance.
@@ -91,7 +86,6 @@ rwarren@bcgsc.ca
 
 
 ## Citing ntEdit <a name=citing></a>
-------------
 
 Thank you for your [![Stars](https://img.shields.io/github/stars/bcgsc/ntEdit.svg)](https://github.com/bcgsc/ntEdit/stargazers) and for using, developing and promoting this free software!
 
@@ -110,7 +104,6 @@ The experimental data described in our paper can be downloaded from: http://www.
 
 
 ## Credits <a name=credits></a>
--------
 
 ntedit (concept, algorithm design and prototype): Rene Warren
 
@@ -122,7 +115,6 @@ Integration tests: Murathan T Goktas
 
 
 ## How to run in a pipeline <a name=howto></a>
--------
 
 1. nthits (please see nthits documentation : https://github.com/bcgsc/ntHits)
 <pre>
@@ -184,7 +176,7 @@ eg.
 </pre>
 
 ## Running ntEdit <a name=run></a>
--------------
+
 <pre>
 e.g. ./ntedit -f ecoliWithMismatches001Indels0001.fa -r solidBF_k25.bf -b ntEditEcolik25
 
@@ -223,7 +215,7 @@ Fast, lightweight, scalable genome sequence polishing & snv detection*
 </pre>
 
 ## ntEdit Modes <a name=modes></a>
-------------
+
 <pre>
 Mode 0: (default)
 	ntEdit will try to substitute the last base of an incorrect k-mer with a different ATGC base. If that k-mer is found in the bloom filter and has enough subset support, ntEdit will then try the other substitution bases and then choose the best substitution fix. However, if the substituion was not found, then ntEdit will try all indels of max length (-i) and (-d) starting with that substitution base and make edit based on the first accepted indel. 
@@ -238,7 +230,6 @@ Mode 2:
 *We recommend running ntEdit in Mode 1 (or 0)
 
 ## ntEdit -s (SNV) option <a name=snv></a> 
-------------
 
 <pre>
 
@@ -255,7 +246,6 @@ VCF output (v1.3.2+ _variants.vcf): We assume a diploid genome for reporting on 
 </pre>
 
 ## ntEdit -e Secondary Bloom filter, with kmers to exclude. <a name=secondarybf></a>
-------------
 
 <pre>
 
@@ -294,9 +284,8 @@ Users should perform their own benchmarks.
 </pre>
 
 
-
 ## ntedit-make <a name=make></a>
-------------
+
 The ntEdit pipeline can be run with a Makefile (`ntedit-make`), which will run ntHits, then ntEdit for you.
  - Inputs: Read file(s), draft genome to be polished.
  - Outputs: Polished scaffolds in FASTA format.
@@ -317,13 +306,12 @@ For more information about usage:
 </pre>
 
 ### Test data <a name=test></a>
----------
+
 <pre>
 Go to ./demo
 (cd demo)
 
 run:
--------------------------------------
 ./runme.sh
 
 (../ntedit -f ecoliWithMismatches001Indels0001.fa.gz -r solidBF_k25.bf -d 5 -i 4 -b ntEditEcolik25)
@@ -340,14 +328,14 @@ nteditk25_edited.fa
 
 </pre>
 
+
 ## Algorithm - how it works <a name=how></a>
-------------
+
 ![Logo](https://github.com/bcgsc/ntEdit/blob/master/figS1.png)
 Sequence reads are first shredded into kmers using ntHits, keeping track of kmer multiplicity. The kmers that pass coverage thresholds (ntHits, -c option builds a filter with kmers having a coverage higher than c) are used to construct a Bloom filter (BF). The draft assembly is supplied to ntEdit (-f option, fasta file), along with the BF (-r option) and sequences are read sequentially. Sequence strings are shredded into words of length k (kmers) at a specified value (-k option in versions before v1.3.1.  In newer releases, k is detected automatically from the main Bloom filter supplied in -r) matching that used to build the BF, and each kmer from 5’ to 3’ queries the BF data structure for presence/absence (step 1). When a kmer is not found in the filter, a subset (Sk) of overlapping k kmers (defined by k over three, k/3) containing the 3’-end base is queried for absence (step 2). The subset Sk, representing a subsampling of k kmers obtained by sliding over 3 bases at a time over k bases, is chosen to minimize the number of checks against the Bloom filter. Of this subset, when the number of absent (-) kmers matches or exceeds a threshold defined by Sk- >= k/x (-x option), representing the majority of kmers in Sk, editing takes place (step 3 and beyond), otherwise step 1 resumes. In the former case, the 3’-end base is permuted to one of the three alternate bases (step 3), and the subset (Sk_alt) containing the change is assessed for Bloom filter presence (+). When that number matches or exceeds the threshold defined by Sk_alt+ >= k/y (-y option), which means the base substitution qualifies, it is tracked along with the number of supported kmers and the remaining alternate 3’-end base substitutions are also assessed (ie. resuming step 3 until all bases inspected). If the edit does not qualify, then a cycle of base insertion(s) and deletion(s) of up to –i and –d bases begins (step 4, -i option and step 5, -d option, respectively). As is the case for the substitutions, a subset of k kmers containing the indel change is tested for presence. If there are no qualifying changes, then the next alternate 3’-end base is inspected as per above; otherwise the change is applied to the sequence string and the next assembly kmer is inspected (step 1). The process is repeated until a qualifying change or until no suitable edits are found. In the latter case, we go back to step 1. When a change is made, the position on the new sequence is tracked, along with an alternate base with lesser or equal k kmer subset support, when applicable. Currently, ntEdit only tracks cases when edits are made (steps 3-5), and does not flag unedited, missing draft kmers (steps 1-2).  
 
 
 ## Output files <a name=output></a>
-------------------------
 
 |Output files|                    Description|
 |---|---|
@@ -356,9 +344,7 @@ Sequence reads are first shredded into kmers using ntHits, keeping track of kmer
 |_variants.vcf                   | vcf file; contains variant calls |
 
 
-
 ## License <a name=license></a>
--------
 
 ntEdit Copyright (c) 2018-2023 British Columbia Cancer Agency Branch.  All rights reserved.
 
