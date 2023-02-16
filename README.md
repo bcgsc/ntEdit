@@ -124,7 +124,7 @@ Integration tests: Murathan T Goktas
 ### How to run in a pipeline <a name=howto></a>
 -------
 
-1. Running nthits (please see nthits documentation : https://github.com/bcgsc/ntHits)
+1. nthits (please see nthits documentation : https://github.com/bcgsc/ntHits)
 <pre>
 nthits -c <kmer coverage threshold> -b <Bloom filter bit size> -k <kmer length> -t <number of threads> reads
 eg.
@@ -175,7 +175,7 @@ Hamid Mohamadi, Hamza Khan and Inanc Birol
 </pre>
 
 
-2. Running ntEdit (see complete usage below)
+2. ntEdit (see complete usage below)
 <pre>
 ./ntedit -f <fasta file to polish> -r <Bloom filter from nthits> -b <base output name> -t <threads>
 
@@ -320,9 +320,7 @@ For more information about usage:
 ---------
 <pre>
 Go to ./demo
-</pre>
 (cd demo)
-
 
 run:
 -------------------------------------
@@ -339,6 +337,8 @@ ntEditEcolik25_edited.fa
 Compare with:
 nteditk25_changes.tsv
 nteditk25_edited.fa
+
+</pre>
 
 ### Algorithm - how it works <a name=how></a>
 ------------
