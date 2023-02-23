@@ -11,7 +11,7 @@ Thank you for your [![Stars](https://img.shields.io/github/stars/bcgsc/ntEdit.sv
 
 ## Fast, lightweight, scalable genome sequence polishing & SNV detection
 ### 2018-2023
-### email: rwarren [at] bcgsc [dot] ca
+
 
 ## Contents
 
@@ -80,9 +80,6 @@ Refer to the README.md file on how to install and run ntEdit.
 Our [manuscript](http://dx.doi.org/10.1093/bioinformatics/btz400) contains information about the software and its performance.
 ![ntEdit ISMB poster](https://github.com/bcgsc/ntEdit/blob/master/ntedit_ismb2019.png)
 This [ISMB2019 poster](https://warrenlr.github.io/papers/ntedit_ismb2019.pdf) contains additional information, benchmarks and results. 
-
-Questions or comments?  We would love to hear from you!
-rwarren@bcgsc.ca
 
 
 ## Citing ntEdit <a name=citing></a>
