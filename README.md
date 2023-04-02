@@ -77,6 +77,14 @@ make ntedit
 2. BloomFilter utilities (provided in ./lib)
 3. kseq (provided in ./lib)
 
+```diff
+! NOTE: ntEdit IS ONLY compatible with ntHits release v0.0.1. It will not work with ntHits release v1.0.0 and above.  
+```
+We recommend installing ntEdit and its dependencies, using conda: 
+<pre>
+conda install -c bioconda ntedit
+</pre>
+
 
 ## Documentation <a name=docs></a>
 
