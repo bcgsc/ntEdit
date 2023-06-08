@@ -244,6 +244,12 @@ See https://github.com/bcgsc/ntedit_sealer_protocol and https://github.com/bcgsc
 
 <pre>
 Version 1.3.5 implements a new option (-a), which controls soft-masking (lower case) nucleotides in the supplied input [draft genome] sequence when its kmers are not found in the primary Bloom filter, and with no possible fix found in that filter (and optionally within a coverage slice provided by the secondary Bloom filter).  
+
+This option is useful for flagging unpolished/unresolved genomic regions, those with no equivalent in the supplied Bloom filter(s).
+
+The nucleotide soft-masking effectively "paints a target" for other polishers/genome analysis software.
+
+This strategy is used in GoldPolish (a.k.a. GR-edit) and the ntedit_sealer_protocol (URL above)
 </pre>
 
 ## ntEdit -s (SNV) option <a name=snv></a> 
