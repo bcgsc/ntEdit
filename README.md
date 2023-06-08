@@ -249,7 +249,7 @@ This option is useful for flagging unpolished/unresolved genomic regions, those 
 
 The nucleotide soft-masking effectively "paints a target" for other polishers/genome analysis software.
 
-This strategy is used in GoldPolish (a.k.a. GR-edit) and the ntedit_sealer_protocol (URL above)
+This strategy is used in the ntedit_sealer_protocol and GoldPolish [a.k.a. goldrush-edit] (URLs above)
 </pre>
 
 ## ntEdit -s (SNV) option <a name=snv></a> 
