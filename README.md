@@ -25,13 +25,14 @@ Thank you for your [![Stars](https://img.shields.io/github/stars/bcgsc/ntEdit.sv
 8. [How to run in a pipeline](#howto)
 9. [Running ntEdit](#run)
 10. [ntEdit modes](#modes)
-11. [SNV option](#snv)
-12. [Secondary Bloom filter](#secondary)
-13. [ntedit-make](#make)
-14. [Test data](#test)
-15. [Algorithm](#how)
-16. [Output files](#output)
-17. [License](#license)
+11. [Soft-mask option](#soft)
+12. [SNV option](#snv)
+13. [Secondary Bloom filter](#secondary)
+14. [ntedit-make](#make)
+15. [Test data](#test)
+16. [Algorithm](#how)
+17. [Output files](#output)
+18. [License](#license)
 
 ## Description <a name=description></a>
 
@@ -238,14 +239,16 @@ Mode 2:
 
 *We recommend running ntEdit in Mode 1 (or 0)
 
+## ntEdit -a (soft mask) <a name=soft></a>
+See https://github.com/bcgsc/ntedit_sealer_protocol and https://github.com/bcgsc/goldrush-edit for genome polishing pipelines that make use of this mode
+
+<pre>
+Version 1.3.5 implements a new option (-a), which controls soft-masking (lower case) nucleotides in the supplied input [draft genome] sequence when its kmers are not found in the primary Bloom filter, and with no possible fix found in that filter (and optionally within a coverage slice provided by the secondary Bloom filter).  
+</pre>
+
 ## ntEdit -s (SNV) option <a name=snv></a> 
 
 <pre>
-
-Version 1.3.5 implements a new option (-a), which controls soft-masking (lower case) nucleotides in the supplied input [draft genome] sequence when its kmers are not found in the primary Bloom filter, and with no possible fix found in that filter (and optionally within a coverage slice provided by the secondary Bloom filter).  
-See https://github.com/bcgsc/ntedit_sealer_protocol and https://github.com/bcgsc/goldrush-edit for genome polishing pipelines.
-
-
 This option can be useful for identifying unresolved genomic regions, those with no equivalent in the supplied Bloom filter(s).
 
 Version 1.3 implements a new mode (-s 1) to help detect simple base variation in genome sequences.
