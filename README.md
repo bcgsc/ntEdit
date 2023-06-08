@@ -242,6 +242,12 @@ Mode 2:
 
 <pre>
 
+Version 1.3.5 implements a new option (-a), which controls soft-masking (lower case) nucleotides in the supplied input [draft genome] sequence when its kmers are not found in the primary Bloom filter, and with no possible fix found in that filter (and optionally within a coverage slice provided by the secondary Bloom filter).  
+See https://github.com/bcgsc/ntedit_sealer_protocol and https://github.com/bcgsc/goldrush-edit for genome polishing pipelines.
+
+
+This option can be useful for identifying unresolved genomic regions, those with no equivalent in the supplied Bloom filter(s).
+
 Version 1.3 implements a new mode (-s 1) to help detect simple base variation in genome sequences.
 
 It works by overriding the kmer absence verification stage of ntEdit, effectively testing every base position for possible alternate k kmers. At the moment, ntEdit only reports possible base substitutions (no indels), along with the number of supported kmers (the latter is NOT a proxy for read/kmer coverage). In our tests on simulated (C. elegans, H. sapiens) and experimental (GIAB, HG001/HG004), we find k52/k55 (-j 3 -- see below) to give the best performance.
@@ -351,6 +357,8 @@ Sequence reads are first shredded into kmers using ntHits, keeping track of kmer
 |_changes.tsv                 | tab-separated file; ID      bpPosition+1    OriginalBase    NewBase Support k-mers (out of k/j)   AlternateNewBase   Alt.Support k-mers   eg. U00096.3_MG1655_k12     117     A       T       9|
 |_edited.fa                   | fasta file; contains the polished genome assembly |
 |_variants.vcf                   | vcf file; contains variant calls |
+
+note: ntEdit will polish input sequences in upper or lowercase bases. The case of bases in the input sequence IS preserved in the FASTA output, unless a fix is made by ntEdit (i.e., lower-case bases will remain lower-cased UNLESS a change is made).
 
 
 ## License <a name=license></a>
