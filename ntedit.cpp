@@ -2098,8 +2098,6 @@ main(int argc, char** argv)
 	std::cout << "\n -j " << opt::jump << "\n -m " << opt::mode << "\n -s " << opt::snv << "\n -l "
 	          << opt::vcf_filename << "\n -a " << opt::mask << "\n -t " << opt::nthreads << "\n -v "
 	          << opt::verbose << "\n"
-
-
 	          << std::endl;
 
 	// VCF file reading RLW 19AUG2023
@@ -2107,7 +2105,7 @@ main(int argc, char** argv)
 	std::map<std::string, std::string> clinvar;
 
 	// check the vcf file is specified
-	if (! opt::vcf_filename.empty()) {
+	if (!opt::vcf_filename.empty()) {
 		// if the file is specified check that it is readable
 		assert_readable(opt::vcf_filename);
 		// read file handle
@@ -2121,21 +2119,18 @@ main(int argc, char** argv)
 				std::sregex_token_iterator first{ line.begin(), line.end(), re, -1 },
 				    last; // the '-1' is what makes the regex split (-1 := what was not matched)
 				std::vector<std::string> tokens{ first, last };
- 				cout << tokens.size() << " numtoken\n";
-
-				if(tokens.size() >= 8) {
+				cout << tokens.size() << " numtoken\n";
+				if (tokens.size() >= 8) {
 					std::ostringstream id;
 					id << tokens[0] << ":" << tokens[3] << tokens[1] << tokens[4];
 					std::string varid = id.str();
 					clinvar[varid] = tokens[7];
-
-     		   			// Print result. Go through all lines and then copy line elements to std::cout
+					// Print results
 					// for (auto t : tokens) {
-   					//	std::cout << t << std::endl;
+					//	std::cout << t << std::endl;
 					// }
 				}
-			}        
-
+			}
 			myfile.close();
         	}else
 			cout << "Unable to open file";
