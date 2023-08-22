@@ -9,7 +9,7 @@ Thank you for your [![Stars](https://img.shields.io/github/stars/bcgsc/ntEdit.sv
 
 # ntEdit
 
-## Fast, lightweight, scalable genome sequence polishing & SNV detection
+## Fast, lightweight, scalable genome sequence polishing and SNV detection & annotation 
 ### 2018-2023
 
 
@@ -280,7 +280,9 @@ VCF output (v1.3.2+ _variants.vcf): We assume a diploid genome for reporting on 
 
 <pre>
 This handy option is used to supply a VCF input file to ntEdit, for cross-referencing base variants.
-For instance, users may wish to identify annotated clinical variants in their genomics datasets. For this, users would build Bloom filters with their read datasets using ntHits and run ntEdit in -s 1 mode, using the reference human genome as (-f) input. Note: it will also work in polishing (-s 0) mode on single nucleotide variants, but is of limited value since only divergent sites are reported in polishing mode. 
+For instance, users may wish to identify annotated clinical variants in their genomics datasets.
+For this, users would build Bloom filters with their read datasets using ntHits and run ntEdit in -s 1 mode, with the reference human genome as (-f) input.
+Note: it will also work in polishing (-s 0) mode on single nucleotide variants, but is of limited value since only divergent sites are reported in polishing mode. 
 
 We recommend the use of clinvar resources:
 https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/
