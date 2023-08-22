@@ -2132,7 +2132,7 @@ main(int argc, char** argv)
 				}
 			}
 			myfile.close();
-        	} else
+		} else
 			cout << "Unable to open file";
 	}
 
