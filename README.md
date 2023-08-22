@@ -285,8 +285,9 @@ For this, users would build Bloom filters with their read datasets using ntHits 
 Note: it will also work in polishing (-s 0) mode on single nucleotide variants, but is of limited value since only divergent sites are reported in polishing mode. 
 
 We recommend the use of clinvar resources:
+https://www.ncbi.nlm.nih.gov/clinvar/
 https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/
-https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar_20230813.vcf.gz
+https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar_XXDATEXX.vcf.gz
 
 Note: If you use clinvar, you MUST ensure the use of GRCh38 and the chromosome IDs in the headers of your supplied (-f) GRCH38 FASTA file must match clinvar's (#CHROM). Make sure you decompress vcf.gz before use (unpigz/gunzip clinvar_20230813.vcf.gz)
 
