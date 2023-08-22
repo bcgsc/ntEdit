@@ -276,20 +276,25 @@ VCF output (v1.3.2+ _variants.vcf): We assume a diploid genome for reporting on 
 
 </pre>
 
-## ntEdit -l input VCF file with annotated variants. <a name=clinvarvcf></a>
+## ntEdit -l input VCF file with annotated variants <a name=clinvarvcf></a>
 
 <pre>
 This handy option is used to supply a VCF input file to ntEdit, for cross-referencing base variants.
 For instance, users may wish to identify annotated clinical variants in their genomics datasets.
-For this, users would build Bloom filters with their read datasets using ntHits and run ntEdit in -s 1 mode, with the reference human genome as (-f) input.
-Note: it will also work in polishing (-s 0) mode on single nucleotide variants, but is of limited value since only divergent sites are reported in polishing mode. 
+For this, users would build Bloom filters with their read datasets using ntHits and run 
+ntEdit in -s 1 mode, with the reference human genome as (-f) input.
+Note: it will also work in polishing (-s 0) mode on single nucleotide variants, but is
+of limited value since only homozygously divergent sites (i.e., with completely absent k-mers and k*k-mer) are reported in polishing mode. 
 
 We recommend the use of clinvar resources:
 https://www.ncbi.nlm.nih.gov/clinvar/
 https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/
 https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar_XXDATEXX.vcf.gz
 
-Note: If you use clinvar, you MUST ensure the use of GRCh38 and the chromosome IDs in the headers of your supplied (-f) GRCH38 FASTA file must match clinvar's (#CHROM). Make sure you decompress vcf.gz before use (unpigz/gunzip clinvar_20230813.vcf.gz)
+Note: If you use clinvar, you MUST ensure you use GRCh38 AND that the chromosome IDs in the 
+headers of your supplied (-f) GRCH38 FASTA file matches that of clinvar's (#CHROM).
+If you use any other VCF files as (-l) input, ensure consistency with FASTA headers.
+Make sure you decompress vcf.gz before use (unpigz/gunzip clinvar_20230813.vcf.gz)
 
 example command:
 /usr/bin/time -v -o HGrefHG004nteditSNV140-s1-l.time ./ntedit -f GRCh38.fa -b nteditSNV140-s1-l -s 1 -r solid_k50.bf -t 48 -l clinvar_20230813.vcf
