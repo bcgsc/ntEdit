@@ -62,15 +62,17 @@ static const char USAGE_MESSAGE[] = PROGRAM
     "(higher=stringent), [default=0.5]\n"
     "	-c,	cap for the number of base insertions that can be made at one position, "
     "[default=k*1.5]\n"
-    "	-j, 	controls size of k-mer subset. When checking subset of k-mers, check every jth k-mer, "
+    "	-j, 	controls size of k-mer subset. When checking subset of k-mers, check every jth "
+    "k-mer, "
     "[default=3]\n"
     "	-m,	mode of editing, range 0-2, [default=0]\n"
     "			0: best substitution, or first good indel\n"
     "			1: best substitution, or best indel\n"
     "			2: best edit overall (suggestion that you reduce i and d for performance)\n"
-    "	-s,     SNV mode. Overrides draft k-mer checks, forcing reassessment at each position (-s 1 "
+    "	-s,     SNV mode. Overrides draft k-mer checks, forcing reassessment at each position (-s "
+    "1 "
     "= yes, default = 0, no)\n"
-    "	-l,	input VCF file with annotated variants (e.g., clinvar.vcf), OPTIONAL\n"	
+    "	-l,	input VCF file with annotated variants (e.g., clinvar.vcf), OPTIONAL\n"
     "	-a,	soft masks missing k-mer positions having no fix (-v 1 = yes, default = 0, no)\n"
     "	-v,	verbose mode (-v 1 = yes, default = 0, no)\n"
     "\n"
@@ -887,12 +889,14 @@ writeEditsToFile(
 					genotype = "1/1";
 				}
 
-				std::ostringstream id; //RLW 21AUG2023
-                		id << contigHdr.c_str() << ":" << substitution_record.front().draft_char << substitution_record.front().pos + 1 << base; //RLW 21AUG2023
-                		std::string varid = id.str(); //RLW 21AUG2023
+				std::ostringstream id; // RLW 21AUG2023
+				id << contigHdr.c_str() << ":" << substitution_record.front().draft_char
+				   << substitution_record.front().pos + 1 << base; // RLW 21AUG2023
+				std::string varid = id.str();                      // RLW 21AUG2023
 				vfout << contigHdr.c_str() << "\t" << substitution_record.front().pos + 1 << "\t.\t"
 				      << substitution_record.front().draft_char << "\t" << base
-				      << "\t.\tPASS\tAD=" << support << ";" << clinvar[varid] << "\tGT\t" << genotype << "\n"; // modified RLW 21AUG2023
+				      << "\t.\tPASS\tAD=" << support << ";" << clinvar[varid] << "\tGT\t"
+				      << genotype << "\n"; // modified RLW 21AUG2023
 
 				substitution_record.pop();
 			}
@@ -1762,14 +1766,18 @@ kmerizeAndCorrect(
 
 #pragma omp critical(write)
 	{
-		// write this to file
-		writeEditsToFile(dfout, rfout, vfout, contigHdr, contigSeq, newSeq, substitution_record, clinvar);
+		// write edits to file
+		writeEditsToFile(
+		    dfout, rfout, vfout, contigHdr, contigSeq, newSeq, substitution_record, clinvar);
 	}
 }
 
 /* Read the contigs from the file and polish each contig. */
 void
-readAndCorrect(BloomFilter& bloom, BloomFilter& bloomrep, std::map<std::string, std::string> clinvar)
+readAndCorrect(
+    BloomFilter& bloom,
+    BloomFilter& bloomrep,
+    std::map<std::string, std::string> clinvar)
 {
 	// read file handle
 	gzFile dfp;
@@ -1924,8 +1932,8 @@ main(int argc, char** argv)
 			arg >> opt::snv;
 			break;
 		case 'l':
-                        arg >> opt::vcf_filename;
-                        break;
+			arg >> opt::vcf_filename;
+			break;
 		case 'a':
 			arg >> opt::mask;
 			break;
@@ -1994,7 +2002,9 @@ main(int argc, char** argv)
 	if (opt::snv) {
 		opt::max_insertions = 0;
 		opt::max_deletions = 0;
-		std::cerr << "Running in SNV mode\nTracking all single-base variants\nNote: -i and -d both set to 0 when -s is set to 1\nConsider -l clinvar.vcf to identify SNVs with putative clinical significance (consult README)\n\n";
+		std::cerr << "Running in SNV mode\nTracking all single-base variants\nNote: -i and -d both "
+		             "set to 0 when -s is set to 1\nConsider -l clinvar.vcf to identify SNVs with "
+		             "putative clinical significance (consult README)\n\n";
 		current_bases_array = snv_bases_array;
 	} else {
 		current_bases_array = polish_bases_array;
@@ -2085,9 +2095,11 @@ main(int argc, char** argv)
 	} else {
 		std::cout << "\n -x " << opt::missing_threshold << "\n -y " << opt::edit_threshold;
 	}
+	std::cout << "\n -j " << opt::jump << "\n -m " << opt::mode << "\n -s " << opt::snv << "\n -l "
+	          << opt::vcf_filename << "\n -a " << opt::mask << "\n -t " << opt::nthreads << "\n -v "
+	          << opt::verbose << "\n"
 
-	std::cout << "\n -j " << opt::jump << "\n -m " << opt::mode << "\n -s " << opt::snv << "\n -l " << opt::vcf_filename << "\n -a "
-	          << opt::mask << "\n -t " << opt::nthreads << "\n -v " << opt::verbose << "\n"
+
 	          << std::endl;
 
 	// VCF file reading RLW 19AUG2023
@@ -2095,39 +2107,38 @@ main(int argc, char** argv)
 	std::map<std::string, std::string> clinvar;
 
 	// check the vcf file is specified
-        if (! opt::vcf_filename.empty()) {
+	if (! opt::vcf_filename.empty()) {
 		// if the file is specified check that it is readable
-                assert_readable(opt::vcf_filename);
+		assert_readable(opt::vcf_filename);
 		// read file handle
-        	//gzFile dfp;
-        	//dfp = gzopen(opt::vcf_filename.c_str(), "r");
-		//ifstream myfile (dfp);
-        	ifstream myfile (opt::vcf_filename);
-        	if (myfile.is_open())
-        	{
-        		while(std::getline(myfile, line))
-			{
-        	    		const std::regex re("\t");
-				std::sregex_token_iterator first{line.begin(), line.end(), re, -1}, last;//the '-1' is what makes the regex split (-1 := what was not matched)
-				std::vector<std::string> tokens{first, last};
-				cout << tokens.size() << " numtoken\n";
-				if(tokens.size() >= 8)
-				{
+		// gzFile dfp;
+		// dfp = gzopen(opt::vcf_filename.c_str(), "r");
+		// ifstream myfile (dfp);
+		ifstream myfile(opt::vcf_filename);
+		if (myfile.is_open()) {
+			while (std::getline(myfile, line)) {
+				const std::regex re("\t");
+				std::sregex_token_iterator first{ line.begin(), line.end(), re, -1 },
+				    last; // the '-1' is what makes the regex split (-1 := what was not matched)
+				std::vector<std::string> tokens{ first, last };
+ 				cout << tokens.size() << " numtoken\n";
+
+				if(tokens.size() >= 8) {
 					std::ostringstream id;
 					id << tokens[0] << ":" << tokens[3] << tokens[1] << tokens[4];
 					std::string varid = id.str();
 					clinvar[varid] = tokens[7];
 
      		   			// Print result. Go through all lines and then copy line elements to std::cout
-					//for (auto t : tokens) {
+					// for (auto t : tokens) {
    					//	std::cout << t << std::endl;
 					// }
 				}
 			}        
 
 			myfile.close();
-        	}
-        	else cout << "Unable to open file";
+        	}else
+			cout << "Unable to open file";
 	}
 
 	// Read & edit contigs
