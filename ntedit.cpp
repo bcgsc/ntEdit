@@ -2126,7 +2126,7 @@ main(int argc, char** argv) // NOLINT
 				std::sregex_token_iterator first{ line.begin(), line.end(), re, -1 }, // NOLINT
 				    last; // the '-1' is what makes the regex split (-1 := what was not matched)
 				std::vector<std::string> tokens{ first, last };
-				cout << tokens.size() << " numtoken\n";
+				// cout << tokens.size() << " numtoken\n";
 				if (tokens.size() >= 8) {
 					std::ostringstream id;
 					id << tokens[0] << ":" << tokens[3] << tokens[1] << tokens[4];
