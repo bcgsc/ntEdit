@@ -1,4 +1,4 @@
-#define PROGRAM "ntedit" // NOLINT
+#define PROGRAM "ntedit v1.4.0" // NOLINT
 
 // clang-format off
 #include <iostream> //NOLINT(llvm-include-order)
@@ -23,6 +23,10 @@
 #include "lib/kseq.h"
 #include "lib/nthash.hpp" // NOLINT
 #include "lib/BloomFilter.hpp"
+//RLW 19AUG2023
+#include <iterator>
+#include <regex>
+
 // clang-format on
 
 // NOLINTNEXTLINE
@@ -30,44 +34,44 @@ KSEQ_INIT(gzFile, gzread)
 
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)
 static const char VERSION_MESSAGE[] =
-    PROGRAM " version 1.3.5\n"
+    PROGRAM "\n"
             "written by Rene L Warren, Jessica Zhang, Murathan T Goktas, Hamid Mohamadi and "
             "Johnathan Wong.\n"
-            "copyright 2018-2021 Canada's Michael smith Genome Science Centre\n";
+            "copyright 2018-2023 Canada's Michael smith Genome Science Centre\n";
 
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)
 static const char USAGE_MESSAGE[] = PROGRAM
-    " v1.3.5\n"
     "\n"
-    "Fast, lightweight, scalable genome sequence polishing & snv detection*\n"
+    "\n"
+    " Fast, lightweight, scalable genome sequence polishing and SNV detection & annotation\n"
     "\n"
     " Options:\n"
     "	-t,	number of threads [default=1]\n"
     "	-f,	draft genome assembly (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED\n"
     "	-r,	Bloom filter file (generated from ntHits), REQUIRED\n"
-    "	-e,	secondary Bloom filter with kmers to reject (generated from ntHits), OPTIONAL. "
-    "EXPERIMENTAL\n"
+    "	-e,	secondary Bloom filter with k-mers to reject (generated from ntHits), OPTIONAL\n"
     "	-b,	output file prefix, OPTIONAL\n"
     "	-z,	minimum contig length [default=100]\n"
     "	-i,	maximum number of insertion bases to try, range 0-5, [default=5]\n"
     "	-d,	maximum number of deletions bases to try, range 0-10, [default=5]\n"
-    "	-x,	k/x ratio for the number of kmers that should be missing, [default=5.000]\n"
-    "	-y, 	k/y ratio for the number of editted kmers that should be present, [default=9.000]\n"
-    "	-X, 	ratio of number of kmers in the k subset that should be missing in order to "
+    "	-x,	k/x ratio for the number of k-mers that should be missing, [default=5.000]\n"
+    "	-y, 	k/y ratio for the number of edited k-mers that should be present, [default=9.000]\n"
+    "	-X, 	ratio of number of k-mers in the k subset that should be missing in order to "
     "attempt fix (higher=stringent), [default=0.5]\n"
-    "	-Y, 	ratio of number of kmers in the k subset that should be present to accept an edit "
+    "	-Y, 	ratio of number of k-mers in the k subset that should be present to accept an edit "
     "(higher=stringent), [default=0.5]\n"
     "	-c,	cap for the number of base insertions that can be made at one position, "
     "[default=k*1.5]\n"
-    "	-j, 	controls size of kmer subset. When checking subset of kmers, check every jth kmer, "
+    "	-j, 	controls size of k-mer subset. When checking subset of k-mers, check every jth k-mer, "
     "[default=3]\n"
     "	-m,	mode of editing, range 0-2, [default=0]\n"
     "			0: best substitution, or first good indel\n"
     "			1: best substitution, or best indel\n"
     "			2: best edit overall (suggestion that you reduce i and d for performance)\n"
-    "	-s,     SNV mode. Overrides draft kmer checks, forcing reassessment at each position (-s 1 "
-    "= yes, default = 0, no. EXPERIMENTAL)\n"
-    "	-a,	Soft masks missing kmer positions having no fix (-v 1 = yes, default = 0, no)\n"
+    "	-s,     SNV mode. Overrides draft k-mer checks, forcing reassessment at each position (-s 1 "
+    "= yes, default = 0, no)\n"
+    "	-l,	input VCF file with annotated variants (e.g., clinvar.vcf), OPTIONAL\n"	
+    "	-a,	soft masks missing k-mer positions having no fix (-v 1 = yes, default = 0, no)\n"
     "	-v,	verbose mode (-v 1 = yes, default = 0, no)\n"
     "\n"
     "	--help,		display this message and exit \n"
@@ -91,6 +95,7 @@ bool use_ratio = false;
 unsigned jump = 3;
 unsigned nthreads = 1;
 std::string draft_filename;    // NOLINT
+std::string vcf_filename;      // NOLINT
 std::string bloom_filename;    // NOLINT
 std::string bloomrep_filename; // NOLINT
 std::string outfile_prefix;    // NOLINT
@@ -110,7 +115,7 @@ int verbose = 0;
 int secbf = 0;
 } // namespace opt
 
-static const char shortopts[] = "t:f:s:k:z:b:r:v:d:i:X:Y:x:y:m:c:j:s:e:a:"; // RLW2021
+static const char shortopts[] = "t:f:s:k:z:b:r:v:d:i:X:Y:x:y:m:c:j:s:e:a:l:"; // RLW2021
 
 enum
 {
@@ -136,6 +141,7 @@ static const struct option longopts[] = {
 	{ "outfile_prefix", required_argument, nullptr, 'b' },
 	{ "mode", required_argument, nullptr, 'm' },
 	{ "snv", required_argument, nullptr, 's' },
+	{ "vcf_file", required_argument, nullptr, 'l' },
 	{ "mask", required_argument, nullptr, 'a' },
 	{ "verbose", required_argument, nullptr, 'v' },
 	{ "help", no_argument, nullptr, OPT_HELP },
@@ -767,7 +773,8 @@ writeEditsToFile(
     const std::string& contigHdr,
     const std::string& contigSeq,
     std::vector<seqNode>& newSeq,
-    std::queue<sRec>& substitution_record)
+    std::queue<sRec>& substitution_record,
+    std::map<std::string, std::string> clinvar)
 {
 	dfout << ">" << contigHdr.c_str() << "\n"; // FASTA HEADER RLWYY
 	unsigned node_index = 0;
@@ -789,7 +796,7 @@ writeEditsToFile(
 
 				vfout << contigHdr.c_str() << "\t" << pos + 1 << "\t.\t" << draft_char << "\t"
 				      << insertion_bases.c_str() << draft_char << "\t.\tPASS\tAD=" << num_support
-				      << "\tGT\t1/1\n";
+				      << ";\tGT\t1/1\n";
 
 				insertion_bases = "";
 				num_support = -1;
@@ -880,15 +887,18 @@ writeEditsToFile(
 					genotype = "1/1";
 				}
 
+				std::ostringstream id; //RLW 21AUG2023
+                		id << contigHdr.c_str() << ":" << substitution_record.front().draft_char << substitution_record.front().pos + 1 << base; //RLW 21AUG2023
+                		std::string varid = id.str(); //RLW 21AUG2023
 				vfout << contigHdr.c_str() << "\t" << substitution_record.front().pos + 1 << "\t.\t"
 				      << substitution_record.front().draft_char << "\t" << base
-				      << "\t.\tPASS\tAD=" << support << "\tGT\t" << genotype << "\n";
+				      << "\t.\tPASS\tAD=" << support << ";" << clinvar[varid] << "\tGT\t" << genotype << "\n"; // modified RLW 21AUG2023
 
 				substitution_record.pop();
 			}
 			// fprintf(dfout, "%s", contigSeq.substr(curr_node.s_pos,
 			// (curr_node.e_pos-curr_node.s_pos+1)).c_str());
-			// NEXT 3 LINES CARRY INSTRUCTIONS TO PRINT NEW FASTA SEQ RLWYY
+			// NEXT 3 LINES CARRY INSTRUCTIONS TO PRINT NEW FASTA SEQ RLW
 			dfout << contigSeq.substr(curr_node.s_pos, (curr_node.e_pos - curr_node.s_pos + 1))
 			             .c_str();
 			pos = curr_node.e_pos + 1;
@@ -911,7 +921,7 @@ writeEditsToFile(
 				vfout << contigHdr.c_str() << "\t" << pos << "\t.\t"
 				      << contigSeq.substr(pos - 1, (curr_node.s_pos - pos) + 1).c_str() << "\t"
 				      << contigSeq.at(pos - 1) << "\t.\tPASS\tAD=" << curr_node.num_support
-				      << "\tGT\t1/1\n";
+				      << ";\tGT\t1/1\n";
 			}
 		}
 	}
@@ -1400,7 +1410,8 @@ kmerizeAndCorrect(
     BloomFilter& bloomrep,
     std::ofstream& dfout,
     std::ofstream& rfout,
-    std::ofstream& vfout)
+    std::ofstream& vfout,
+    std::map<std::string, std::string> clinvar)
 {
 
 	// initialize values for hashing
@@ -1752,13 +1763,13 @@ kmerizeAndCorrect(
 #pragma omp critical(write)
 	{
 		// write this to file
-		writeEditsToFile(dfout, rfout, vfout, contigHdr, contigSeq, newSeq, substitution_record);
+		writeEditsToFile(dfout, rfout, vfout, contigHdr, contigSeq, newSeq, substitution_record, clinvar);
 	}
 }
 
 /* Read the contigs from the file and polish each contig. */
 void
-readAndCorrect(BloomFilter& bloom, BloomFilter& bloomrep)
+readAndCorrect(BloomFilter& bloom, BloomFilter& bloomrep, std::map<std::string, std::string> clinvar)
 {
 	// read file handle
 	gzFile dfp;
@@ -1835,7 +1846,7 @@ readAndCorrect(BloomFilter& bloom, BloomFilter& bloomrep)
 			}
 			if (seq_len >= opt::min_contig_len) {
 				kmerizeAndCorrect(
-				    contigName, contigSeq, seq_len, bloom, bloomrep, dfout, rfout, vfout);
+				    contigName, contigSeq, seq_len, bloom, bloomrep, dfout, rfout, vfout, clinvar);
 			}
 #pragma omp atomic
 			num_contigs++;
@@ -1912,6 +1923,9 @@ main(int argc, char** argv)
 		case 's':
 			arg >> opt::snv;
 			break;
+		case 'l':
+                        arg >> opt::vcf_filename;
+                        break;
 		case 'a':
 			arg >> opt::mask;
 			break;
@@ -1937,7 +1951,12 @@ main(int argc, char** argv)
 
 	time_t rawtime;
 	time(&rawtime);
-	std::cout << "---------- running ntedit                           : " << ctime(&rawtime);
+	std::cout << "---------- initializing                             : " << ctime(&rawtime);
+	std::cout << "      _   __________________  __________\n";
+	std::cout << "     / | / /_  __/ ____/ __ \\/  _/_  __/\n";
+	std::cout << "    /  |/ / / / / __/ / / / // /  / /   \n";
+	std::cout << "   / /|  / / / / /___/ /_/ // /  / /    \n";
+	std::cout << "  /_/ |_/ /_/ /_____/_____/___/ /_/   \n\n";
 
 	// check the draft file is specified
 	if (opt::draft_filename.empty()) {
@@ -1948,16 +1967,16 @@ main(int argc, char** argv)
 		assert_readable(opt::draft_filename);
 	}
 
-	// check that the bloom filter file is specified
+	// check that the Bloom filter file is specified
 	if (opt::bloom_filename.empty()) {
-		std::cerr << PROGRAM ": error: need to specify the bloom filter file (-r)\n";
+		std::cerr << PROGRAM ": error: need to specify the Bloom filter file (-r)\n";
 		die = true;
 	} else {
 		// if the file is specified check that it is readable
 		assert_readable(opt::bloom_filename);
 	}
 
-	// check that the repeat bloom filter file is specified - RLW2019
+	// check that the repeat Bloom filter file is specified - RLW2019
 	if (opt::bloomrep_filename.empty()) {
 		opt::secbf = 0; // flag will track whether to query secondary Bloom filter or not
 	} else {
@@ -1971,12 +1990,11 @@ main(int argc, char** argv)
 		exit(EXIT_FAILURE);
 	}
 
-	// added nov21 2019 XXRLW
+	// added RLW 21NOV2019
 	if (opt::snv) {
 		opt::max_insertions = 0;
 		opt::max_deletions = 0;
-		std::cerr << PROGRAM ": EXPERIMENTAL feature note: i and d set to 0 when s is set to 1; "
-		                     "Only tracking single-base variants.\n";
+		std::cerr << "Running in SNV mode\nTracking all single-base variants\nNote: -i and -d both set to 0 when -s is set to 1\nConsider -l clinvar.vcf to identify SNVs with putative clinical significance (consult README)\n\n";
 		current_bases_array = snv_bases_array;
 	} else {
 		current_bases_array = polish_bases_array;
@@ -1993,14 +2011,14 @@ main(int argc, char** argv)
 	// Threading information
 	omp_set_num_threads(static_cast<int>(opt::nthreads));
 
-	// Load bloom filter
+	// Load Bloom filter
 	time(&rawtime);
 	std::cout << "---------- loading Bloom filter from file           : " << ctime(&rawtime)
 	          << "\n";
 	BloomFilter bloom(opt::bloom_filename.c_str());
 	opt::h = bloom.getHashNum();
 
-	// Checks for the bloom filter
+	// Checks for the Bloom filter
 	if (opt::h == 0) {
 		std::cerr << PROGRAM ": error: Bloom filter file supplied (-r) is incorrect.\n";
 		exit(EXIT_FAILURE);
@@ -2068,9 +2086,49 @@ main(int argc, char** argv)
 		std::cout << "\n -x " << opt::missing_threshold << "\n -y " << opt::edit_threshold;
 	}
 
-	std::cout << "\n -j " << opt::jump << "\n -m " << opt::mode << "\n -s " << opt::snv << "\n -a "
+	std::cout << "\n -j " << opt::jump << "\n -m " << opt::mode << "\n -s " << opt::snv << "\n -l " << opt::vcf_filename << "\n -a "
 	          << opt::mask << "\n -t " << opt::nthreads << "\n -v " << opt::verbose << "\n"
 	          << std::endl;
+
+	// VCF file reading RLW 19AUG2023
+	string line;
+	std::map<std::string, std::string> clinvar;
+
+	// check the vcf file is specified
+        if (! opt::vcf_filename.empty()) {
+		// if the file is specified check that it is readable
+                assert_readable(opt::vcf_filename);
+		// read file handle
+        	//gzFile dfp;
+        	//dfp = gzopen(opt::vcf_filename.c_str(), "r");
+		//ifstream myfile (dfp);
+        	ifstream myfile (opt::vcf_filename);
+        	if (myfile.is_open())
+        	{
+        		while(std::getline(myfile, line))
+			{
+        	    		const std::regex re("\t");
+				std::sregex_token_iterator first{line.begin(), line.end(), re, -1}, last;//the '-1' is what makes the regex split (-1 := what was not matched)
+				std::vector<std::string> tokens{first, last};
+				cout << tokens.size() << " numtoken\n";
+				if(tokens.size() >= 8)
+				{
+					std::ostringstream id;
+					id << tokens[0] << ":" << tokens[3] << tokens[1] << tokens[4];
+					std::string varid = id.str();
+					clinvar[varid] = tokens[7];
+
+     		   			// Print result. Go through all lines and then copy line elements to std::cout
+					//for (auto t : tokens) {
+   					//	std::cout << t << std::endl;
+					// }
+				}
+			}        
+
+			myfile.close();
+        	}
+        	else cout << "Unable to open file";
+	}
 
 	// Read & edit contigs
 	time(&rawtime);
@@ -2095,16 +2153,16 @@ main(int argc, char** argv)
 			          << opt::k << ")\n";
 			exit(EXIT_FAILURE);
 		}
-		// print bloom filter details
+		// print Bloom filter details
 		bloomrep.printBloomFilterDetails();
 
 		std::cout << "\n---------- reading/processing input sequence        : " << ctime(&rawtime);
-		readAndCorrect(bloom, bloomrep);
+		readAndCorrect(bloom, bloomrep, clinvar);
 
 	} else {
 		std::cout << "---------- reading/processing input sequence        : " << ctime(&rawtime);
 		BloomFilter bloomrep(1000, 1, 1);
-		readAndCorrect(bloom, bloomrep);
+		readAndCorrect(bloom, bloomrep, clinvar);
 	}
 	time(&rawtime);
 	std::cout << "---------- process complete                         : " << ctime(&rawtime);

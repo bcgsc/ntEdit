@@ -27,12 +27,13 @@ Thank you for your [![Stars](https://img.shields.io/github/stars/bcgsc/ntEdit.sv
 10. [ntEdit modes](#modes)
 11. [Soft-mask option](#soft)
 12. [SNV option](#snv)
-13. [Secondary Bloom filter](#secondary)
-14. [ntedit-make](#make)
-15. [Test data](#test)
-16. [Algorithm](#how)
-17. [Output files](#output)
-18. [License](#license)
+13. [VCF input option](#clinvarvcf)
+14. [Secondary Bloom filter](#secondary)
+15. [ntedit-make](#make)
+16. [Test data](#test)
+17. [Algorithm](#how)
+18. [Output files](#output)
+19. [License](#license)
 
 ## Description <a name=description></a>
 
@@ -189,32 +190,38 @@ eg.
 
 <pre>
 e.g. ./ntedit -f ecoliWithMismatches001Indels0001.fa -r solidBF_k25.bf -b ntEditEcolik25
+      _   __________________  __________
+     / | / /_  __/ ____/ __ \/  _/_  __/
+    /  |/ / / / / __/ / / / // /  / /   
+   / /|  / / / / /___/ /_/ // /  / /    
+  /_/ |_/ /_/ /_____/_____/___/ /_/   
 
-ntEdit v1.3.5
+ntedit v1.4.0
 
-Fast, lightweight, scalable genome sequence polishing & snv detection*
+ Fast, lightweight, scalable genome sequence polishing and SNV detection & annotation
 
  Options:
 	-t,	number of threads [default=1]
 	-f,	draft genome assembly (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED
 	-r,	Bloom filter file (generated from ntHits), REQUIRED
-	-e,	secondary Bloom filter with kmers to reject (generated from ntHits), OPTIONAL. EXPERIMENTAL
+	-e,	secondary Bloom filter with k-mers to reject (generated from ntHits), OPTIONAL
 	-b,	output file prefix, OPTIONAL
 	-z,	minimum contig length [default=100]
-	-i,	maximum number of insertion bases to try, range 0-5, [default=4]
-	-d,	maximum number of deletions bases to try, range 0-5, [default=5]
-	-x,	k/x ratio for the number of kmers that should be missing, [default=5.000]
-	-y, 	k/y ratio for the number of editted kmers that should be present, [default=9.000]
-	-X, 	ratio of number of kmers in the k subset that should be missing in order to attempt fix (higher=stringent), [default=0.5]
-	-Y, 	ratio of number of kmers in the k subset that should be present to accept an edit (higher=stringent), [default=0.5]
+	-i,	maximum number of insertion bases to try, range 0-5, [default=5]
+	-d,	maximum number of deletions bases to try, range 0-10, [default=5]
+	-x,	k/x ratio for the number of k-mers that should be missing, [default=5.000]
+	-y, 	k/y ratio for the number of edited k-mers that should be present, [default=9.000]
+	-X, 	ratio of number of k-mers in the k subset that should be missing in order to attempt fix (higher=stringent), [default=0.5]
+	-Y, 	ratio of number of k-mers in the k subset that should be present to accept an edit (higher=stringent), [default=0.5]
 	-c,	cap for the number of base insertions that can be made at one position, [default=k*1.5]
-	-j, 	controls size of kmer subset. When checking subset of kmers, check every jth kmer, [default=3]
+	-j, 	controls size of k-mer subset. When checking subset of k-mers, check every jth k-mer, [default=3]
 	-m,	mode of editing, range 0-2, [default=0]
 			0: best substitution, or first good indel
 			1: best substitution, or best indel
 			2: best edit overall (suggestion that you reduce i and d for performance)
-	-s,     SNV mode. Overrides draft kmer checks, forcing reassessment at each position (-s 1 = yes, default = 0, no. EXPERIMENTAL)
-	-a,	Soft masks missing kmer positions having no fix (-v 1 = yes, default = 0, no)
+	-s,     SNV mode. Overrides draft k-mer checks, forcing reassessment at each position (-s 1 = yes, default = 0, no)
+	-l,	input VCF file with annotated variants (e.g., clinvar.vcf), OPTIONAL
+	-a,	soft masks missing k-mer positions having no fix (-v 1 = yes, default = 0, no)
 	-v,	verbose mode (-v 1 = yes, default = 0, no)
 
 	--help,		display this message and exit 
@@ -266,6 +273,25 @@ Caveats: Variations occurring within 2*k are not reported. Because kmers are sho
 This option is provided as a convenience feature, implemented to do a quick and dirty variant detection analysis on large genomes. It is a basic presence/absence detector based on kmer subsets. For robust variant identification, we recommend statistically principled approaches.
 
 VCF output (v1.3.2+ _variants.vcf): We assume a diploid genome for reporting on the possible genotype (GT). Users working on polyploid genomes should chose to ignore the last two columns of the VCF file (ie. FORMAT INTEGRATION)
+
+</pre>
+
+## ntEdit -l input VCF file with annotated variants. <a name=clinvarvcf></a>
+
+<pre>
+This handy option is used to supply a VCF input file to ntEdit, for cross-referencing base variants.
+For instance, users may wish to identify annotated clinical variants in their genomics datasets. For this, users would build Bloom filters with their read datasets using ntHits and run ntEdit in -s 1 mode, using the reference human genome as (-f) input. Note: it will also work in polishing (-s 0) mode on single nucleotide variants, but is of limited value since only divergent sites are reported in polishing mode. 
+
+We recommend the use of clinvar resources:
+https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/
+https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar_20230813.vcf.gz
+
+Note: If you use clinvar, you MUST ensure the use of GRCh38 and the chromosome IDs in the headers of your supplied (-f) GRCH38 FASTA file must match clinvar's (#CHROM). Make sure you decompress vcf.gz before use (unpigz/gunzip clinvar_20230813.vcf.gz)
+
+example command:
+/usr/bin/time -v -o HGrefHG004nteditSNV140-s1-l.time ./ntedit -f GRCh38.fa -b nteditSNV140-s1-l -s 1 -r solid_k50.bf -t 48 -l clinvar_20230813.vcf
+
+where solid_k50.bf is the Bloom filter built from HG004 (NA24143) short sequencing reads
 
 </pre>
 
