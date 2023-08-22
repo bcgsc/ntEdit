@@ -1768,7 +1768,14 @@ kmerizeAndCorrect(
 	{
 		// write edits to file
 		writeEditsToFile(
-		    dfout, rfout, vfout, contigHdr, contigSeq, newSeq, substitution_record, std::move(clinvar));
+		    dfout,
+		    rfout,
+		    vfout,
+		    contigHdr,
+		    contigSeq,
+		    newSeq,
+		    substitution_record,
+		    std::move(clinvar));
 	}
 }
 
