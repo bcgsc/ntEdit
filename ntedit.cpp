@@ -1879,7 +1879,7 @@ readAndCorrect(
 }
 
 int
-main(int argc, char** argv)// NOLINT
+main(int argc, char** argv) // NOLINT
 {
 	bool die = false;
 	for (int c; (c = getopt_long(argc, argv, shortopts, longopts, nullptr)) != -1;) {
@@ -2123,7 +2123,7 @@ main(int argc, char** argv)// NOLINT
 		if (myfile.is_open()) {
 			while (std::getline(myfile, line)) {
 				const std::regex re("\t");
-				std::sregex_token_iterator first{ line.begin(), line.end(), re, -1 },// NOLINT
+				std::sregex_token_iterator first{ line.begin(), line.end(), re, -1 }, // NOLINT
 				    last; // the '-1' is what makes the regex split (-1 := what was not matched)
 				std::vector<std::string> tokens{ first, last };
 				cout << tokens.size() << " numtoken\n";
