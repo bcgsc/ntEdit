@@ -1768,7 +1768,7 @@ kmerizeAndCorrect(
 	{
 		// write edits to file
 		writeEditsToFile(
-		    dfout, rfout, vfout, contigHdr, contigSeq, newSeq, substitution_record, clinvar);
+		    dfout, rfout, vfout, contigHdr, contigSeq, newSeq, substitution_record, std::move(clinvar));
 	}
 }
 
@@ -1777,7 +1777,7 @@ void
 readAndCorrect(
     BloomFilter& bloom,
     BloomFilter& bloomrep,
-    std::map<std::string, std::string> clinvar)
+    std::map<std::string, std::string> const& clinvar)
 {
 	// read file handle
 	gzFile dfp;
@@ -2132,8 +2132,9 @@ main(int argc, char** argv)
 				}
 			}
 			myfile.close();
-		} else
+		} else {
 			cout << "Unable to open file";
+		}
 	}
 
 	// Read & edit contigs
