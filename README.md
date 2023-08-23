@@ -196,7 +196,7 @@ e.g. ./ntedit -f ecoliWithMismatches001Indels0001.fa -r solidBF_k25.bf -b ntEdit
    / /|  / / / / /___/ /_/ // /  / /    
   /_/ |_/ /_/ /_____/_____/___/ /_/   
 
-ntedit v1.4.0
+ntedit v1.4.1
 
  Fast, lightweight, scalable genome sequence polishing and SNV detection & annotation
 

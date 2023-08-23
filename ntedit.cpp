@@ -1,4 +1,4 @@
-#define PROGRAM "ntedit v1.4.0" // NOLINT
+#define PROGRAM "ntedit v1.4.1" // NOLINT
 
 // clang-format off
 #include <iostream> //NOLINT(llvm-include-order)
@@ -798,7 +798,7 @@ writeEditsToFile(
 
 				vfout << contigHdr.c_str() << "\t" << pos + 1 << "\t.\t" << draft_char << "\t"
 				      << insertion_bases.c_str() << draft_char << "\t.\tPASS\tAD=" << num_support
-				      << ";\tGT\t1/1\n";
+				      << "\tGT\t1/1\n";
 
 				insertion_bases = "";
 				num_support = -1;
@@ -815,6 +815,16 @@ writeEditsToFile(
 				      << substitution_record.front().num_support;
 				std::string base(1, substitution_record.front().sub_base);
 				std::string support = std::to_string(substitution_record.front().num_support);
+				std::string clinvarinfo; // RLW 23AUG2023
+
+				std::ostringstream id; // RLW 21AUG2023
+                                id << contigHdr.c_str() << ":" << substitution_record.front().draft_char
+                                   << substitution_record.front().pos + 1 << base; // RLW 21AUG2023
+                                std::string varid = id.str();                      // RLW 21AUG2023
+				if(!clinvar[varid].empty()) {
+					clinvarinfo = "|";
+					clinvarinfo += clinvar[varid];
+				}
 				if (substitution_record.front().altsupp1 > 0) { // XXRLWXX
 					rfout << "\t" << substitution_record.front().altbase1 << "\t"
 					      << substitution_record.front().altsupp1;
@@ -866,6 +876,14 @@ writeEditsToFile(
 							support += best_alt_supp;
 							base += ",";
 							base += best_alt_base;
+							std::ostringstream altid; // RLW 21AUG2023
+                                			altid << contigHdr.c_str() << ":" << substitution_record.front().draft_char
+							<< substitution_record.front().pos + 1 << best_alt_base; // RLW 21AUG2023
+							std::string altvarid = altid.str(); // RLW 21AUG2023
+							if(!clinvar[varid].empty()) {
+								clinvarinfo += "|";
+								clinvarinfo += clinvar[altvarid];
+							}
 						}
 					} else {
 						for (int i = 0; i < alt_base_vcf.size(); ++i) {
@@ -884,18 +902,22 @@ writeEditsToFile(
 						support += best_alt_supp;
 						base += ",";
 						base += best_alt_base;
+						std::ostringstream altid; // RLW 21AUG2023
+						altid << contigHdr.c_str() << ":" << substitution_record.front().draft_char
+						<< substitution_record.front().pos + 1 << best_alt_base; // RLW 21AUG2023
+						std::string altvarid = altid.str(); // RLW 21AUG2023
+						if(!clinvar[varid].empty()) {
+							clinvarinfo += "|";
+							clinvarinfo += clinvar[altvarid];
+						}
 					}
 				} else {
 					genotype = "1/1";
 				}
 
-				std::ostringstream id; // RLW 21AUG2023
-				id << contigHdr.c_str() << ":" << substitution_record.front().draft_char
-				   << substitution_record.front().pos + 1 << base; // RLW 21AUG2023
-				std::string varid = id.str();                      // RLW 21AUG2023
 				vfout << contigHdr.c_str() << "\t" << substitution_record.front().pos + 1 << "\t.\t"
 				      << substitution_record.front().draft_char << "\t" << base
-				      << "\t.\tPASS\tAD=" << support << ";" << clinvar[varid] << "\tGT\t"
+				      << "\t.\tPASS\tAD=" << support << clinvarinfo << "\tGT\t"
 				      << genotype << "\n"; // modified RLW 21AUG2023
 
 				substitution_record.pop();
@@ -925,7 +947,7 @@ writeEditsToFile(
 				vfout << contigHdr.c_str() << "\t" << pos << "\t.\t"
 				      << contigSeq.substr(pos - 1, (curr_node.s_pos - pos) + 1).c_str() << "\t"
 				      << contigSeq.at(pos - 1) << "\t.\tPASS\tAD=" << curr_node.num_support
-				      << ";\tGT\t1/1\n";
+				      << "\tGT\t1/1\n";
 			}
 		}
 	}
