@@ -1995,11 +1995,11 @@ main(int argc, char** argv) // NOLINT
 	time_t rawtime;
 	time(&rawtime);
 	std::cout << "---------- initializing                             : " << ctime(&rawtime);
-	std::cout << "      _   __________________  __________\n";
-	std::cout << "     / | / /_  __/ ____/ __ \\/  _/_  __/\n";
-	std::cout << "    /  |/ / / / / __/ / / / // /  / /   \n";
-	std::cout << "   / /|  / / / / /___/ /_/ // /  / /    \n";
-	std::cout << "  /_/ |_/ /_/ /_____/_____/___/ /_/   \n\n";
+	std::cout << "    _ __   __________________  __________\n";
+	std::cout << "   _ _/ | / /_  __/ ____/ __ \\/  _/_  __/\n";
+	std::cout << "  _ _/  |/ / / / / __/ / / / // /  / /   \n";
+	std::cout << " _ _/ /|  / / / / /___/ /_/ // /  / /    \n";
+	std::cout << "_ _/_/ |_/ /_/ /_____/_____/___/ /_/   \n\n";
 
 	// check the draft file is specified
 	if (opt::draft_filename.empty()) {
