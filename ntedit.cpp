@@ -818,9 +818,10 @@ writeEditsToFile(
 				std::string clinvarinfo; // RLW 23AUG2023
 
 				std::ostringstream id; // RLW 21AUG2023
-                                id << contigHdr.c_str() << ":" << toupper(substitution_record.front().draft_char) << substitution_record.front().pos + 1 << toupper(base.at(0)); // RLW 21AUG2023
-                                std::string varid = id.str();                      // RLW 21AUG2023
-				if(!clinvar[varid].empty()) {
+				id << contigHdr.c_str() << ":" << substitution_record.front().draft_char
+				   << substitution_record.front().pos + 1 << base; // RLW 21AUG2023
+				std::string varid = id.str();                      // RLW 21AUG2023
+				if (!clinvar[varid].empty()) {
 					clinvarinfo = "|";
 					clinvarinfo += clinvar[varid];
 				}
@@ -876,10 +877,12 @@ writeEditsToFile(
 							base += ",";
 							base += best_alt_base;
 							std::ostringstream altid; // RLW 21AUG2023
-                                			altid << contigHdr.c_str() << ":" << toupper(substitution_record.front().draft_char)
-							<< substitution_record.front().pos + 1 << toupper(best_alt_base); // RLW 21AUG2023
+							altid << contigHdr.c_str() << ":"
+							      << substitution_record.front().draft_char
+							      << substitution_record.front().pos + 1
+							      << best_alt_base;             // RLW 21AUG2023
 							std::string altvarid = altid.str(); // RLW 21AUG2023
-							if(!clinvar[varid].empty()) {
+							if (!clinvar[varid].empty()) {
 								clinvarinfo += "|";
 								clinvarinfo += clinvar[altvarid];
 							}
@@ -903,9 +906,10 @@ writeEditsToFile(
 						base += best_alt_base;
 						std::ostringstream altid; // RLW 21AUG2023
 						altid << contigHdr.c_str() << ":" << toupper(substitution_record.front().draft_char)
-						<< substitution_record.front().pos + 1 << toupper(best_alt_base); // RLW 21AUG2023
+						      << substitution_record.front().pos + 1
+						      << best_alt_base;             // RLW 21AUG2023
 						std::string altvarid = altid.str(); // RLW 21AUG2023
-						if(!clinvar[varid].empty()) {
+						if (!clinvar[varid].empty()) {
 							clinvarinfo += "|";
 							clinvarinfo += clinvar[altvarid];
 						}
@@ -916,9 +920,8 @@ writeEditsToFile(
 
 				vfout << contigHdr.c_str() << "\t" << substitution_record.front().pos + 1 << "\t.\t"
 				      << substitution_record.front().draft_char << "\t" << base
-				      << "\t.\tPASS\tAD=" << support << clinvarinfo << "\tGT\t"
-				      << genotype << "\n"; // modified RLW 21AUG2023
-
+				      << "\t.\tPASS\tAD=" << support << clinvarinfo << "\tGT\t" << genotype
+				      << "\n"; // modified RLW 21AUG2023
 				substitution_record.pop();
 			}
 			// fprintf(dfout, "%s", contigSeq.substr(curr_node.s_pos,
