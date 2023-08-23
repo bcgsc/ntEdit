@@ -818,8 +818,7 @@ writeEditsToFile(
 				std::string clinvarinfo; // RLW 23AUG2023
 
 				std::ostringstream id; // RLW 21AUG2023
-                                id << contigHdr.c_str() << ":" << substitution_record.front().draft_char
-                                   << substitution_record.front().pos + 1 << base; // RLW 21AUG2023
+                                id << contigHdr.c_str() << ":" << toupper(substitution_record.front().draft_char) << substitution_record.front().pos + 1 << toupper(base.at(0)); // RLW 21AUG2023
                                 std::string varid = id.str();                      // RLW 21AUG2023
 				if(!clinvar[varid].empty()) {
 					clinvarinfo = "|";
@@ -877,8 +876,8 @@ writeEditsToFile(
 							base += ",";
 							base += best_alt_base;
 							std::ostringstream altid; // RLW 21AUG2023
-                                			altid << contigHdr.c_str() << ":" << substitution_record.front().draft_char
-							<< substitution_record.front().pos + 1 << best_alt_base; // RLW 21AUG2023
+                                			altid << contigHdr.c_str() << ":" << toupper(substitution_record.front().draft_char)
+							<< substitution_record.front().pos + 1 << toupper(best_alt_base); // RLW 21AUG2023
 							std::string altvarid = altid.str(); // RLW 21AUG2023
 							if(!clinvar[varid].empty()) {
 								clinvarinfo += "|";
@@ -903,8 +902,8 @@ writeEditsToFile(
 						base += ",";
 						base += best_alt_base;
 						std::ostringstream altid; // RLW 21AUG2023
-						altid << contigHdr.c_str() << ":" << substitution_record.front().draft_char
-						<< substitution_record.front().pos + 1 << best_alt_base; // RLW 21AUG2023
+						altid << contigHdr.c_str() << ":" << toupper(substitution_record.front().draft_char)
+						<< substitution_record.front().pos + 1 << toupper(best_alt_base); // RLW 21AUG2023
 						std::string altvarid = altid.str(); // RLW 21AUG2023
 						if(!clinvar[varid].empty()) {
 							clinvarinfo += "|";
