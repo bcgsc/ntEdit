@@ -2118,14 +2118,15 @@ main(int argc, char** argv) // NOLINT
 		// if the file is specified check that it is readable
 		assert_readable(opt::vcf_filename);
 		if (opt::vcf_filename.substr(opt::vcf_filename.find_last_of(".") + 1) == "gz") {
-			cout << "WARNING: *gz files are not yet supported. The VCF will not be read. Please relaunch ntEdit with .vcf after decompressing with unpigz or gunzip\n\n";
+			cout << "WARNING: *gz files are not yet supported. The VCF will not be read. Please "
+			        "relaunch ntEdit with .vcf after decompressing with unpigz or gunzip\n\n";
 		} else {
 			ifstream myfile(opt::vcf_filename);
 			if (myfile.is_open()) {
 				while (std::getline(myfile, line)) {
 					const std::regex re("\t");
 					std::sregex_token_iterator first{ line.begin(), line.end(), re, -1 }, // NOLINT
-				    	last; // the '-1' is what makes the regex split (-1 := what was not matched)
+					    last; // the '-1' is what makes the regex split (-1 := what was not matched)
 					std::vector<std::string> tokens{ first, last };
 					// cout << tokens.size() << " numtoken\n";
 					if (tokens.size() >= 8) {
