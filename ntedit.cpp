@@ -1,4 +1,4 @@
-#define PROGRAM "ntedit v1.4.1" // NOLINT
+#define PROGRAM "ntEdit v1.4.2" // NOLINT
 
 // clang-format off
 #include <iostream> //NOLINT(llvm-include-order)
@@ -824,7 +824,7 @@ writeEditsToFile(
 				   << char(toupper(base.at(0))); // RLW 21AUG2023
 				std::string varid = id.str();    // RLW 21AUG2023
 				if (!clinvar[varid].empty()) {
-					clinvarinfo = "|";
+					clinvarinfo = "^";
 					clinvarinfo += clinvar[varid];
 				}
 				if (substitution_record.front().altsupp1 > 0) { // XXRLWXX
@@ -885,7 +885,7 @@ writeEditsToFile(
 							      << char(toupper(best_alt_base)); // RLW 21AUG2023
 							std::string altvarid = altid.str();    // RLW 21AUG2023
 							if (!clinvar[altvarid].empty()) {
-								clinvarinfo += "|";
+								clinvarinfo += "^";
 								clinvarinfo += clinvar[altvarid];
 							}
 						}
@@ -914,7 +914,7 @@ writeEditsToFile(
 						std::string altvarid = altid.str();    // RLW 21AUG2023
 
 						if (!clinvar[altvarid].empty()) {
-							clinvarinfo += "|";
+							clinvarinfo += "^";
 							clinvarinfo += clinvar[altvarid];
 						}
 					}
@@ -1853,7 +1853,7 @@ readAndCorrect(
 	}
 
 	vfout << "##fileDate=" << year << month << day << std::endl;
-	vfout << "##source=ntEditV1.3.5" << std::endl;
+	vfout << "##source=ntEditV1.4.2" << std::endl;
 	vfout << "##reference=file:" << opt::draft_filename << std::endl;
 	vfout << "##INFO=<ID=AD,Number=2,Type=Integer,Description=\"Kmer Depth\">" << std::endl;
 	vfout << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tINTEGRATION" << std::endl;
@@ -1994,12 +1994,13 @@ main(int argc, char** argv) // NOLINT
 
 	time_t rawtime;
 	time(&rawtime);
-	std::cout << "---------- initializing                             : " << ctime(&rawtime);
 	std::cout << "    _ __   __________________  __________\n";
 	std::cout << "   _ _/ | / /_  __/ ____/ __ \\/  _/_  __/\n";
 	std::cout << "  _ _/  |/ / / / / __/ / / / // /  / /   \n";
 	std::cout << " _ _/ /|  / / / / /___/ /_/ // /  / /    \n";
 	std::cout << "_ _/_/ |_/ /_/ /_____/_____/___/ /_/   \n\n";
+
+	std::cout << "---------- initializing                             : " << ctime(&rawtime);
 
 	// check the draft file is specified
 	if (opt::draft_filename.empty()) {
@@ -2037,7 +2038,7 @@ main(int argc, char** argv) // NOLINT
 	if (opt::snv) {
 		opt::max_insertions = 0;
 		opt::max_deletions = 0;
-		std::cerr << "Running in SNV mode\nTracking all single-base variants\nNote: -i and -d both "
+		std::cerr << "\nSNV mode ON\nTracking all single-base variants\nNote: -i and -d both "
 		             "set to 0 when -s is set to 1\nConsider -l clinvar.vcf to identify SNVs with "
 		             "putative clinical significance (consult README)\n\n";
 		current_bases_array = snv_bases_array;
@@ -2145,7 +2146,7 @@ main(int argc, char** argv) // NOLINT
 		// if the file is specified check that it is readable
 		assert_readable(opt::vcf_filename);
 		if (opt::vcf_filename.substr(opt::vcf_filename.find_last_of('.') + 1) == "gz") { // NOLINT
-			cout << "WARNING: *gz files are not yet supported. The VCF will not be read. Please "
+			cout << PROGRAM ": warning: *gz files are not yet supported. The VCF will not be read. Please "
 			        "relaunch ntEdit with .vcf after decompressing with unpigz or gunzip\n\n";
 		} else {
 			ifstream myfile(opt::vcf_filename);
