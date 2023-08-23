@@ -2024,6 +2024,8 @@ main(int argc, char** argv) // NOLINT
 	    opt::bloom_filename.substr(opt::bloom_filename.find_last_of("/\\") + 1);
 	std::string bloomrep_basename =
 	    opt::bloomrep_filename.substr(opt::bloomrep_filename.find_last_of("/\\") + 1);
+	std::string vcf_basename =
+	    opt::vcf_filename.substr(opt::vcf_filename.find_last_of("/\\") + 1);
 
 	// Threading information
 	omp_set_num_threads(static_cast<int>(opt::nthreads));
@@ -2103,7 +2105,7 @@ main(int argc, char** argv) // NOLINT
 		std::cout << "\n -x " << opt::missing_threshold << "\n -y " << opt::edit_threshold;
 	}
 	std::cout << "\n -j " << opt::jump << "\n -m " << opt::mode << "\n -s " << opt::snv << "\n -l "
-	          << opt::vcf_filename << "\n -a " << opt::mask << "\n -t " << opt::nthreads << "\n -v "
+	          << vcf_basename << "\n -a " << opt::mask << "\n -t " << opt::nthreads << "\n -v "
 	          << opt::verbose << "\n"
 	          << std::endl;
 
@@ -2115,32 +2117,32 @@ main(int argc, char** argv) // NOLINT
 	if (!opt::vcf_filename.empty()) {
 		// if the file is specified check that it is readable
 		assert_readable(opt::vcf_filename);
-		// read file handle
-		// gzFile dfp;
-		// dfp = gzopen(opt::vcf_filename.c_str(), "r");
-		// ifstream myfile (dfp);
-		ifstream myfile(opt::vcf_filename);
-		if (myfile.is_open()) {
-			while (std::getline(myfile, line)) {
-				const std::regex re("\t");
-				std::sregex_token_iterator first{ line.begin(), line.end(), re, -1 }, // NOLINT
-				    last; // the '-1' is what makes the regex split (-1 := what was not matched)
-				std::vector<std::string> tokens{ first, last };
-				// cout << tokens.size() << " numtoken\n";
-				if (tokens.size() >= 8) {
-					std::ostringstream id;
-					id << tokens[0] << ":" << tokens[3] << tokens[1] << tokens[4];
-					std::string varid = id.str();
-					clinvar[varid] = tokens[7];
-					// Print results
-					// for (auto t : tokens) {
-					//	std::cout << t << std::endl;
-					// }
-				}
-			}
-			myfile.close();
+		if (opt::vcf_filename.substr(opt::vcf_filename.find_last_of(".") + 1) == "gz") {
+			cout << "WARNING: *gz files are not yet supported. The VCF will not be read. Please relaunch ntEdit with .vcf after decompressing with unpigz or gunzip\n\n";
 		} else {
-			cout << "Unable to open file";
+			ifstream myfile(opt::vcf_filename);
+			if (myfile.is_open()) {
+				while (std::getline(myfile, line)) {
+					const std::regex re("\t");
+					std::sregex_token_iterator first{ line.begin(), line.end(), re, -1 }, // NOLINT
+				    	last; // the '-1' is what makes the regex split (-1 := what was not matched)
+					std::vector<std::string> tokens{ first, last };
+					// cout << tokens.size() << " numtoken\n";
+					if (tokens.size() >= 8) {
+						std::ostringstream id;
+						id << tokens[0] << ":" << tokens[3] << tokens[1] << tokens[4];
+						std::string varid = id.str();
+						clinvar[varid] = tokens[7];
+						// Print results
+						// for (auto t : tokens) {
+						//	std::cout << t << std::endl;
+						// }
+					}
+				}
+				myfile.close();
+			} else {
+				cout << "Unable to open file";
+			}
 		}
 	}
 
