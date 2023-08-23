@@ -2116,7 +2116,7 @@ main(int argc, char** argv) // NOLINT
 	if (!opt::vcf_filename.empty()) {
 		// if the file is specified check that it is readable
 		assert_readable(opt::vcf_filename);
-		if (opt::vcf_filename.substr(opt::vcf_filename.find_last_of(".") + 1) == "gz") {
+		if (opt::vcf_filename.substr(opt::vcf_filename.find_last_of('.') + 1) == "gz") { // NOLINT
 			cout << "WARNING: *gz files are not yet supported. The VCF will not be read. Please "
 			        "relaunch ntEdit with .vcf after decompressing with unpigz or gunzip\n\n";
 		} else {
