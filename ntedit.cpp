@@ -2024,8 +2024,7 @@ main(int argc, char** argv) // NOLINT
 	    opt::bloom_filename.substr(opt::bloom_filename.find_last_of("/\\") + 1);
 	std::string bloomrep_basename =
 	    opt::bloomrep_filename.substr(opt::bloomrep_filename.find_last_of("/\\") + 1);
-	std::string vcf_basename =
-	    opt::vcf_filename.substr(opt::vcf_filename.find_last_of("/\\") + 1);
+	std::string vcf_basename = opt::vcf_filename.substr(opt::vcf_filename.find_last_of("/\\") + 1);
 
 	// Threading information
 	omp_set_num_threads(static_cast<int>(opt::nthreads));
