@@ -905,7 +905,8 @@ writeEditsToFile(
 						base += ",";
 						base += best_alt_base;
 						std::ostringstream altid; // RLW 21AUG2023
-						altid << contigHdr.c_str() << ":" << toupper(substitution_record.front().draft_char)
+						altid << contigHdr.c_str() << ":"
+						      << toupper(substitution_record.front().draft_char)
 						      << substitution_record.front().pos + 1
 						      << best_alt_base;             // RLW 21AUG2023
 						std::string altvarid = altid.str(); // RLW 21AUG2023
