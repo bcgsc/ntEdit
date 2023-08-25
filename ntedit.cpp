@@ -1,4 +1,4 @@
-#define PROGRAM "ntEdit v1.4.2" // NOLINT
+#define PROGRAM "ntEdit v1.4.3" // NOLINT
 
 // clang-format off
 #include <iostream> //NOLINT(llvm-include-order)
@@ -1854,7 +1854,7 @@ readAndCorrect(
 	}
 
 	vfout << "##fileDate=" << year << month << day << std::endl;
-	vfout << "##source=ntEditV1.4.2" << std::endl;
+	vfout << "##source=ntEditV1.4.3" << std::endl;
 	vfout << "##reference=file:" << opt::draft_filename << std::endl;
 	vfout << "##INFO=<ID=AD,Number=2,Type=Integer,Description=\"Kmer Depth\">" << std::endl;
 	vfout << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tINTEGRATION" << std::endl;
