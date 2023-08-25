@@ -1,7 +1,7 @@
 #https://aka.ms/yaml
 
 jobs:
-- job
+- job:
   displayName: linux
   pool:
     vmImage: 'ubuntu-latest'
@@ -27,7 +27,7 @@ jobs:
         make check
       displayName: Check output files
 
-- job
+- job:
   displayName: mac
   pool:
     vmImage: macOS-latest
