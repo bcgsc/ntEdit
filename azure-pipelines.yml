@@ -5,27 +5,26 @@ jobs:
   displayName: linux
   pool:
     vmImage: 'ubuntu-latest'
-
-    steps:
-    - script: |
-        curl https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-        sudo apt-add-repository "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-11 main"
-        sudo apt-get update -qq
-        sudo apt-get install -qq gcc g++ libopenmpi-dev libgtest-dev libomp-dev
-        sudo apt-get install -y --no-install-recommends clang-format clang-tidy
-      displayName: Install dependencies
-    - script: |
-        make ntedit
-      displayName: Compile ntedit
-    - script : |
-        make clang-format
-      displayName: Clang-format
-    - script: |
-        make clang-tidy
-      displayName: Clang-tidy
-    - script : |
-        make check
-      displayName: Check output files
+  steps:
+  - script: |
+      curl https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+      sudo apt-add-repository "deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-11 main"
+      sudo apt-get update -qq
+      sudo apt-get install -qq gcc g++ libopenmpi-dev libgtest-dev libomp-dev
+      sudo apt-get install -y --no-install-recommends clang-format clang-tidy
+    displayName: Install dependencies
+  - script: |
+      make ntedit
+    displayName: Compile ntedit
+  - script : |
+      make clang-format
+    displayName: Clang-format
+  - script: |
+      make clang-tidy
+    displayName: Clang-tidy
+  - script : |
+      make check
+    displayName: Check output files
 
 - job:
   displayName: mac
@@ -38,7 +37,7 @@ jobs:
     displayName: Create Anaconda environment
   - script: |
       source activate ntedit_ci
-      conda install --yes --quiet --name ntlink_CI -c conda-forge -c bioconda llvm-openmp automake autoconf perl zlib
+      conda install --yes --quiet --name ntedit_ci -c conda-forge -c bioconda llvm-openmp automake autoconf perl zlib
     displayName: Install Anaconda packages
   - script: |
       source activate ntedit_ci
