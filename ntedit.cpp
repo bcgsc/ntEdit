@@ -20,6 +20,7 @@
 #include <cassert>
 #include <cerrno>
 #include <unistd.h>
+#include <map>
 #include "lib/kseq.h"
 #include "lib/nthash.hpp" // NOLINT
 #include "lib/BloomFilter.hpp"
