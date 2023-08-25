@@ -2,7 +2,7 @@
 
 jobs:
 - job
-  displayName: 'linux'
+  displayName: linux
   pool:
     vmImage: 'ubuntu-latest'
 
