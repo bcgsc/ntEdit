@@ -363,6 +363,15 @@ class BFWrapper
 		return is_cbf ? cbf.get()->get_hash_num() : bf.get()->get_hash_num();
 	}
 
+	void print_details()
+	{
+		const auto size = is_cbf ? cbf.get()->get_bytes() : bf.get()->get_bytes();
+		const auto fpr = is_cbf ? cbf.get()->get_fpr() : bf.get()->get_fpr();
+		std::cout << "BLOOM::\tcounting: " << (is_cbf ? "YES" : "NO") << "\tsize: " << size
+		          << "\tnumber hash functions: " << get_hash_num() << "\tkmer size: " << get_k()
+		          << "\tFPR: " << fpr << std::endl;
+	}
+
   private:
 	bool is_cbf;
 	std::unique_ptr<btllib::KmerBloomFilter> bf;
@@ -2116,7 +2125,7 @@ main(int argc, char** argv) // NOLINT
 	    static_cast<unsigned>(static_cast<float>(opt::k) * opt::default_insertion_cap_ratio);
 
 	// print bloom filter details
-	// TODO: bloom.printBloomFilterDetails();
+	bloom.print_details();
 
 	// Checking parameters
 	time(&rawtime);
@@ -2238,7 +2247,7 @@ main(int argc, char** argv) // NOLINT
 			exit(EXIT_FAILURE);
 		}
 		// print Bloom filter details
-		// TODO: bloomrep.printBloomFilterDetails();
+		bloomrep.print_details();
 
 		std::cout << "\n---------- reading/processing input sequence        : " << ctime(&rawtime);
 		readAndCorrect(bloom, bloomrep, clinvar);
