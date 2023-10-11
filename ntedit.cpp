@@ -354,6 +354,10 @@ class BFWrapper
 		return is_cbf ? cbf.get()->contains(hashes) > 0 : bf.get()->contains(hashes);
 	}
 
+	uint8_t get_count(const uint64_t* hashes) {
+		return is_cbf ? cbf.get()->contains(hashes) : 1;
+	}
+
 	bool is_counting() const { return is_cbf; }
 
 	unsigned get_k() const { return is_cbf ? cbf.get()->get_k() : bf.get()->get_k(); }
