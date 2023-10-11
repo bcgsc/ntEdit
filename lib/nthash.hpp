@@ -132,7 +132,8 @@ inline uint64_t NTF64(const uint64_t fhVal, const unsigned k, const unsigned cha
 
 // forward-strand ntHash for changing the last base
 inline uint64_t NTF64_changelast(const uint64_t fhVal, const unsigned k, const unsigned char charOut, const unsigned charIn) {
-	uint64_t hVal = fhVal; 
+    (void)k;
+    uint64_t hVal = fhVal; 
         hVal ^= seedTab[charOut]; 
 	hVal ^= seedTab[charIn]; 
 	return hVal;

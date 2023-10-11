@@ -1,4 +1,4 @@
-#define PROGRAM "ntEdit v1.4.3" // NOLINT
+#define PROGRAM "ntEdit v2.0.0" // NOLINT
 
 // clang-format off
 #include <iostream> //NOLINT(llvm-include-order)
@@ -23,7 +23,7 @@
 #include <map>
 #include "lib/kseq.h"
 #include "lib/nthash.hpp" // NOLINT
-#include "lib/BloomFilter.hpp"
+#include <btllib/bloom_filter.hpp>
 //RLW 19AUG2023
 #include <iterator>
 #include <regex>
@@ -153,7 +153,7 @@ static const struct option longopts[] = {
 };
 
 // Setting up the number of tries when for each number of base insertion
-std::vector<int> num_tries = { 0, 1, 5, 21, 85, 341 }; // NOLINT
+std::vector<unsigned> num_tries = { 0, 1, 5, 21, 85, 341 }; // NOLINT
 
 // Initialize current base array
 // NOLINTNEXTLINE
@@ -184,7 +184,7 @@ std::unordered_map<unsigned char, std::vector<unsigned char>> snv_bases_array = 
 
 // Setting all the indel combos
 // NOLINTNEXTLINE
-std::unordered_map<unsigned char, std::vector<string>> multi_possible_bases = {
+std::unordered_map<unsigned char, std::vector<std::string>> multi_possible_bases = {
 	{ 'A',
 	  { "A",     "AA",    "AC",    "AG",    "AT",    "AAA",   "AAC",   "AAG",   "AAT",   "ACA",
 	    "ACC",   "ACG",   "ACT",   "AGA",   "AGC",   "AGG",   "AGT",   "ATA",   "ATC",   "ATG",
@@ -471,7 +471,7 @@ struct seqNode
 void
 makeInsertion(
     unsigned& t_node_index,
-    int insert_pos,
+    unsigned insert_pos,
     const std::string& insertion_bases,
     unsigned num_support,
     std::vector<seqNode>& newSeq)
@@ -656,7 +656,7 @@ makeDeletion(
 
 /* Returns the character at pos based on the seqNode structure. */
 unsigned char
-getCharacter(unsigned& pos, seqNode node, const string& contigSeq)
+getCharacter(unsigned& pos, seqNode node, const std::string& contigSeq)
 {
 	if (node.node_type == 0) {
 		return contigSeq.at(pos);
@@ -670,7 +670,7 @@ getCharacter(unsigned& pos, seqNode node, const string& contigSeq)
 
 /* Increments the position and adjusts the node accordingly based on seqNode structure. */
 void
-increment(unsigned& pos, unsigned& node_index, vector<seqNode>& newSeq)
+increment(unsigned& pos, unsigned& node_index, std::vector<seqNode>& newSeq)
 {
 	seqNode node = newSeq[node_index];
 	if (node.node_type == 0) {
@@ -697,8 +697,8 @@ findAcceptedKmer(
     unsigned& t_seq_i,
     unsigned& h_node_index,
     unsigned& t_node_index,
-    const string& contigSeq,
-    vector<seqNode>& newSeq)
+    const std::string& contigSeq,
+    std::vector<seqNode>& newSeq)
 {
 	// temporary values
 	std::string kmer_str;
@@ -751,7 +751,7 @@ findAcceptedKmer(
 /* Get the previous insertion (aka continuous string of character nodes) starting at t_node_index.
  */
 std::string
-getPrevInsertion(unsigned t_seq_i, unsigned t_node_index, vector<seqNode>& newSeq)
+getPrevInsertion(unsigned t_seq_i, unsigned t_node_index, std::vector<seqNode>& newSeq)
 {
 	std::string prev_insertion;
 	// if we just finished the insertion
@@ -853,10 +853,9 @@ writeEditsToFile(
 				std::string genotype;
 				// If there are alt bases
 				if (!alt_base_vcf.empty()) {
-					unsigned curr_best_supp = 0;
 					if (opt::snv) {
 						bool ref = false;
-						for (int i = 0; i < alt_base_vcf.size(); ++i) {
+						for (size_t i = 0; i < alt_base_vcf.size(); ++i) {
 							// Prioritize ref base over other alt base
 							if (substitution_record.front().draft_char == alt_base_vcf[i]) {
 								curr_best_alt_supp = alt_supp_vcf[i];
@@ -891,7 +890,7 @@ writeEditsToFile(
 							}
 						}
 					} else {
-						for (int i = 0; i < alt_base_vcf.size(); ++i) {
+						for (size_t i = 0; i < alt_base_vcf.size(); ++i) {
 							// Skip ref base in non snv mode
 							if (substitution_record.front().draft_char == alt_base_vcf[i]) {
 								continue;
@@ -997,7 +996,7 @@ makeEdit(
     unsigned char& draft_char,
     unsigned& best_edit_type,
     unsigned char& best_sub_base,
-    string& best_indel,
+    std::string& best_indel,
     unsigned& best_num_support,
     unsigned char& altbase1,
     unsigned& altsupp1,
@@ -1190,8 +1189,8 @@ tryDeletion(
     uint64_t* hVal,
     const std::string& contigSeq,
     std::vector<seqNode>& newSeq,
-    BloomFilter& bloom,
-    BloomFilter& bloomrep,
+    btllib::KmerBloomFilter& bloom,
+    btllib::KmerBloomFilter& bloomrep,
     std::string& deleted_bases)
 {
 
@@ -1271,8 +1270,8 @@ tryIndels(
     uint64_t* hVal,
     const std::string& contigSeq,
     std::vector<seqNode>& newSeq,
-    BloomFilter& bloom,
-    BloomFilter& bloomrep,
+    btllib::KmerBloomFilter& bloom,
+    btllib::KmerBloomFilter& bloomrep,
     unsigned& best_edit_type,
     std::string& best_indel,
     std::string& alt_indel,
@@ -1436,11 +1435,11 @@ tryIndels(
 /* Kmerize and polish the contig. */
 void
 kmerizeAndCorrect(
-    string& contigHdr,
-    string& contigSeq,
+    std::string& contigHdr,
+    std::string& contigSeq,
     unsigned seqLen,
-    BloomFilter& bloom,
-    BloomFilter& bloomrep,
+    btllib::KmerBloomFilter& bloom,
+    btllib::KmerBloomFilter& bloomrep,
     std::ofstream& dfout,
     std::ofstream& rfout,
     std::ofstream& vfout,
@@ -1786,7 +1785,7 @@ kmerizeAndCorrect(
 				continue_edit = false;
 				break;
 			}
-		} while (target_t_seq_i >= 0 && t_seq_i != target_t_seq_i);
+		} while (target_t_seq_i >= 0 && static_cast<int>(t_seq_i) != target_t_seq_i);
 	} while (continue_edit);
 
 	// clean allocated memory for hash
@@ -1811,8 +1810,8 @@ kmerizeAndCorrect(
 /* Read the contigs from the file and polish each contig. */
 void
 readAndCorrect(
-    BloomFilter& bloom,
-    BloomFilter& bloomrep,
+    btllib::KmerBloomFilter& bloom,
+    btllib::KmerBloomFilter& bloomrep,
     std::map<std::string, std::string> const& clinvar)
 {
 	// read file handle
@@ -1826,9 +1825,9 @@ readAndCorrect(
 	std::string d_filename = opt::outfile_prefix + "_edited.fa";
 	std::string r_filename = opt::outfile_prefix + "_changes.tsv";
 	std::string v_filename = opt::outfile_prefix + "_variants.vcf";
-	ofstream dfout;
-	ofstream rfout;
-	ofstream vfout;
+	std::ofstream dfout;
+	std::ofstream rfout;
+	std::ofstream vfout;
 	dfout.open(d_filename);
 	rfout.open(r_filename);
 	// printf ( "OUT OF %.1f\n", ceil( double(opt::k) / double(opt::jump) ) );
@@ -1899,7 +1898,7 @@ readAndCorrect(
 			}
 		}
 	}
-	//#pragma omp barrier
+	// #pragma omp barrier
 	kseq_destroy(seq);
 	gzclose(dfp);
 	dfout.close();
@@ -2063,8 +2062,8 @@ main(int argc, char** argv) // NOLINT
 	time(&rawtime);
 	std::cout << "---------- loading Bloom filter from file           : " << ctime(&rawtime)
 	          << "\n";
-	BloomFilter bloom(opt::bloom_filename.c_str());
-	opt::h = bloom.getHashNum();
+	btllib::KmerBloomFilter bloom(opt::bloom_filename.c_str());
+	opt::h = bloom.get_hash_num();
 
 	// Checks for the Bloom filter
 	if (opt::h == 0) {
@@ -2073,13 +2072,13 @@ main(int argc, char** argv) // NOLINT
 	}
 
 	// assign k from Bloom filter header
-	opt::k = bloom.getKmerSize();
+	opt::k = bloom.get_k();
 
 	opt::insertion_cap =
 	    static_cast<unsigned>(static_cast<float>(opt::k) * opt::default_insertion_cap_ratio);
 
 	// print bloom filter details
-	bloom.printBloomFilterDetails();
+	// TODO: bloom.printBloomFilterDetails();
 
 	// Checking parameters
 	time(&rawtime);
@@ -2139,7 +2138,7 @@ main(int argc, char** argv) // NOLINT
 	          << std::endl;
 
 	// VCF file reading RLW 19AUG2023
-	string line;
+	std::string line;
 	std::map<std::string, std::string> clinvar;
 
 	// check the vcf file is specified
@@ -2147,12 +2146,12 @@ main(int argc, char** argv) // NOLINT
 		// if the file is specified check that it is readable
 		assert_readable(opt::vcf_filename);
 		if (opt::vcf_filename.substr(opt::vcf_filename.find_last_of('.') + 1) == "gz") { // NOLINT
-			cout << PROGRAM
+			std::cout << PROGRAM
 			    ": warning: *gz files are not yet supported. The VCF will not be read. Please "
 			    "relaunch ntEdit with .vcf after decompressing with unpigz or gunzip\n\n";
 
 		} else {
-			ifstream myfile(opt::vcf_filename);
+			std::ifstream myfile(opt::vcf_filename);
 			if (myfile.is_open()) {
 				while (std::getline(myfile, line)) {
 					const std::regex re("\t");
@@ -2173,7 +2172,7 @@ main(int argc, char** argv) // NOLINT
 				}
 				myfile.close();
 			} else {
-				cout << "Unable to open file";
+				std::cout << "Unable to open file";
 			}
 		}
 	}
@@ -2184,8 +2183,8 @@ main(int argc, char** argv) // NOLINT
 		time(&rawtime);
 		std::cout << "---------- loading secondary Bloom filter from file : " << ctime(&rawtime)
 		          << "\n";
-		BloomFilter bloomrep(opt::bloomrep_filename.c_str());
-		opt::e = bloomrep.getHashNum();
+		btllib::KmerBloomFilter bloomrep(opt::bloomrep_filename.c_str());
+		opt::e = bloomrep.get_hash_num();
 
 		// Checks for the Bloom filter
 		if (opt::e == 0) {
@@ -2195,21 +2194,21 @@ main(int argc, char** argv) // NOLINT
 		}
 
 		// Check that primary and secondary BF kmer sizes match
-		if (opt::k != bloomrep.getKmerSize()) {
+		if (opt::k != bloomrep.get_k()) {
 			std::cerr << PROGRAM ": error: secondary Bloom filter k size ("
-			          << bloomrep.getKmerSize() << ") is different than main Bloom filter k size ("
+			          << bloomrep.get_k() << ") is different than main Bloom filter k size ("
 			          << opt::k << ")\n";
 			exit(EXIT_FAILURE);
 		}
 		// print Bloom filter details
-		bloomrep.printBloomFilterDetails();
+		// TODO: bloomrep.printBloomFilterDetails();
 
 		std::cout << "\n---------- reading/processing input sequence        : " << ctime(&rawtime);
 		readAndCorrect(bloom, bloomrep, clinvar);
 
 	} else {
 		std::cout << "---------- reading/processing input sequence        : " << ctime(&rawtime);
-		BloomFilter bloomrep(1000, 1, 1);
+		btllib::KmerBloomFilter bloomrep(1000, 1, 1);
 		readAndCorrect(bloom, bloomrep, clinvar);
 	}
 	time(&rawtime);
