@@ -24,6 +24,7 @@
 #include "lib/kseq.h"
 #include "lib/nthash.hpp" // NOLINT
 #include <btllib/bloom_filter.hpp>
+#include <btllib/counting_bloom_filter.hpp>
 //RLW 19AUG2023
 #include <iterator>
 #include <regex>
@@ -329,6 +330,43 @@ std::unordered_map<unsigned char, std::vector<std::string>> multi_possible_bases
 	    "TTGGT", "TTGTA", "TTGTC", "TTGTG", "TTGTT", "TTTAA", "TTTAC", "TTTAG", "TTTAT", "TTTCA",
 	    "TTTCC", "TTTCG", "TTTCT", "TTTGA", "TTTGC", "TTTGG", "TTTGT", "TTTTA", "TTTTC", "TTTTG",
 	    "TTTTT" } }
+};
+
+class BFWrapper
+{
+
+  public:
+	BFWrapper(const std::string& path)
+	{
+		is_cbf = btllib::BloomFilter::check_file_signature(
+		    path, btllib::KMER_COUNTING_BLOOM_FILTER_SIGNATURE);
+		if (is_cbf) {
+			cbf = std::make_unique<btllib::KmerCountingBloomFilter8>(path);
+		} else {
+			bf = std::make_unique<btllib::KmerBloomFilter>(path);
+		}
+	}
+
+	BFWrapper() = default;
+
+	bool contains(const uint64_t* hashes)
+	{
+		return is_cbf ? cbf.get()->contains(hashes) > 0 : bf.get()->contains(hashes);
+	}
+
+	bool is_counting() const { return is_cbf; }
+
+	unsigned get_k() const { return is_cbf ? cbf.get()->get_k() : bf.get()->get_k(); }
+
+	unsigned get_hash_num() const
+	{
+		return is_cbf ? cbf.get()->get_hash_num() : bf.get()->get_hash_num();
+	}
+
+  private:
+	bool is_cbf;
+	std::unique_ptr<btllib::KmerBloomFilter> bf;
+	std::unique_ptr<btllib::KmerCountingBloomFilter8> cbf;
 };
 
 /* Checks that the filepath is readable and exits if it is not. */
@@ -1189,8 +1227,8 @@ tryDeletion(
     uint64_t* hVal,
     const std::string& contigSeq,
     std::vector<seqNode>& newSeq,
-    btllib::KmerBloomFilter& bloom,
-    btllib::KmerBloomFilter& bloomrep,
+    BFWrapper& bloom,
+    BFWrapper& bloomrep,
     std::string& deleted_bases)
 {
 
@@ -1270,8 +1308,8 @@ tryIndels(
     uint64_t* hVal,
     const std::string& contigSeq,
     std::vector<seqNode>& newSeq,
-    btllib::KmerBloomFilter& bloom,
-    btllib::KmerBloomFilter& bloomrep,
+    BFWrapper& bloom,
+    BFWrapper& bloomrep,
     unsigned& best_edit_type,
     std::string& best_indel,
     std::string& alt_indel,
@@ -1438,8 +1476,8 @@ kmerizeAndCorrect(
     std::string& contigHdr,
     std::string& contigSeq,
     unsigned seqLen,
-    btllib::KmerBloomFilter& bloom,
-    btllib::KmerBloomFilter& bloomrep,
+    BFWrapper& bloom,
+    BFWrapper& bloomrep,
     std::ofstream& dfout,
     std::ofstream& rfout,
     std::ofstream& vfout,
@@ -1810,8 +1848,8 @@ kmerizeAndCorrect(
 /* Read the contigs from the file and polish each contig. */
 void
 readAndCorrect(
-    btllib::KmerBloomFilter& bloom,
-    btllib::KmerBloomFilter& bloomrep,
+    BFWrapper& bloom,
+    BFWrapper& bloomrep,
     std::map<std::string, std::string> const& clinvar)
 {
 	// read file handle
@@ -2062,7 +2100,7 @@ main(int argc, char** argv) // NOLINT
 	time(&rawtime);
 	std::cout << "---------- loading Bloom filter from file           : " << ctime(&rawtime)
 	          << "\n";
-	btllib::KmerBloomFilter bloom(opt::bloom_filename.c_str());
+	BFWrapper bloom(opt::bloom_filename);
 	opt::h = bloom.get_hash_num();
 
 	// Checks for the Bloom filter
@@ -2183,7 +2221,7 @@ main(int argc, char** argv) // NOLINT
 		time(&rawtime);
 		std::cout << "---------- loading secondary Bloom filter from file : " << ctime(&rawtime)
 		          << "\n";
-		btllib::KmerBloomFilter bloomrep(opt::bloomrep_filename.c_str());
+		BFWrapper bloomrep(opt::bloomrep_filename);
 		opt::e = bloomrep.get_hash_num();
 
 		// Checks for the Bloom filter
@@ -2195,9 +2233,8 @@ main(int argc, char** argv) // NOLINT
 
 		// Check that primary and secondary BF kmer sizes match
 		if (opt::k != bloomrep.get_k()) {
-			std::cerr << PROGRAM ": error: secondary Bloom filter k size ("
-			          << bloomrep.get_k() << ") is different than main Bloom filter k size ("
-			          << opt::k << ")\n";
+			std::cerr << PROGRAM ": error: secondary Bloom filter k size (" << bloomrep.get_k()
+			          << ") is different than main Bloom filter k size (" << opt::k << ")\n";
 			exit(EXIT_FAILURE);
 		}
 		// print Bloom filter details
@@ -2208,7 +2245,7 @@ main(int argc, char** argv) // NOLINT
 
 	} else {
 		std::cout << "---------- reading/processing input sequence        : " << ctime(&rawtime);
-		btllib::KmerBloomFilter bloomrep(1000, 1, 1);
+		BFWrapper bloomrep;
 		readAndCorrect(bloom, bloomrep, clinvar);
 	}
 	time(&rawtime);
