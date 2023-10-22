@@ -78,6 +78,7 @@ static const char USAGE_MESSAGE[] = PROGRAM
     "	-a,	soft masks missing k-mer positions having no fix (-v 1 = yes, default = 0, no)\n"
     "	-v,	verbose mode (-v 1 = yes, default = 0, no)\n"
     "\n"
+	"	-p, minimum k-mer presence threshold for a base to be considered confident when using a counting Bloom filter [default=minimum of counting Bloom filter counts]\n"
     "	--help,		display this message and exit \n"
     "	--version,	output version information and exit\n"
     "\n"
@@ -117,9 +118,10 @@ int snv = 0;
 int mask = 0; // RLW2021
 int verbose = 0;
 int secbf = 0;
+unsigned min_threshold = 1;
 } // namespace opt
 
-static const char shortopts[] = "t:f:s:k:z:b:r:v:d:i:X:Y:x:y:m:c:j:s:e:a:l:"; // RLW2021
+static const char shortopts[] = "t:f:s:k:z:b:r:v:d:i:X:Y:x:y:m:c:j:s:e:a:l:p:"; // RLW2021
 
 enum
 {
@@ -351,11 +353,11 @@ class BFWrapper
 
 	bool contains(const uint64_t* hashes)
 	{
-		return is_cbf ? cbf.get()->contains(hashes) > 0 : bf.get()->contains(hashes);
+		return is_cbf ? cbf.get()->contains(hashes) >= opt::min_threshold : bf.get()->contains(hashes); // add offset
 	}
 
 	uint8_t get_count(const uint64_t* hashes) {
-		return is_cbf ? cbf.get()->contains(hashes) : 1;
+		return is_cbf ? cbf.get()->contains(hashes) : 1; // add offset
 	}
 
 	bool is_counting() const { return is_cbf; }
@@ -2026,6 +2028,9 @@ main(int argc, char** argv) // NOLINT
 		case 'v':
 			arg >> opt::verbose;
 			break;
+		case 'p':
+			arg >> opt::min_threshold;
+			break;
 		case OPT_HELP:
 			std::cerr << USAGE_MESSAGE;
 			exit(EXIT_SUCCESS);
@@ -2127,6 +2132,12 @@ main(int argc, char** argv) // NOLINT
 
 	opt::insertion_cap =
 	    static_cast<unsigned>(static_cast<float>(opt::k) * opt::default_insertion_cap_ratio);
+
+	if (!bloom.is_counting() && opt::min_threshold != 1) {
+		std::cerr << PROGRAM ": warning: Bloom filter is not counting, min threshold will be "
+		                     "set to 1.\n";
+		opt::min_threshold = 1;
+	}
 
 	// print bloom filter details
 	bloom.print_details();
