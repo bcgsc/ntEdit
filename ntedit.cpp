@@ -2134,7 +2134,7 @@ main(int argc, char** argv) // NOLINT
 	    static_cast<unsigned>(static_cast<float>(opt::k) * opt::default_insertion_cap_ratio);
 
 	if (!bloom.is_counting() && opt::min_threshold != 1) {
-		std::cerr << PROGRAM ": warning: Bloom filter is not counting, min threshold will be "
+		std::cerr << PROGRAM ": warning: Bloom filter is not counting, min k-mer presence threshold will be "
 		                     "set to 1.\n";
 		opt::min_threshold = 1;
 	}
