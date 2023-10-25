@@ -353,11 +353,11 @@ class BFWrapper
 
 	bool contains(const uint64_t* hashes)
 	{
-		return is_cbf ? cbf.get()->contains(hashes) >= opt::min_threshold : bf.get()->contains(hashes); // add offset
+		return is_cbf ? cbf.get()->contains(hashes) >= opt::min_threshold : bf.get()->contains(hashes);
 	}
 
 	uint8_t get_count(const uint64_t* hashes) {
-		return is_cbf ? cbf.get()->contains(hashes) : 1; // add offset
+		return is_cbf ? cbf.get()->contains(hashes) : 1;
 	}
 
 	bool is_counting() const { return is_cbf; }
@@ -1290,7 +1290,7 @@ tryDeletion(
 		        charIn)) {
 			NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
 			if (k % opt::jump == 0 && bloom.contains(hVal) &&
-				(!opt::secbf || !bloomrep.contains(hVal))) {
+			  (!opt::secbf || !bloomrep.contains(hVal))) {
 				check_present++;
 				if (bloom.is_counting()) {
 					median_vec.emplace_back(bloom.get_count(hVal));
@@ -1394,7 +1394,7 @@ tryIndels(
 			    hVal);
 			increment(temp_h_seq_i, temp_h_node_index, newSeq);
 			if (k % opt::jump == 0 && bloom.contains(hVal) &&
-				(!opt::secbf || !bloomrep.contains(hVal))) { // RLW
+			  (!opt::secbf || !bloomrep.contains(hVal))) { // RLW
 				check_present++;
 				if (bloom.is_counting()) {
 					median_vec.emplace_back(bloom.get_count(hVal));
@@ -1637,8 +1637,6 @@ kmerizeAndCorrect(
 			if (opt::verbose) {
 				std::cout << "\tcheck_missing: " << check_missing << std::endl;
 			}
-
-
 			if ((opt::snv) || ((!do_not_fix) &&
 			                   (((!opt::use_ratio &&
 			                      static_cast<float>(check_missing) >=
@@ -1646,8 +1644,7 @@ kmerizeAndCorrect(
 			                    ((opt::use_ratio && static_cast<float>(check_missing) >=
 			                                            ((static_cast<float>(opt::k) / opt::jump) *
 			                                             opt::missing_ratio))) ||
-														 (bloom.is_counting() && check_there_median < opt::min_threshold) 
-														 ))) { // RLW
+															(bloom.is_counting() && check_there_median < opt::min_threshold)))) { // RLW
 
 				// recorders
 				unsigned num_deletions = 1;
@@ -1666,12 +1663,12 @@ kmerizeAndCorrect(
 
 				if (opt::snv) { // XXRLWXX -- sets baseline for draft
 
-					if (((!opt::use_ratio &&
+					if ((!opt::use_ratio &&
 					     static_cast<float>(check_there) >=
 					         (static_cast<float>(opt::k) / opt::edit_threshold)) ||
 					    (opt::use_ratio &&
 					     static_cast<float>(check_there) >=
-					         ((static_cast<float>(opt::k) / opt::jump)) * opt::edit_ratio))) { // RLW
+					         ((static_cast<float>(opt::k) / opt::jump)) * opt::edit_ratio)) {
 						best_sub_base = draft_char;
 						if (bloom.is_counting()) {
 							best_num_support = check_there_median;
