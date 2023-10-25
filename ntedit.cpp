@@ -1666,12 +1666,12 @@ kmerizeAndCorrect(
 
 				if (opt::snv) { // XXRLWXX -- sets baseline for draft
 
-					if ((!opt::use_ratio &&
+					if (((!opt::use_ratio &&
 					     static_cast<float>(check_there) >=
 					         (static_cast<float>(opt::k) / opt::edit_threshold)) ||
 					    (opt::use_ratio &&
 					     static_cast<float>(check_there) >=
-					         ((static_cast<float>(opt::k) / opt::jump)) * opt::edit_ratio)) { // RLW
+					         ((static_cast<float>(opt::k) / opt::jump)) * opt::edit_ratio))) { // RLW
 						best_sub_base = draft_char;
 						if (bloom.is_counting()) {
 							best_num_support = check_there_median;
