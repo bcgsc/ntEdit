@@ -13,7 +13,7 @@ jobs:
       - script: |
           source activate ntedit_CI
           conda install --yes -c conda-forge mamba python=3.9
-          mamba install --yes -c conda-forge -c bioconda compilers meson ninja btllib make clang-tools perl zlib
+          mamba install --yes -c conda-forge -c bioconda libcxx llvm clang compilers meson ninja btllib make clang-tools perl zlib
         displayName: Install dependencies
       - script: |
           source activate ntedit_CI
