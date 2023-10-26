@@ -22,8 +22,8 @@
 #include <map>
 #include "lib/kseq.h"
 #include "lib/nthash.hpp" // NOLINT
-#include <btllib/bloom_filter.hpp>
-#include <btllib/counting_bloom_filter.hpp>
+#include <btllib/bloom_filter.hpp> // NOLINT
+#include <btllib/counting_bloom_filter.hpp> // NOLINT
 
 #if _OPENMP
 #include <omp.h>
