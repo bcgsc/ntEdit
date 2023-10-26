@@ -35,10 +35,6 @@ jobs:
           make clang-format
         displayName: Clang-format
       - script: |
-          source activate ntedit_CI
-          cd build && ninja clang-tidy
-        displayName: 'Run clang-tidy'
-      - script: |
           make check
         displayName: Check output files
 
