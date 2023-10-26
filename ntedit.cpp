@@ -16,7 +16,6 @@
 #include <queue>
 #include <string>
 #include <cmath>
-#include <omp.h>
 #include <cassert>
 #include <cerrno>
 #include <unistd.h>
@@ -25,6 +24,11 @@
 #include "lib/nthash.hpp" // NOLINT
 #include <btllib/bloom_filter.hpp>
 #include <btllib/counting_bloom_filter.hpp>
+
+#if _OPENMP
+#include <omp.h>
+#endif
+
 //RLW 19AUG2023
 #include <iterator>
 #include <regex>
@@ -338,11 +342,12 @@ std::unordered_map<unsigned char, std::vector<std::string>> multi_possible_bases
 	    "TTTTT" } }
 };
 
-class BFWrapper
+class
+    BFWrapper // NOLINT(cppcoreguidelines-pro-type-member-init,hicpp-member-init,-warnings-as-errors)
 {
 
   public:
-	BFWrapper(const std::string& path)
+	BFWrapper(const std::string& path) // NOLINT
 	{
 		is_cbf = btllib::BloomFilter::check_file_signature(
 		    path, btllib::KMER_COUNTING_BLOOM_FILTER_SIGNATURE);
@@ -353,7 +358,7 @@ class BFWrapper
 		}
 	}
 
-	BFWrapper() = default;
+	BFWrapper() = default; // NOLINT
 
 	bool contains(const uint64_t* hashes)
 	{
@@ -371,7 +376,8 @@ class BFWrapper
 		return is_cbf ? cbf.get()->get_hash_num() : bf.get()->get_hash_num();
 	}
 
-	void print_details()
+	void
+	print_details() // NOLINT(readability-convert-member-functions-to-static,-warnings-as-errors)
 	{
 		const auto size = is_cbf ? cbf.get()->get_bytes() : bf.get()->get_bytes();
 		const auto fpr = is_cbf ? cbf.get()->get_fpr() : bf.get()->get_fpr();
