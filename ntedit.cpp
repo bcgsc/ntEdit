@@ -1274,8 +1274,8 @@ tryDeletion(
 
 	// verify the deletion with a subset
 	unsigned check_present = 0;
-	std::vector<unsigned> median_vec;
-	unsigned median = 0;
+	std::vector<unsigned> check_present_median_vec;
+	unsigned check_present_median = 0;
 	if (bloom.contains(hVal) && (!opt::secbf || !bloomrep.contains(hVal))) {
 		check_present++; // check for changing the kmer after deletion
 	}
@@ -1294,20 +1294,20 @@ tryDeletion(
 			    (!opt::secbf || !bloomrep.contains(hVal))) {
 				check_present++;
 				if (bloom.is_counting()) {
-					median_vec.emplace_back(bloom.get_count(hVal));
+					check_present_median_vec.emplace_back(bloom.get_count(hVal));
 				}
 			}
 		}
 	}
 	if (bloom.is_counting()) {
-		std::sort(median_vec.begin(), median_vec.end());
-		median = median_vec[median_vec.size() / 2];
+		std::sort(check_present_median_vec.begin(), check_present_median_vec.end());
+		check_present_median = check_present_median_vec[check_present_median_vec.size() / 2];
 	}
 
 	if (opt::verbose) {
 		std::cout << "\t\tdeleting: " << deleted_bases << " check_present: " << check_present;
 		if (bloom.is_counting()) {
-			std::cout << " median: " << median;
+			std::cout << " check_present_median_coverage: " << check_present_median;
 		}
 		std::cout << std::endl;
 	}
@@ -1317,7 +1317,7 @@ tryDeletion(
 	     static_cast<float>(check_present) >=
 	         (1 + (static_cast<float>(opt::k) / opt::jump)) * opt::edit_ratio)) { // RLW
 		if (bloom.is_counting()) {
-			return static_cast<int>(median);
+			return static_cast<int>(check_present_median);
 		}
 		return static_cast<int>(check_present);
 	}
@@ -1381,8 +1381,8 @@ tryIndels(
 		NTMC64_changelast(draft_char, index_char, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
 		unsigned check_present = 0;
 		unsigned k = 0; // RLW
-		std::vector<unsigned> median_vec;
-		unsigned median = 0;
+		std::vector<unsigned> check_present_median_vec;
+		unsigned check_present_median = 0;
 		// check subset with the insertion
 		for (; k < insertion_bases.size() - 1 && temp_h_seq_i < contigSeq.size(); k++) {
 			NTMC64(
@@ -1398,7 +1398,7 @@ tryIndels(
 			    (!opt::secbf || !bloomrep.contains(hVal))) { // RLW
 				check_present++;
 				if (bloom.is_counting()) {
-					median_vec.emplace_back(bloom.get_count(hVal));
+					check_present_median_vec.emplace_back(bloom.get_count(hVal));
 				}
 			}
 		}
@@ -1418,21 +1418,21 @@ tryIndels(
 				    (!opt::secbf || !bloomrep.contains(hVal))) { // RLW
 					check_present++;
 					if (bloom.is_counting()) {
-						median_vec.emplace_back(bloom.get_count(hVal));
+						check_present_median_vec.emplace_back(bloom.get_count(hVal));
 					}
 				}
 			}
 		}
 		insertion_bases.pop_back();
 		if (bloom.is_counting()) {
-			std::sort(median_vec.begin(), median_vec.end());
-			median = median_vec[median_vec.size() / 2];
+			std::sort(check_present_median_vec.begin(), check_present_median_vec.end());
+			check_present_median = check_present_median_vec[check_present_median_vec.size() / 2];
 		}
 		if (opt::verbose) {
 			std::cout << "\t\tinserting: " << insertion_bases
 			          << " check_present: " << check_present;
 			if (bloom.is_counting()) {
-				std::cout << " median: " << median;
+				std::cout << " check_present_median_coverage: " << check_present_median;
 			}
 			std::cout << std::endl;
 		}
@@ -1443,7 +1443,7 @@ tryIndels(
 		     static_cast<float>(check_present) >=
 		         (static_cast<float>(opt::k) / opt::jump) * opt::edit_ratio)) { // RLW
 			if (bloom.is_counting()) {
-				check_present = median;
+				check_present = check_present_median;
 			}
 			if (opt::mode == 0) {
 				// if we are in default mode, we just accept this first good insertion and return
@@ -1713,8 +1713,8 @@ kmerizeAndCorrect(
 						}
 						// check the subset to see if this substitution is good
 						unsigned check_present = 0;
-						std::vector<unsigned> median_vec;
-						unsigned median = 0;
+						std::vector<unsigned> check_present_median_vec;
+						unsigned check_present_median = 0;
 						for (unsigned k = 0; // RLW
 						     k < opt::k && temp_h_seq_i < seqLen && temp_t_seq_i < seqLen;
 						     k++) {
@@ -1733,7 +1733,7 @@ kmerizeAndCorrect(
 								    (!opt::secbf || !bloomrep.contains(hVal))) { // RLW
 									check_present++;
 									if (bloom.is_counting()) {
-										median_vec.push_back(bloom.get_count(hVal));
+										check_present_median_vec.push_back(bloom.get_count(hVal));
 									}
 								}
 							} else {
@@ -1741,8 +1741,8 @@ kmerizeAndCorrect(
 							}
 						}
 						if (bloom.is_counting()) {
-							std::sort(median_vec.begin(), median_vec.end());
-							median = median_vec[median_vec.size() / 2];
+							std::sort(check_present_median_vec.begin(), check_present_median_vec.end());
+							check_present_median = check_present_median_vec[check_present_median_vec.size() / 2];
 						}
 
 						// revert the substitution
@@ -1757,7 +1757,7 @@ kmerizeAndCorrect(
 							std::cout << "\t\tsub: " << sub_base
 							          << " check_present: " << check_present;
 							if (bloom.is_counting()) {
-								std::cout << " median: " << median;
+								std::cout << " check_present_median_coverage: " << check_present_median;
 							}
 							std::cout << std::endl;
 						}
@@ -1771,7 +1771,7 @@ kmerizeAndCorrect(
 
 							// update the best substitution
 							if (bloom.is_counting()) {
-								check_present = median;
+								check_present = check_present_median;
 							}
 							if (check_present >= best_num_support) {
 								if (altsupp2) {
