@@ -1290,7 +1290,7 @@ tryDeletion(
 		        charIn)) {
 			NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
 			if (k % opt::jump == 0 && bloom.contains(hVal) &&
-			  (!opt::secbf || !bloomrep.contains(hVal))) {
+			    (!opt::secbf || !bloomrep.contains(hVal))) {
 				check_present++;
 				if (bloom.is_counting()) {
 					median_vec.emplace_back(bloom.get_count(hVal));
@@ -1394,7 +1394,7 @@ tryIndels(
 			    hVal);
 			increment(temp_h_seq_i, temp_h_node_index, newSeq);
 			if (k % opt::jump == 0 && bloom.contains(hVal) &&
-			  (!opt::secbf || !bloomrep.contains(hVal))) { // RLW
+			    (!opt::secbf || !bloomrep.contains(hVal))) { // RLW
 				check_present++;
 				if (bloom.is_counting()) {
 					median_vec.emplace_back(bloom.get_count(hVal));
@@ -1414,7 +1414,7 @@ tryIndels(
 			        charIn)) {
 				NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
 				if (k % opt::jump == 0 && bloom.contains(hVal) &&
-						(!opt::secbf || !bloomrep.contains(hVal))) { // RLW
+					(!opt::secbf || !bloomrep.contains(hVal))) { // RLW
 					check_present++;
 					if (bloom.is_counting()) {
 					median_vec.emplace_back(bloom.get_count(hVal));
@@ -1727,12 +1727,12 @@ kmerizeAndCorrect(
 								NTMC64(
 								    charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
 								if (k % opt::jump == 0 && bloom.contains(hVal) &&
-										(!opt::secbf || !bloomrep.contains(hVal))) { // RLW
-										check_present++;
-										if (bloom.is_counting()) {
-											median_vec.push_back(bloom.get_count(hVal));
-										}
+									(!opt::secbf || !bloomrep.contains(hVal))) { // RLW
+									check_present++;
+									if (bloom.is_counting()) {
+										median_vec.push_back(bloom.get_count(hVal));
 									}
+								}
 							} else {
 								break;
 							}
