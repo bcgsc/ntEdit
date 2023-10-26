@@ -19,13 +19,13 @@ jobs:
           source activate ntedit_CI
           git clone https://github.com/bcgsc/ntHash.git
           cd ntHash
-          CPPFLAGS="-isystem ntHash/test_install/include $CPPFLAGS" LDFLAGS="-LntHash/test_install/lib -lnthash $LDFLAGS meson build --prefix=$(pwd)/test_install
+          meson build --prefix=$(pwd)/test_install
           cd build
           ninja install
         displayName: Install nthash
       - script: |
           source activate ntedit_CI
-          meson build --prefix=$(pwd)/test_build
+          CPPFLAGS="-isystem ntHash/test_install/include $CPPFLAGS" LDFLAGS="-LntHash/test_install/lib -lnthash $LDFLAGS" meson build --prefix=$(pwd)/test_build
           cd build
           ninja install
         displayName: Compile ntedit
