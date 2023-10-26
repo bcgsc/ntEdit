@@ -79,8 +79,10 @@ static const char USAGE_MESSAGE[] = PROGRAM
     "	-v,	verbose mode (-v 1 = yes, default = 0, no)\n"
     "\n"
     "	-p, minimum k-mer presence threshold for a base to be considered confident\n"
-    "			and minimum k-mer presence threshold within the subset for a base to be considered confident\n"
-	"			when using a counting Bloom filter [default=minimum of counting Bloom filter counts]\n"
+    "			and minimum k-mer presence threshold within the subset for a base to be considered "
+    "confident\n"
+    "			when using a counting Bloom filter [default=minimum of counting Bloom filter "
+    "counts]\n"
     "	--help,		display this message and exit \n"
     "	--version,	output version information and exit\n"
     "\n"
@@ -355,8 +357,7 @@ class BFWrapper
 
 	bool contains(const uint64_t* hashes)
 	{
-		return is_cbf ? cbf.get()->contains(hashes) >= opt::min_threshold
-		              : bf.get()->contains(hashes);
+		return is_cbf ? cbf.get()->contains(hashes) : bf.get()->contains(hashes);
 	}
 
 	uint8_t get_count(const uint64_t* hashes) { return is_cbf ? cbf.get()->contains(hashes) : 1; }
@@ -1580,7 +1581,8 @@ kmerizeAndCorrect(
 			std::cout << h_seq_i << " " << t_seq_i << " " << charIn << " " << h_node_index << " "
 			          << t_node_index << " " << hVal[0] << hVal[1] << hVal[2] << std::endl;
 		}
-		if (opt::snv || !bloom.contains(hVal)) {
+		if (opt::snv || !bloom.contains(hVal) ||
+		    (bloom.is_counting() && bloom.get_count(hVal) < opt::min_threshold)) {
 			// make temporary value holders
 			uint64_t temp_fhVal = fhVal;
 			uint64_t temp_rhVal = rhVal;
@@ -1741,8 +1743,10 @@ kmerizeAndCorrect(
 							}
 						}
 						if (bloom.is_counting()) {
-							std::sort(check_present_median_vec.begin(), check_present_median_vec.end());
-							check_present_median = check_present_median_vec[check_present_median_vec.size() / 2];
+							std::sort(
+							    check_present_median_vec.begin(), check_present_median_vec.end());
+							check_present_median =
+							    check_present_median_vec[check_present_median_vec.size() / 2];
 						}
 
 						// revert the substitution
@@ -1757,7 +1761,8 @@ kmerizeAndCorrect(
 							std::cout << "\t\tsub: " << sub_base
 							          << " check_present: " << check_present;
 							if (bloom.is_counting()) {
-								std::cout << " check_present_median_coverage: " << check_present_median;
+								std::cout << " check_present_median_coverage: "
+								          << check_present_median;
 							}
 							std::cout << std::endl;
 						}
