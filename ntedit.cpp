@@ -78,7 +78,8 @@ static const char USAGE_MESSAGE[] = PROGRAM
     "	-a,	soft masks missing k-mer positions having no fix (-v 1 = yes, default = 0, no)\n"
     "	-v,	verbose mode (-v 1 = yes, default = 0, no)\n"
     "\n"
-	"	-p, minimum k-mer presence threshold for a base to be considered confident when using a counting Bloom filter [default=minimum of counting Bloom filter counts]\n"
+    "	-p, minimum k-mer presence threshold for a base to be considered confident when using a "
+    "counting Bloom filter [default=minimum of counting Bloom filter counts]\n"
     "	--help,		display this message and exit \n"
     "	--version,	output version information and exit\n"
     "\n"
@@ -353,12 +354,11 @@ class BFWrapper
 
 	bool contains(const uint64_t* hashes)
 	{
-		return is_cbf ? cbf.get()->contains(hashes) >= opt::min_threshold : bf.get()->contains(hashes);
+		return is_cbf ? cbf.get()->contains(hashes) >= opt::min_threshold
+		              : bf.get()->contains(hashes);
 	}
 
-	uint8_t get_count(const uint64_t* hashes) {
-		return is_cbf ? cbf.get()->contains(hashes) : 1;
-	}
+	uint8_t get_count(const uint64_t* hashes) { return is_cbf ? cbf.get()->contains(hashes) : 1; }
 
 	bool is_counting() const { return is_cbf; }
 
@@ -1414,11 +1414,11 @@ tryIndels(
 			        charIn)) {
 				NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
 				if (k % opt::jump == 0 && bloom.contains(hVal) &&
-					(!opt::secbf || !bloomrep.contains(hVal))) { // RLW
+				    (!opt::secbf || !bloomrep.contains(hVal))) { // RLW
 					check_present++;
 					if (bloom.is_counting()) {
-					median_vec.emplace_back(bloom.get_count(hVal));
-					}					
+						median_vec.emplace_back(bloom.get_count(hVal));
+					}
 				}
 			}
 		}
@@ -1428,7 +1428,8 @@ tryIndels(
 			median = median_vec[median_vec.size() / 2];
 		}
 		if (opt::verbose) {
-			std::cout << "\t\tinserting: " << insertion_bases << " check_present: " << check_present;
+			std::cout << "\t\tinserting: " << insertion_bases
+			          << " check_present: " << check_present;
 			if (bloom.is_counting()) {
 				std::cout << " median: " << median;
 			}
@@ -1637,14 +1638,15 @@ kmerizeAndCorrect(
 			if (opt::verbose) {
 				std::cout << "\tcheck_missing: " << check_missing << std::endl;
 			}
-			if ((opt::snv) || ((!do_not_fix) &&
-			                   (((!opt::use_ratio &&
-			                      static_cast<float>(check_missing) >=
-			                          (static_cast<float>(opt::k) / opt::missing_threshold))) ||
-			                    ((opt::use_ratio && static_cast<float>(check_missing) >=
-			                                            ((static_cast<float>(opt::k) / opt::jump) *
-			                                             opt::missing_ratio))) ||
-															(bloom.is_counting() && check_there_median < opt::min_threshold)))) { // RLW
+			if ((opt::snv) ||
+			    ((!do_not_fix) &&
+			     (((!opt::use_ratio &&
+			        static_cast<float>(check_missing) >=
+			            (static_cast<float>(opt::k) / opt::missing_threshold))) ||
+			      ((opt::use_ratio &&
+			        static_cast<float>(check_missing) >=
+			            ((static_cast<float>(opt::k) / opt::jump) * opt::missing_ratio))) ||
+			      (bloom.is_counting() && check_there_median < opt::min_threshold)))) { // RLW
 
 				// recorders
 				unsigned num_deletions = 1;
@@ -1727,7 +1729,7 @@ kmerizeAndCorrect(
 								NTMC64(
 								    charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
 								if (k % opt::jump == 0 && bloom.contains(hVal) &&
-									(!opt::secbf || !bloomrep.contains(hVal))) { // RLW
+								    (!opt::secbf || !bloomrep.contains(hVal))) { // RLW
 									check_present++;
 									if (bloom.is_counting()) {
 										median_vec.push_back(bloom.get_count(hVal));
@@ -1767,7 +1769,7 @@ kmerizeAndCorrect(
 						                               opt::edit_ratio)) { // RLW
 
 							// update the best substitution
-							if (bloom.is_counting()){
+							if (bloom.is_counting()) {
 								check_present = median;
 							}
 							if (check_present >= best_num_support) {
@@ -2196,8 +2198,9 @@ main(int argc, char** argv) // NOLINT
 	    static_cast<unsigned>(static_cast<float>(opt::k) * opt::default_insertion_cap_ratio);
 
 	if (!bloom.is_counting() && opt::min_threshold != 1) {
-		std::cerr << PROGRAM ": warning: Bloom filter is not counting, min k-mer presence threshold will be "
-		                     "set to 1.\n";
+		std::cerr << PROGRAM
+		    ": warning: Bloom filter is not counting, min k-mer presence threshold will be "
+		    "set to 1.\n";
 		opt::min_threshold = 1;
 	}
 
