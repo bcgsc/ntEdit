@@ -24,8 +24,6 @@ jobs:
           ninja install
         displayName: Install nthash
       - script: |
-          export CPPFLAGS="-isystem $(pwd)/ntHash/test_install/include $CPPFLAGS"
-          export LDFLAGS="-L$(pwd)/ntHash/test_install/lib -lnthash $LDFLAGS
           source activate ntedit_CI
           meson build --prefix=$(pwd)/test_build
           cd build
