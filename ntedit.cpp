@@ -1307,8 +1307,10 @@ tryDeletion(
 		}
 	}
 	if (bloom.is_counting()) {
-		std::sort(check_present_median_vec.begin(), check_present_median_vec.end());
-		check_present_median = check_present_median_vec[check_present_median_vec.size() / 2];
+		if (check_present_median_vec.size() > 0) {
+			std::sort(check_present_median_vec.begin(), check_present_median_vec.end());
+			check_present_median = check_present_median_vec[check_present_median_vec.size() / 2];
+		}
 	}
 
 	if (opt::verbose) {
@@ -1432,8 +1434,11 @@ tryIndels(
 		}
 		insertion_bases.pop_back();
 		if (bloom.is_counting()) {
-			std::sort(check_present_median_vec.begin(), check_present_median_vec.end());
-			check_present_median = check_present_median_vec[check_present_median_vec.size() / 2];
+			if (check_present_median_vec.size() > 0) {
+				std::sort(check_present_median_vec.begin(), check_present_median_vec.end());
+				check_present_median =
+				    check_present_median_vec[check_present_median_vec.size() / 2];
+			}
 		}
 		if (opt::verbose) {
 			std::cout << "\t\tinserting: " << insertion_bases
@@ -1641,8 +1646,10 @@ kmerizeAndCorrect(
 				}
 			}
 			if (bloom.is_counting()) {
-				std::sort(check_there_median_vec.begin(), check_there_median_vec.end());
-				check_there_median = check_there_median_vec[check_there_median_vec.size() / 2];
+				if (check_there_median_vec.size() > 0) {
+					std::sort(check_there_median_vec.begin(), check_there_median_vec.end());
+					check_there_median = check_there_median_vec[check_there_median_vec.size() / 2];
+				}
 			}
 			if (opt::verbose) {
 				std::cout << "\tcheck_missing: " << check_missing << std::endl;
@@ -1749,10 +1756,13 @@ kmerizeAndCorrect(
 							}
 						}
 						if (bloom.is_counting()) {
-							std::sort(
-							    check_present_median_vec.begin(), check_present_median_vec.end());
-							check_present_median =
-							    check_present_median_vec[check_present_median_vec.size() / 2];
+							if (check_present_median_vec.size() > 0) {
+								std::sort(
+								    check_present_median_vec.begin(),
+								    check_present_median_vec.end());
+								check_present_median =
+								    check_present_median_vec[check_present_median_vec.size() / 2];
+							}
 						}
 
 						// revert the substitution
