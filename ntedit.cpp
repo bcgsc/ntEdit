@@ -29,6 +29,7 @@
 #include <omp.h>
 #endif
 
+#include <btllib/nthash.hpp>
 //RLW 19AUG2023
 #include <iterator>
 #include <regex>
@@ -467,6 +468,55 @@ is_kmer_solid(uint64_t* hVal, const BFWrapper& bloom, const BFWrapper& bloomrep)
 	bool solid_if_count = !bloom.is_counting() || bloom.get_count(hVal) <= opt::max_threshold;
 
 	return solid_if_reg && solid_if_count;
+}
+
+inline void
+NTMC64(
+    const char* kmerSeq,
+    const unsigned k,
+    const unsigned m,
+    uint64_t& fhVal,
+    uint64_t& rhVal,
+    uint64_t* hVal)
+{
+	fhVal = btllib::hashing_internals::base_forward_hash(kmerSeq, k);
+	rhVal = btllib::hashing_internals::base_reverse_hash(kmerSeq, k);
+	uint64_t base_hash = btllib::hashing_internals::canonical(fhVal, rhVal);
+	btllib::hashing_internals::extend_hashes(base_hash, k, m, hVal);
+}
+
+inline void
+NTMC64(
+    const unsigned char charOut,
+    const unsigned char charIn,
+    const unsigned k,
+    const unsigned m,
+    uint64_t& fhVal,
+    uint64_t& rhVal,
+    uint64_t* hVal)
+{
+	fhVal = btllib::hashing_internals::next_forward_hash(fhVal, k, charOut, charIn);
+	rhVal = btllib::hashing_internals::next_reverse_hash(rhVal, k, charOut, charIn);
+	uint64_t base_hash = btllib::hashing_internals::canonical(fhVal, rhVal);
+	btllib::hashing_internals::extend_hashes(base_hash, k, m, hVal);
+}
+
+inline void
+NTMC64_changelast(
+    const unsigned char charOut,
+    const unsigned char charIn,
+    const unsigned k,
+    const unsigned m,
+    uint64_t& fhVal,
+    uint64_t& rhVal,
+    uint64_t* hVal)
+{
+	fhVal ^= btllib::hashing_internals::SEED_TAB[charOut];
+	fhVal ^= btllib::hashing_internals::SEED_TAB[charIn];
+	rhVal ^= btllib::hashing_internals::srol_table(charOut, k - 1);
+	rhVal ^= btllib::hashing_internals::srol_table(charIn, k - 1);
+	uint64_t base_hash = btllib::hashing_internals::canonical(fhVal, rhVal);
+	btllib::hashing_internals::extend_hashes(base_hash, k, m, hVal);
 }
 
 /* Checks that the filepath is readable and exits if it is not. */
