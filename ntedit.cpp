@@ -22,9 +22,9 @@
 #include <unistd.h>
 #include <map>
 #include "lib/kseq.h"
-#include "lib/nthash.hpp" // NOLINT
 #include <btllib/bloom_filter.hpp>
 #include <btllib/counting_bloom_filter.hpp>
+#include <btllib/nthash.hpp>
 //RLW 19AUG2023
 #include <iterator>
 #include <regex>
@@ -354,9 +354,7 @@ class BFWrapper
 		return is_cbf ? cbf.get()->contains(hashes) > 0 : bf.get()->contains(hashes);
 	}
 
-	uint8_t get_count(const uint64_t* hashes) {
-		return is_cbf ? cbf.get()->contains(hashes) : 1;
-	}
+	uint8_t get_count(const uint64_t* hashes) { return is_cbf ? cbf.get()->contains(hashes) : 1; }
 
 	bool is_counting() const { return is_cbf; }
 
@@ -381,6 +379,55 @@ class BFWrapper
 	std::unique_ptr<btllib::KmerBloomFilter> bf;
 	std::unique_ptr<btllib::KmerCountingBloomFilter8> cbf;
 };
+
+inline void
+NTMC64(
+    const char* kmerSeq,
+    const unsigned k,
+    const unsigned m,
+    uint64_t& fhVal,
+    uint64_t& rhVal,
+    uint64_t* hVal)
+{
+	fhVal = btllib::hashing_internals::base_forward_hash(kmerSeq, k);
+	rhVal = btllib::hashing_internals::base_reverse_hash(kmerSeq, k);
+	uint64_t base_hash = btllib::hashing_internals::canonical(fhVal, rhVal);
+	btllib::hashing_internals::extend_hashes(base_hash, k, m, hVal);
+}
+
+inline void
+NTMC64(
+    const unsigned char charOut,
+    const unsigned char charIn,
+    const unsigned k,
+    const unsigned m,
+    uint64_t& fhVal,
+    uint64_t& rhVal,
+    uint64_t* hVal)
+{
+	fhVal = btllib::hashing_internals::next_forward_hash(fhVal, k, charOut, charIn);
+	rhVal = btllib::hashing_internals::next_reverse_hash(rhVal, k, charOut, charIn);
+	uint64_t base_hash = btllib::hashing_internals::canonical(fhVal, rhVal);
+	btllib::hashing_internals::extend_hashes(base_hash, k, m, hVal);
+}
+
+inline void
+NTMC64_changelast(
+    const unsigned char charOut,
+    const unsigned char charIn,
+    const unsigned k,
+    const unsigned m,
+    uint64_t& fhVal,
+    uint64_t& rhVal,
+    uint64_t* hVal)
+{
+	fhVal ^= btllib::hashing_internals::SEED_TAB[charOut];
+	fhVal ^= btllib::hashing_internals::SEED_TAB[charIn];
+	rhVal ^= btllib::hashing_internals::srol_table(charOut, k - 1);
+	rhVal ^= btllib::hashing_internals::srol_table(charIn, k - 1);
+	uint64_t base_hash = btllib::hashing_internals::canonical(fhVal, rhVal);
+	btllib::hashing_internals::extend_hashes(base_hash, k, m, hVal);
+}
 
 /* Checks that the filepath is readable and exits if it is not. */
 static inline void
