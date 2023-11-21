@@ -37,11 +37,11 @@ Thank you for your [![Stars](https://img.shields.io/github/stars/bcgsc/ntEdit.sv
 
 ## Description <a name=description></a>
 
-ntEdit is a fast and scalable genomics application for polishing genome assembly drafts, with best performance on long read assemblies.
+ntEdit is a fast and scalable genomics application for polishing genome sequence assembly drafts. 
 It simplifies polishing, variant detection* and "haploidization" of gene and genome sequences with its re-usable Bloom filter design.
-We expect ntEdit to have additional application in fast mapping of simple nucleotide variations between any two individuals or species’ genomes.
+Although it was originally designed as a general-purpose polishing tool, initally aimed at improving genome sequences by fixing base mismatches and frame shift errors with the help of more base-accurate short sequencing reads, ntEdit can also be used with long reads and to "finish" genome sequence assembly projects (refer to <a href=https://github.com/bcgsc/goldPolish>GoldPolish</a> and the <a href=https://github.com/bcgsc/ntedit_sealer_protocol target=blank>ntedit+sealer genome assembly finishing protocol</a>).   
+We expect ntEdit to have additional application in fast mapping of single nucleotide variants.
 
-ACCESS THE <a href=https://github.com/bcgsc/ntedit_sealer_protocol target=blank>NTEDIT+SEALER GENOME ASSEMBLY FINISHING PROTOCOL</a>
 
 ```diff
 ! NOTE: In v1.3.1 onwards, the parameter k is automatically detected from supplied Bloom filters
