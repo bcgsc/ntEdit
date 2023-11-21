@@ -39,7 +39,7 @@ Thank you for your [![Stars](https://img.shields.io/github/stars/bcgsc/ntEdit.sv
 
 ntEdit is a fast and scalable genomics application for polishing genome sequence assembly drafts. 
 It simplifies polishing, variant detection* and "haploidization" of gene and genome sequences with its re-usable Bloom filter design.
-Although it was originally designed as a general-purpose polishing tool, initally aimed at improving genome sequences by fixing base mismatches and frame shift errors with the help of more base-accurate short sequencing reads, ntEdit can also be used with long reads and to "finish" genome sequence assembly projects (refer to <a href=https://github.com/bcgsc/goldPolish>GoldPolish</a> and the <a href=https://github.com/bcgsc/ntedit_sealer_protocol target=blank>ntedit+sealer genome assembly finishing protocol</a>), respectively.
+Although it was originally designed as a general-purpose polishing tool, initally aimed at improving genome sequences by fixing base mismatches and frame shift errors with the help of more base-accurate short sequencing reads, ntEdit can also be used with long reads and to "finish" genome sequence assembly projects (refer to <a href=https://github.com/bcgsc/goldPolish target="_blank">GoldPolish</a> and the <a href=https://github.com/bcgsc/ntedit_sealer_protocol target="_blank">ntedit+sealer genome assembly finishing protocol</a>), respectively.
 
 We expect ntEdit to have additional applications in fast mapping of single nucleotide variants (see below a demonstration on the first available genome sequence reference of SARS-CoV-2, a highly transmissible and pathogenic coronavirus and etiological agent of COVID-19).
 
@@ -49,7 +49,7 @@ We expect ntEdit to have additional applications in fast mapping of single nucle
 ```
   
 ![SARS-CoV-2 evolution in human hosts](https://bcgsc.github.io/SARS2/fig1.png?raw=true)
-**SARS-CoV-2 evolution in human hosts**. ntEdit v1.3.4 was used to map nucleotide variation between the first published coronavirus isolate from Wuhan in early January and over 1,500,000 SARS-CoV-2 genomes sampled from around the globe during the COVID-19 pandemic. <a href=https://bcgsc.github.io/SARS2 target=blank>Additional (& interactive) timemaps are available</a>.
+**SARS-CoV-2 evolution in human hosts**. ntEdit v1.3.4 was used to map nucleotide variation between the first published coronavirus isolate from Wuhan in early January and over 1,500,000 SARS-CoV-2 genomes sampled from around the globe during the COVID-19 pandemic. <a href=https://bcgsc.github.io/SARS2 target="_blank">Additional (& interactive) timemaps are available</a>.
 
 
 ## Implementation and requirements <a name=implementation></a>
