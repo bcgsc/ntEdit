@@ -39,8 +39,9 @@ Thank you for your [![Stars](https://img.shields.io/github/stars/bcgsc/ntEdit.sv
 
 ntEdit is a fast and scalable genomics application for polishing genome sequence assembly drafts. 
 It simplifies polishing, variant detection* and "haploidization" of gene and genome sequences with its re-usable Bloom filter design.
-Although it was originally designed as a general-purpose polishing tool, initally aimed at improving genome sequences by fixing base mismatches and frame shift errors with the help of more base-accurate short sequencing reads, ntEdit can also be used with long reads and to "finish" genome sequence assembly projects (refer to <a href=https://github.com/bcgsc/goldPolish>GoldPolish</a> and the <a href=https://github.com/bcgsc/ntedit_sealer_protocol target=blank>ntedit+sealer genome assembly finishing protocol</a>).   
-We expect ntEdit to have additional application in fast mapping of single nucleotide variants.
+Although it was originally designed as a general-purpose polishing tool, initally aimed at improving genome sequences by fixing base mismatches and frame shift errors with the help of more base-accurate short sequencing reads, ntEdit can also be used with long reads and to "finish" genome sequence assembly projects (refer to <a href=https://github.com/bcgsc/goldPolish>GoldPolish</a> and the <a href=https://github.com/bcgsc/ntedit_sealer_protocol target=blank>ntedit+sealer genome assembly finishing protocol</a>), respectively.
+
+We expect ntEdit to have additional applications in fast mapping of single nucleotide variants (see below a demonstration with the initial genome sequence reference of SARS-CoV-2, a highly transmissible and pathogenic coronavirus and etiological agent of COVID-19).
 
 
 ```diff
