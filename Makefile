@@ -19,7 +19,7 @@ ifneq ("$(wildcard *.fixed)","")
 endif
 
 check:
-	bash demo/runme.sh
+	cd demo  && bash runme.sh
 
 clean: 
 	rm ntedit
