@@ -13,4 +13,4 @@ nthits cbf -v -f ntcard_k25.hist -o nthits.cbf -k 25 --solid Sim_100_300_1.fq.gz
 # /usr/bin/time -v -o nthits.time nthits bf -v -f ntcard_k25.hist -o nthits.bf -k 25 --solid Sim_100_300_1.fq.gz Sim_100_300_2.fq.gz
 
 echo -e "\nRUNNING NTEDIT"
-../build/ntedit -f ecoliWithMismatches001Indels0001.fa.gz -r nthits.bf -b ntedit
+../build/ntedit -f ecoliWithMismatches001Indels0001.fa.gz -r nthits.cbf -b ntedit
