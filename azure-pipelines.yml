@@ -35,7 +35,7 @@ jobs:
           make clang-format
         displayName: Clang-format
       - script: |
-          source activate ntedit_ci
+          source activate ntedit_CI
           make check
         displayName: Check output files
 
