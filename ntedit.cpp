@@ -87,6 +87,8 @@ static const char USAGE_MESSAGE[] = PROGRAM
     "confident\n"
     "			when using a counting Bloom filter [default=minimum of counting Bloom filter "
     "counts]\n"
+    "	-q, maximum k-mer presence threshold for a base to be considered confident\n"
+    "			when using a counting Bloom filter [default=255, largest possible value]\n"
     "	--help,		display this message and exit \n"
     "	--version,	output version information and exit\n"
     "\n"
@@ -127,7 +129,7 @@ int mask = 0; // RLW2021
 int verbose = 0;
 int secbf = 0;
 unsigned min_threshold = 1;
-unsigned max_threshold = 100;
+unsigned max_threshold = 255;
 } // namespace opt
 
 static const char shortopts[] = "t:f:s:k:z:b:r:v:d:i:X:Y:x:y:m:c:j:s:e:a:l:p:q:"; // RLW2021
@@ -159,6 +161,8 @@ static const struct option longopts[] = {
 	{ "vcf_file", required_argument, nullptr, 'l' },
 	{ "mask", required_argument, nullptr, 'a' },
 	{ "verbose", required_argument, nullptr, 'v' },
+	{ "minimum_kmer_coverage", required_argument, nullptr, 'p' },
+	{ "maximum_kmer_coverage", required_argument, nullptr, 'q' },
 	{ "help", no_argument, nullptr, OPT_HELP },
 	{ "version", no_argument, nullptr, OPT_VERSION },
 	{ nullptr, 0, nullptr, 0 }
@@ -363,7 +367,7 @@ class
 
 	bool contains(const uint64_t* hashes)
 	{
-		return is_cbf ? cbf.get()->contains(hashes) : bf.get()->contains(hashes);
+		return is_cbf ? cbf.get()->contains(hashes) > 0 : bf.get()->contains(hashes);
 	}
 
 	uint8_t get_count(const uint64_t* hashes) { return is_cbf ? cbf.get()->contains(hashes) : 1; }
