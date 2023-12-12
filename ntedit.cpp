@@ -22,8 +22,8 @@
 #include <map>
 #include "lib/kseq.h"
 #include "lib/nthash.hpp" // NOLINT
-#include <btllib/bloom_filter.hpp> // NOLINT(clang-diagnostic-error)
-#include <btllib/counting_bloom_filter.hpp> // NOLINT(clang-diagnostic-error)
+#include <btllib/bloom_filter.hpp>
+#include <btllib/counting_bloom_filter.hpp>
 
 #if _OPENMP
 #include <omp.h>
@@ -127,9 +127,10 @@ int mask = 0; // RLW2021
 int verbose = 0;
 int secbf = 0;
 unsigned min_threshold = 1;
+unsigned max_threshold = 100;
 } // namespace opt
 
-static const char shortopts[] = "t:f:s:k:z:b:r:v:d:i:X:Y:x:y:m:c:j:s:e:a:l:p:"; // RLW2021
+static const char shortopts[] = "t:f:s:k:z:b:r:v:d:i:X:Y:x:y:m:c:j:s:e:a:l:p:q:"; // RLW2021
 
 enum
 {
@@ -1283,7 +1284,9 @@ tryDeletion(
 	unsigned check_present = 0;
 	std::vector<unsigned> check_present_median_vec;
 	unsigned check_present_median = 0;
-	if (bloom.contains(hVal) && (!opt::secbf || !bloomrep.contains(hVal))) {
+	bool solid_if_reg = !opt::secbf || !bloomrep.contains(hVal);
+	bool solid_if_count = !bloom.is_counting() || bloom.get_count(hVal) <= opt::max_threshold;
+	if (bloom.contains(hVal) && solid_if_reg && solid_if_count) {
 		check_present++; // check for changing the kmer after deletion
 	}
 	for (unsigned k = 1; k <= (opt::k - 2) && temp_h_seq_i < contigSeq.size(); k++) {
@@ -1297,8 +1300,9 @@ tryDeletion(
 		        charOut,
 		        charIn)) {
 			NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
-			if (k % opt::jump == 0 && bloom.contains(hVal) &&
-			    (!opt::secbf || !bloomrep.contains(hVal))) {
+			solid_if_reg = !opt::secbf || !bloomrep.contains(hVal);
+			solid_if_count = !bloom.is_counting() || bloom.get_count(hVal) <= opt::max_threshold;
+			if (k % opt::jump == 0 && bloom.contains(hVal) && solid_if_reg && solid_if_count) {
 				check_present++;
 				if (bloom.is_counting()) {
 					check_present_median_vec.emplace_back(bloom.get_count(hVal));
@@ -1326,6 +1330,9 @@ tryDeletion(
 	     static_cast<float>(check_present) >=
 	         (1 + (static_cast<float>(opt::k) / opt::jump)) * opt::edit_ratio)) { // RLW
 		if (bloom.is_counting()) {
+			if (!opt::snv && !(check_present_median >= opt::min_threshold)) {
+				return 0;
+			}
 			return static_cast<int>(check_present_median);
 		}
 		return static_cast<int>(check_present);
@@ -1371,6 +1378,8 @@ tryIndels(
 	unsigned temp_best_edit_type = 0;
 	unsigned char charIn;
 	unsigned char charOut;
+	bool solid_if_reg = false;
+	bool solid_if_count = false;
 
 	// try all of the combinations of indels starting with our index_char
 	for (unsigned i = 0; i < num_tries[opt::max_insertions]; i++) {
@@ -1403,8 +1412,10 @@ tryIndels(
 			    temp_rhVal,
 			    hVal);
 			increment(temp_h_seq_i, temp_h_node_index, newSeq);
-			if (k % opt::jump == 0 && bloom.contains(hVal) &&
-			    (!opt::secbf || !bloomrep.contains(hVal))) { // RLW
+			solid_if_reg = !opt::secbf || !bloomrep.contains(hVal);
+			solid_if_count = !bloom.is_counting() || bloom.get_count(hVal) <= opt::max_threshold;
+			if (k % opt::jump == 0 && bloom.contains(hVal) && solid_if_reg &&
+			    solid_if_count) { // RLW
 				check_present++;
 				if (bloom.is_counting()) {
 					check_present_median_vec.emplace_back(bloom.get_count(hVal));
@@ -1423,8 +1434,11 @@ tryIndels(
 			        charOut,
 			        charIn)) {
 				NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
-				if (k % opt::jump == 0 && bloom.contains(hVal) &&
-				    (!opt::secbf || !bloomrep.contains(hVal))) { // RLW
+				solid_if_reg = !opt::secbf || !bloomrep.contains(hVal);
+				solid_if_count =
+				    !bloom.is_counting() || bloom.get_count(hVal) <= opt::max_threshold;
+				if (k % opt::jump == 0 && bloom.contains(hVal) && solid_if_reg &&
+				    solid_if_count) { // RLW
 					check_present++;
 					if (bloom.is_counting()) {
 						check_present_median_vec.emplace_back(bloom.get_count(hVal));
@@ -1455,6 +1469,10 @@ tryIndels(
 		     static_cast<float>(check_present) >=
 		         (static_cast<float>(opt::k) / opt::jump) * opt::edit_ratio)) { // RLW
 			if (bloom.is_counting()) {
+				if (!opt::snv && !(check_present_median <= opt::max_threshold &&
+				                   check_present_median >= opt::min_threshold)) {
+					continue;
+				}
 				check_present = check_present_median;
 			}
 			if (opt::mode == 0) {
@@ -1710,9 +1728,12 @@ kmerizeAndCorrect(
 					// hash the substitution change
 					NTMC64_changelast(
 					    draft_char, sub_base, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
+					bool solid_if_reg = !opt::secbf || !bloomrep.contains(hVal);
+					bool solid_if_count =
+					    !bloom.is_counting() || bloom.get_count(hVal) <= opt::max_threshold;
 
 					// only do verification of substitution if it is found in Bloom filter
-					if ((bloom.contains(hVal) && (!opt::secbf || !bloomrep.contains(hVal))) ||
+					if ((bloom.contains(hVal) && solid_if_reg && solid_if_count) ||
 					    opt::mode == 2) {
 						// reset temporary values
 						temp_h_node_index = h_node_index;
@@ -1744,8 +1765,11 @@ kmerizeAndCorrect(
 							        charIn)) {
 								NTMC64(
 								    charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
-								if (k % opt::jump == 0 && bloom.contains(hVal) &&
-								    (!opt::secbf || !bloomrep.contains(hVal))) { // RLW
+								solid_if_reg = !opt::secbf || !bloomrep.contains(hVal);
+								solid_if_count = !bloom.is_counting() ||
+								                 bloom.get_count(hVal) <= opt::max_threshold;
+								if (k % opt::jump == 0 && bloom.contains(hVal) && solid_if_reg &&
+								    solid_if_count) { // RLW
 									check_present++;
 									if (bloom.is_counting()) {
 										check_present_median_vec.push_back(bloom.get_count(hVal));
@@ -1792,6 +1816,10 @@ kmerizeAndCorrect(
 
 							// update the best substitution
 							if (bloom.is_counting()) {
+								if (!opt::snv && !(check_present_median <= opt::max_threshold &&
+								                   check_present_median >= opt::min_threshold)) {
+									continue;
+								}
 								check_present = check_present_median;
 							}
 							if (check_present >= best_num_support) {
@@ -2117,6 +2145,9 @@ main(int argc, char** argv) // NOLINT
 		case 'p':
 			arg >> opt::min_threshold;
 			break;
+		case 'q':
+			arg >> opt::max_threshold;
+			break;
 		case OPT_HELP:
 			std::cerr << USAGE_MESSAGE;
 			exit(EXIT_SUCCESS);
@@ -2285,6 +2316,10 @@ main(int argc, char** argv) // NOLINT
 	          << vcf_basename << "\n -a " << opt::mask << "\n -t " << opt::nthreads << "\n -v "
 	          << opt::verbose << "\n"
 	          << std::endl;
+	if (bloom.is_counting()) {
+		std::cout << " -p " << opt::min_threshold << "\n -q " << opt::max_threshold << "\n"
+		          << std::endl;
+	}
 
 	// VCF file reading RLW 19AUG2023
 	std::string line;
