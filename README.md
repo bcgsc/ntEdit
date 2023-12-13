@@ -10,7 +10,7 @@ Thank you for your [![Stars](https://img.shields.io/github/stars/bcgsc/ntEdit.sv
 # ntEdit
 
 ## Fast, lightweight, scalable genome sequence polishing and SNV detection & annotation 
-### 2018-2023
+### 2018-present
 
 
 ## Contents
@@ -405,7 +405,7 @@ note: ntEdit will polish input sequences in upper or lowercase bases. The case o
 
 ## License <a name=license></a>
 
-ntEdit Copyright (c) 2018-2023 British Columbia Cancer Agency Branch.  All rights reserved.
+ntEdit Copyright (c) 2018-present British Columbia Cancer Agency Branch.  All rights reserved.
 
 ntEdit is released under the GNU General Public License v3
 
