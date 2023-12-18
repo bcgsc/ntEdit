@@ -2068,7 +2068,7 @@ readAndCorrect(
 }
 
 void
-vcf_entry_to_map(std::string vcf_entry, std::map<std::string, std::string>& var_map)
+vcf_entry_to_map(const std::string& vcf_entry, std::map<std::string, std::string>& var_map)
 {
 	const std::regex re("\t");
 	std::sregex_token_iterator first{ vcf_entry.begin(), vcf_entry.end(), re, -1 }, // NOLINT
