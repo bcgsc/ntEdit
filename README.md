@@ -203,8 +203,8 @@ ntedit v1.4.3
  Options:
 	-t,	number of threads [default=1]
 	-f,	draft genome assembly (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED
-	-r,	Bloom filter file (generated from ntHits), REQUIRED
-	-e,	secondary Bloom filter with k-mers to reject (generated from ntHits), OPTIONAL
+	-r,	Bloom filter (BF) or counting BF (CBF) file (generated from ntHits v1.0.1+), REQUIRED
+	-e,	secondary BF with k-mers to reject (generated from ntHits v1.0.1+), OPTIONAL - NOT NEEDED with CBF
 	-b,	output file prefix, OPTIONAL
 	-z,	minimum contig length [default=100]
 	-i,	maximum number of insertion bases to try, range 0-5, [default=5]
@@ -223,6 +223,8 @@ ntedit v1.4.3
 	-l,	input VCF file with annotated variants (e.g., clinvar.vcf), OPTIONAL
 	-a,	soft masks missing k-mer positions having no fix (-v 1 = yes, default = 0, no)
 	-v,	verbose mode (-v 1 = yes, default = 0, no)
+	-p, minimum k-mer coverage threshold (CBF only) [default=minimum of counting Bloom filter counts, cannot be larger than 255]
+	-q, maximum k-mer coverage threshold (CBF only) [default=255, largest possible value]
 
 	--help,		display this message and exit 
 	--version,	output version information and exit
@@ -364,7 +366,11 @@ For more information about usage:
 </pre>
 
 ### Test data <a name=test></a>
-
+The demo script will use the installed ntEdit binary. Please ensure that the ntEdit binary is in your PATH.
+<pre>
+export PATH=/path/to/ntEdit:$PATH
+<pre>
+Running the demo
 <pre>
 Go to ./demo
 (cd demo)
@@ -372,9 +378,9 @@ Go to ./demo
 run:
 ./runme.sh
 
-(../ntedit -f ecoliWithMismatches001Indels0001.fa.gz -r solidBF_k25.bf -d 5 -i 4 -b ntEditEcolik25)
+(ntedit -f ecoliWithMismatches001Indels0001.fa.gz -r nthits.cbf -b ntedit)
 
-ntEdit will polish an E. coli genome sequence with substitution error ~0.001 and indels ~0.0001 using pre-made ntHits Bloom filter
+ntEdit will polish an E. coli genome sequence with substitution error ~0.001 and indels ~0.0001 using pre-made ntHits counting Bloom filter
 
 Expected files will be:
 ntEditEcolik25_changes.tsv
