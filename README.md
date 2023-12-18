@@ -381,7 +381,7 @@ run:
 
 (ntedit -f ecoliWithMismatches001Indels0001.fa.gz -r nthits.cbf -b ntedit)
 
-ntEdit will polish an E. coli genome sequence with substitution error ~0.001 and indels ~0.0001 using pre-made ntHits couting Bloom filter
+ntEdit will polish an E. coli genome sequence with substitution error ~0.001 and indels ~0.0001 using pre-made ntHits counting Bloom filter
 
 Expected files will be:
 ntEditEcolik25_changes.tsv
