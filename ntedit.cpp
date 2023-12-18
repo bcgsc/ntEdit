@@ -2331,14 +2331,14 @@ main(int argc, char** argv) // NOLINT
 			boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;
 			inbuf.push(boost::iostreams::gzip_decompressor());
 			inbuf.push(file);
-			//Convert streambuf to istream
+			// Convert streambuf to istream
 			std::istream instream(&inbuf);
-			//Iterate lines
+			// Iterate lines
 			if (file.is_open()) {
-				while(std::getline(instream, line)) {
+				while (std::getline(instream, line)) {
 					const std::regex re("\t");
 					std::sregex_token_iterator first{ line.begin(), line.end(), re, -1 }, // NOLINT
-						last; // the '-1' is what makes the regex split (-1 := what was not matched)
+					    last; // the '-1' is what makes the regex split (-1 := what was not matched)
 					std::vector<std::string> tokens{ first, last };
 					// cout << tokens.size() << " numtoken\n";
 					if (tokens.size() >= 8) {
@@ -2355,7 +2355,7 @@ main(int argc, char** argv) // NOLINT
 				file.close();
 			} else {
 				std::cout << "Unable to open file";
-			}			
+			}
 		} else {
 			std::ifstream myfile(opt::vcf_filename);
 			if (myfile.is_open()) {
