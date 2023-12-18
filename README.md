@@ -1,5 +1,5 @@
 [![Release](https://img.shields.io/github/release/bcgsc/ntEdit.svg)](https://github.com/bcgsc/ntEdit/releases)
-[![Downloads](https://img.shields.io/github/downloads/bcgsc/ntEdit/total?logo=github)](https://github.com/bcgsc/ntEdit/releases/download/v1.3.4/ntEdit_v1-3-4.tar.gz)
+[![Downloads](https://img.shields.io/github/downloads/bcgsc/ntEdit/total?logo=github)](https://github.com/bcgsc/ntEdit/releases/download/v1.4.3/ntEdit_v1-4-3.tar.gz)
 [![Conda](https://img.shields.io/conda/dn/bioconda/ntedit?label=Conda)](https://anaconda.org/bioconda/ntedit)
 [![Issues](https://img.shields.io/github/issues/bcgsc/ntEdit.svg)](https://github.com/bcgsc/ntEdit/issues)
 [![link](https://img.shields.io/badge/ntEdit-manuscript-brightgreen)](http://dx.doi.org/10.1093/bioinformatics/btz400)
@@ -190,21 +190,21 @@ eg.
 
 <pre>
 e.g. ./ntedit -f ecoliWithMismatches001Indels0001.fa -r solidBF_k25.bf -b ntEditEcolik25
-      _   __________________  __________
-     / | / /_  __/ ____/ __ \/  _/_  __/
-    /  |/ / / / / __/ / / / // /  / /   
-   / /|  / / / / /___/ /_/ // /  / /    
-  /_/ |_/ /_/ /_____/_____/___/ /_/   
+     _ __   __________________  __________
+    _ _/ | / /_  __/ ____/ __ \/  _/_  __/
+   _ _/  |/ / / / / __/ / / / // /  / /
+  _ _/ /|  / / / / /___/ /_/ // /  / /
+ _ _/_/ |_/ /_/ /_____/_____/___/ /_/
 
-ntedit v1.4.0
+ntedit v1.4.3
 
  Fast, lightweight, scalable genome sequence polishing and SNV detection & annotation
 
  Options:
 	-t,	number of threads [default=1]
 	-f,	draft genome assembly (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED
-	-r,	Bloom filter file (generated from ntHits), REQUIRED
-	-e,	secondary Bloom filter with k-mers to reject (generated from ntHits), OPTIONAL
+	-r,	Bloom filter (BF) or counting BF (CBF) file (generated from ntHits v1.0.1+), REQUIRED
+	-e,	secondary BF with k-mers to reject (generated from ntHits v1.0.1+), OPTIONAL - NOT NEEDED with CBF
 	-b,	output file prefix, OPTIONAL
 	-z,	minimum contig length [default=100]
 	-i,	maximum number of insertion bases to try, range 0-5, [default=5]
@@ -223,6 +223,8 @@ ntedit v1.4.0
 	-l,	input VCF file with annotated variants (e.g., clinvar.vcf), OPTIONAL
 	-a,	soft masks missing k-mer positions having no fix (-v 1 = yes, default = 0, no)
 	-v,	verbose mode (-v 1 = yes, default = 0, no)
+	-p, minimum k-mer coverage threshold (CBF only) [default=minimum of counting Bloom filter counts, cannot be larger than 255]
+	-q, maximum k-mer coverage threshold (CBF only) [default=255, largest possible value]
 
 	--help,		display this message and exit 
 	--version,	output version information and exit
@@ -276,20 +278,25 @@ VCF output (v1.3.2+ _variants.vcf): We assume a diploid genome for reporting on 
 
 </pre>
 
-## ntEdit -l input VCF file with annotated variants. <a name=clinvarvcf></a>
+## ntEdit -l input VCF file with annotated variants <a name=clinvarvcf></a>
 
 <pre>
 This handy option is used to supply a VCF input file to ntEdit, for cross-referencing base variants.
 For instance, users may wish to identify annotated clinical variants in their genomics datasets.
-For this, users would build Bloom filters with their read datasets using ntHits and run ntEdit in -s 1 mode, with the reference human genome as (-f) input.
-Note: it will also work in polishing (-s 0) mode on single nucleotide variants, but is of limited value since only divergent sites are reported in polishing mode. 
+For this, users would build Bloom filters with their read datasets using ntHits and run 
+ntEdit in -s 1 mode, with the reference human genome as (-f) input.
+Note: it will also work in polishing (-s 0) mode on single nucleotide variants, but is
+of limited value since only homozygously divergent sites (i.e., with completely absent k-mers and k*k-mer) are reported in polishing mode. 
 
 We recommend the use of clinvar resources:
 https://www.ncbi.nlm.nih.gov/clinvar/
 https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/
 https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar_XXDATEXX.vcf.gz
 
-Note: If you use clinvar, you MUST ensure the use of GRCh38 and the chromosome IDs in the headers of your supplied (-f) GRCH38 FASTA file must match clinvar's (#CHROM). Make sure you decompress vcf.gz before use (unpigz/gunzip clinvar_20230813.vcf.gz)
+Note: If you use clinvar, you MUST ensure you use GRCh38 AND that the chromosome IDs in the 
+headers of your supplied (-f) GRCH38 FASTA file matches that of clinvar's (e.g. >1 in FASTA and 1 in ClinVar VCF's #CHROM column).
+If you use any other VCF files as (-l) input, ensure consistency with FASTA headers.
+Make sure you decompress vcf.gz before use (e.g., unpigz/gunzip clinvar_20230813.vcf.gz)
 
 example command:
 /usr/bin/time -v -o HGrefHG004nteditSNV140-s1-l.time ./ntedit -f GRCh38.fa -b nteditSNV140-s1-l -s 1 -r solid_k50.bf -t 48 -l clinvar_20230813.vcf
@@ -298,7 +305,7 @@ where solid_k50.bf is the Bloom filter built from HG004 (NA24143) short sequenci
 
 </pre>
 
-## ntEdit -e Secondary Bloom filter, with kmers to exclude. <a name=secondarybf></a>
+## ntEdit -e Secondary Bloom filter, with kmers to exclude <a name=secondarybf></a>
 
 <pre>
 
@@ -359,7 +366,11 @@ For more information about usage:
 </pre>
 
 ### Test data <a name=test></a>
-
+The demo script will use the installed ntEdit binary. Please ensure that the ntEdit binary is in your PATH.
+<pre>
+export PATH=/path/to/ntEdit:$PATH
+<pre>
+Running the demo
 <pre>
 Go to ./demo
 (cd demo)
@@ -367,9 +378,9 @@ Go to ./demo
 run:
 ./runme.sh
 
-(../ntedit -f ecoliWithMismatches001Indels0001.fa.gz -r solidBF_k25.bf -d 5 -i 4 -b ntEditEcolik25)
+(ntedit -f ecoliWithMismatches001Indels0001.fa.gz -r nthits.cbf -b ntedit)
 
-ntEdit will polish an E. coli genome sequence with substitution error ~0.001 and indels ~0.0001 using pre-made ntHits Bloom filter
+ntEdit will polish an E. coli genome sequence with substitution error ~0.001 and indels ~0.0001 using pre-made ntHits counting Bloom filter
 
 Expected files will be:
 ntEditEcolik25_changes.tsv

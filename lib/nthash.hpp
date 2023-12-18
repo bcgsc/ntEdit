@@ -132,7 +132,8 @@ inline uint64_t NTF64(const uint64_t fhVal, const unsigned k, const unsigned cha
 
 // forward-strand ntHash for changing the last base
 inline uint64_t NTF64_changelast(const uint64_t fhVal, const unsigned k, const unsigned char charOut, const unsigned charIn) {
-	uint64_t hVal = fhVal; 
+    (void)k;
+    uint64_t hVal = fhVal; 
         hVal ^= seedTab[charOut]; 
 	hVal ^= seedTab[charIn]; 
 	return hVal;
@@ -172,27 +173,27 @@ inline uint64_t NTC64(const char * kmerSeq, const unsigned k) {
     uint64_t fhVal=0, rhVal=0;
     fhVal=NTF64(kmerSeq, k);
     rhVal=NTR64(kmerSeq, k);
-    return (rhVal<fhVal)? rhVal : fhVal;
+    return fhVal + rhVal;
 }
 
 // canonical ntHash
 inline uint64_t NTC64(const char * kmerSeq, const unsigned k, uint64_t& fhVal, uint64_t& rhVal) {
     fhVal = NTF64(kmerSeq, k);
     rhVal = NTR64(kmerSeq, k);
-    return (rhVal<fhVal)? rhVal : fhVal;
+    return fhVal + rhVal;
 }
 
 // canonical ntHash for sliding k-mers
 inline uint64_t NTC64(const unsigned char charOut, const unsigned char charIn, const unsigned k, uint64_t& fhVal, uint64_t& rhVal) {
     fhVal = NTF64(fhVal, k, charOut, charIn);
     rhVal = NTR64(rhVal, k, charOut, charIn);
-    return (rhVal<fhVal)? rhVal : fhVal;
+    return fhVal + rhVal;
 }
 
 inline uint64_t NTC64_changelast(const unsigned char charOut, const unsigned char charIn, const unsigned k, uint64_t& fhVal, uint64_t& rhVal) {
 	fhVal = NTF64_changelast(fhVal, k, charOut, charIn); 
 	rhVal = NTR64_changelast(rhVal, k, charOut, charIn); 
-	return (rhVal<fhVal)? rhVal : fhVal; 
+	return fhVal + rhVal;
 }
 
 // forward-strand ntHash for sliding k-mers to the left
@@ -223,7 +224,7 @@ inline uint64_t NTR64L(const uint64_t fhVal, const unsigned k, const unsigned ch
 inline uint64_t NTC64L(const unsigned char charOut, const unsigned char charIn, const unsigned k, uint64_t& fhVal, uint64_t& rhVal) {
     fhVal = NTF64L(fhVal, k, charOut, charIn);
     rhVal = NTR64L(rhVal, k, charOut, charIn);
-    return (rhVal<fhVal)? rhVal : fhVal;
+    return fhVal + rhVal;
 }
 
 // ntBase with seeding option
@@ -325,7 +326,7 @@ inline void NTMC64_changelast(const unsigned char charOut, const unsigned char c
 
 inline void NTMC64_recover(const unsigned k, const unsigned m, uint64_t& fhVal, uint64_t& rhVal, uint64_t *hVal) {
 	uint64_t bVal=0, tVal=0; 
-	bVal = (rhVal<fhVal)? rhVal : fhVal;
+	bVal = fhVal + rhVal;
 	hVal[0] = bVal; 
 	for (unsigned i=1; i<m; i++) {
 		tVal = bVal * (i ^ k * multiSeed); 
@@ -355,7 +356,7 @@ inline bool NTC4(const char *kmerSeq, const unsigned k, uint64_t& hVal, unsigned
         rhVal = swapbits033(rhVal);
         rhVal ^= seedTab[(unsigned char)kmerSeq[i]&cpOff];
     }
-    hVal = (rhVal<fhVal)? rhVal : fhVal;
+    hVal = fhVal + rhVal;
     return true;
 }
 
@@ -376,7 +377,7 @@ inline bool NTMC64(const char *kmerSeq, const unsigned k, const unsigned m, unsi
         rhVal = swapbits033(rhVal);
         rhVal ^= seedTab[(unsigned char)kmerSeq[i]&cpOff];
     }
-    bVal = (rhVal<fhVal)? rhVal : fhVal;
+    bVal = fhVal + rhVal;
     hVal[0] = bVal;
     for(unsigned i=1; i<m; i++) {
         tVal = bVal * (i ^ k * multiSeed);
@@ -403,7 +404,7 @@ inline bool NTC64(const char *kmerSeq, const unsigned k, uint64_t& fhVal, uint64
         rhVal = swapbits033(rhVal);
         rhVal ^= seedTab[(unsigned char)kmerSeq[i]&cpOff];
     }
-    hVal = (rhVal<fhVal)? rhVal : fhVal;
+    hVal = fhVal + rhVal;
     return true;
 }
 
@@ -425,7 +426,7 @@ inline bool NTMC64(const char *kmerSeq, const unsigned k, const unsigned m, uint
         rhVal = swapbits033(rhVal);
         rhVal ^= seedTab[(unsigned char)kmerSeq[i]&cpOff];
     }
-    bVal = (rhVal<fhVal)? rhVal : fhVal;
+    bVal = fhVal + rhVal;
     hVal[0] = bVal;
     for(unsigned i=1; i<m; i++) {
         tVal = bVal * (i ^ k * multiSeed);
