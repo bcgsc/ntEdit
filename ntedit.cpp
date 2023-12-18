@@ -2067,6 +2067,26 @@ readAndCorrect(
 	vfout.close();
 }
 
+void
+vcf_entry_to_map(std::string vcf_entry, std::map<std::string, std::string>& var_map)
+{
+	const std::regex re("\t");
+	std::sregex_token_iterator first{ vcf_entry.begin(), vcf_entry.end(), re, -1 }, // NOLINT
+	    last; // the '-1' is what makes the regex split (-1 := what was not matched)
+	std::vector<std::string> tokens{ first, last };
+	// cout << tokens.size() << " numtoken\n";
+	if (tokens.size() >= 8) {
+		std::ostringstream id;
+		id << tokens[0] << ">" << tokens[3] << tokens[1] << tokens[4];
+		std::string varid = id.str();
+		var_map[varid] = tokens[7];
+		// Print results
+		// for (auto t : tokens) {
+		//	std::cout << t << std::endl;
+		// }
+	}
+}
+
 int
 main(int argc, char** argv) // NOLINT
 {
@@ -2327,32 +2347,18 @@ main(int argc, char** argv) // NOLINT
 
 		// check if vcf is gzipped
 		if (opt::vcf_filename.substr(opt::vcf_filename.find_last_of(".") + 1) == "gz") {
-			std::ifstream file(opt::vcf_filename, std::ios_base::in | std::ios_base::binary);
+			std::ifstream myfile(opt::vcf_filename, std::ios_base::in | std::ios_base::binary);
 			boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;
 			inbuf.push(boost::iostreams::gzip_decompressor());
-			inbuf.push(file);
+			inbuf.push(myfile);
 			// Convert streambuf to istream
 			std::istream instream(&inbuf);
 			// Iterate lines
-			if (file.is_open()) {
+			if (myfile.is_open()) {
 				while (std::getline(instream, line)) {
-					const std::regex re("\t");
-					std::sregex_token_iterator first{ line.begin(), line.end(), re, -1 }, // NOLINT
-					    last; // the '-1' is what makes the regex split (-1 := what was not matched)
-					std::vector<std::string> tokens{ first, last };
-					// cout << tokens.size() << " numtoken\n";
-					if (tokens.size() >= 8) {
-						std::ostringstream id;
-						id << tokens[0] << ":" << tokens[3] << tokens[1] << tokens[4];
-						std::string varid = id.str();
-						clinvar[varid] = tokens[7];
-						// Print results
-						// for (auto t : tokens) {
-						//	std::cout << t << std::endl;
-						// }
-					}
+					vcf_entry_to_map(line, clinvar);
 				}
-				file.close();
+				myfile.close();
 			} else {
 				std::cout << "Unable to open file";
 			}
@@ -2360,21 +2366,7 @@ main(int argc, char** argv) // NOLINT
 			std::ifstream myfile(opt::vcf_filename);
 			if (myfile.is_open()) {
 				while (std::getline(myfile, line)) {
-					const std::regex re("\t");
-					std::sregex_token_iterator first{ line.begin(), line.end(), re, -1 }, // NOLINT
-					    last; // the '-1' is what makes the regex split (-1 := what was not matched)
-					std::vector<std::string> tokens{ first, last };
-					// cout << tokens.size() << " numtoken\n";
-					if (tokens.size() >= 8) {
-						std::ostringstream id;
-						id << tokens[0] << ">" << tokens[3] << tokens[1] << tokens[4];
-						std::string varid = id.str();
-						clinvar[varid] = tokens[7];
-						// Print results
-						// for (auto t : tokens) {
-						//	std::cout << t << std::endl;
-						// }
-					}
+					vcf_entry_to_map(line, clinvar);
 				}
 				myfile.close();
 			} else {
