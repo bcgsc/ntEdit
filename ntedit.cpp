@@ -366,12 +366,15 @@ class
 
 	BFWrapper() = default; // NOLINT
 
-	bool contains(const uint64_t* hashes)
+	bool contains(const uint64_t* hashes) const
 	{
 		return is_cbf ? cbf.get()->contains(hashes) > 0 : bf.get()->contains(hashes);
 	}
 
-	uint8_t get_count(const uint64_t* hashes) { return is_cbf ? cbf.get()->contains(hashes) : 1; }
+	uint8_t get_count(const uint64_t* hashes) const
+	{
+		return is_cbf ? cbf.get()->contains(hashes) : 1;
+	}
 
 	bool is_counting() const { return is_cbf; }
 
@@ -397,6 +400,26 @@ class
 	std::unique_ptr<btllib::KmerBloomFilter> bf;
 	std::unique_ptr<btllib::KmerCountingBloomFilter8> cbf;
 };
+
+/* Returns the median of a vector of uint8_t. */
+uint8_t
+median(std::vector<uint8_t>& median_vec)
+{
+	if (median_vec.size() > 0) {
+		std::sort(median_vec.begin(), median_vec.end());
+		return median_vec[median_vec.size() / 2];
+	}
+	return 0;
+}
+
+bool
+is_kmer_solid(uint64_t* hVal, const BFWrapper& bloom, const BFWrapper& bloomrep)
+{
+	bool solid_if_reg = !opt::secbf || !bloomrep.contains(hVal);
+	bool solid_if_count = !bloom.is_counting() || bloom.get_count(hVal) <= opt::max_threshold;
+
+	return solid_if_reg && solid_if_count;
+}
 
 /* Checks that the filepath is readable and exits if it is not. */
 static inline void
@@ -1287,11 +1310,9 @@ tryDeletion(
 
 	// verify the deletion with a subset
 	unsigned check_present = 0;
-	std::vector<unsigned> check_present_median_vec;
+	std::vector<uint8_t> check_present_median_vec;
 	unsigned check_present_median = 0;
-	bool solid_if_reg = !opt::secbf || !bloomrep.contains(hVal);
-	bool solid_if_count = !bloom.is_counting() || bloom.get_count(hVal) <= opt::max_threshold;
-	if (bloom.contains(hVal) && solid_if_reg && solid_if_count) {
+	if (bloom.contains(hVal) && is_kmer_solid(hVal, bloom, bloomrep)) {
 		check_present++; // check for changing the kmer after deletion
 	}
 	for (unsigned k = 1; k <= (opt::k - 2) && temp_h_seq_i < contigSeq.size(); k++) {
@@ -1305,9 +1326,8 @@ tryDeletion(
 		        charOut,
 		        charIn)) {
 			NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
-			solid_if_reg = !opt::secbf || !bloomrep.contains(hVal);
-			solid_if_count = !bloom.is_counting() || bloom.get_count(hVal) <= opt::max_threshold;
-			if (k % opt::jump == 0 && bloom.contains(hVal) && solid_if_reg && solid_if_count) {
+			if (k % opt::jump == 0 && bloom.contains(hVal) &&
+			    is_kmer_solid(hVal, bloom, bloomrep)) {
 				check_present++;
 				if (bloom.is_counting()) {
 					check_present_median_vec.emplace_back(bloom.get_count(hVal));
@@ -1316,10 +1336,7 @@ tryDeletion(
 		}
 	}
 	if (bloom.is_counting()) {
-		if (check_present_median_vec.size() > 0) {
-			std::sort(check_present_median_vec.begin(), check_present_median_vec.end());
-			check_present_median = check_present_median_vec[check_present_median_vec.size() / 2];
-		}
+		check_present_median = median(check_present_median_vec);
 	}
 
 	if (opt::verbose) {
@@ -1383,8 +1400,6 @@ tryIndels(
 	unsigned temp_best_edit_type = 0;
 	unsigned char charIn;
 	unsigned char charOut;
-	bool solid_if_reg = false;
-	bool solid_if_count = false;
 
 	// try all of the combinations of indels starting with our index_char
 	for (unsigned i = 0; i < num_tries[opt::max_insertions]; i++) {
@@ -1404,7 +1419,7 @@ tryIndels(
 		NTMC64_changelast(draft_char, index_char, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
 		unsigned check_present = 0;
 		unsigned k = 0; // RLW
-		std::vector<unsigned> check_present_median_vec;
+		std::vector<uint8_t> check_present_median_vec;
 		unsigned check_present_median = 0;
 		// check subset with the insertion
 		for (; k < insertion_bases.size() - 1 && temp_h_seq_i < contigSeq.size(); k++) {
@@ -1417,10 +1432,8 @@ tryIndels(
 			    temp_rhVal,
 			    hVal);
 			increment(temp_h_seq_i, temp_h_node_index, newSeq);
-			solid_if_reg = !opt::secbf || !bloomrep.contains(hVal);
-			solid_if_count = !bloom.is_counting() || bloom.get_count(hVal) <= opt::max_threshold;
-			if (k % opt::jump == 0 && bloom.contains(hVal) && solid_if_reg &&
-			    solid_if_count) { // RLW
+			if (k % opt::jump == 0 && bloom.contains(hVal) &&
+			    is_kmer_solid(hVal, bloom, bloomrep)) { // RLW
 				check_present++;
 				if (bloom.is_counting()) {
 					check_present_median_vec.emplace_back(bloom.get_count(hVal));
@@ -1439,11 +1452,8 @@ tryIndels(
 			        charOut,
 			        charIn)) {
 				NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
-				solid_if_reg = !opt::secbf || !bloomrep.contains(hVal);
-				solid_if_count =
-				    !bloom.is_counting() || bloom.get_count(hVal) <= opt::max_threshold;
-				if (k % opt::jump == 0 && bloom.contains(hVal) && solid_if_reg &&
-				    solid_if_count) { // RLW
+				if (k % opt::jump == 0 && bloom.contains(hVal) &&
+				    is_kmer_solid(hVal, bloom, bloomrep)) { // RLW
 					check_present++;
 					if (bloom.is_counting()) {
 						check_present_median_vec.emplace_back(bloom.get_count(hVal));
@@ -1453,11 +1463,7 @@ tryIndels(
 		}
 		insertion_bases.pop_back();
 		if (bloom.is_counting()) {
-			if (check_present_median_vec.size() > 0) {
-				std::sort(check_present_median_vec.begin(), check_present_median_vec.end());
-				check_present_median =
-				    check_present_median_vec[check_present_median_vec.size() / 2];
-			}
+			check_present_median = median(check_present_median_vec);
 		}
 		if (opt::verbose) {
 			std::cout << "\t\tinserting: " << insertion_bases
@@ -1632,7 +1638,7 @@ kmerizeAndCorrect(
 			unsigned check_missing = 0;
 			unsigned check_there = 0; // RLW
 			unsigned check_there_median = 0;
-			std::vector<unsigned> check_there_median_vec;
+			std::vector<uint8_t> check_there_median_vec;
 			bool do_not_fix = false;
 
 			for (unsigned k = 0; k < opt::k && temp_h_seq_i < seqLen;
@@ -1669,10 +1675,7 @@ kmerizeAndCorrect(
 				}
 			}
 			if (bloom.is_counting()) {
-				if (check_there_median_vec.size() > 0) {
-					std::sort(check_there_median_vec.begin(), check_there_median_vec.end());
-					check_there_median = check_there_median_vec[check_there_median_vec.size() / 2];
-				}
+				check_there_median = median(check_there_median_vec);
 			}
 			if (opt::verbose) {
 				std::cout << "\tcheck_missing: " << check_missing << std::endl;
@@ -1733,12 +1736,8 @@ kmerizeAndCorrect(
 					// hash the substitution change
 					NTMC64_changelast(
 					    draft_char, sub_base, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
-					bool solid_if_reg = !opt::secbf || !bloomrep.contains(hVal);
-					bool solid_if_count =
-					    !bloom.is_counting() || bloom.get_count(hVal) <= opt::max_threshold;
-
 					// only do verification of substitution if it is found in Bloom filter
-					if ((bloom.contains(hVal) && solid_if_reg && solid_if_count) ||
+					if ((bloom.contains(hVal) && is_kmer_solid(hVal, bloom, bloomrep)) ||
 					    opt::mode == 2) {
 						// reset temporary values
 						temp_h_node_index = h_node_index;
@@ -1754,7 +1753,7 @@ kmerizeAndCorrect(
 						}
 						// check the subset to see if this substitution is good
 						unsigned check_present = 0;
-						std::vector<unsigned> check_present_median_vec;
+						std::vector<uint8_t> check_present_median_vec;
 						unsigned check_present_median = 0;
 						for (unsigned k = 0; // RLW
 						     k < opt::k && temp_h_seq_i < seqLen && temp_t_seq_i < seqLen;
@@ -1770,11 +1769,8 @@ kmerizeAndCorrect(
 							        charIn)) {
 								NTMC64(
 								    charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
-								solid_if_reg = !opt::secbf || !bloomrep.contains(hVal);
-								solid_if_count = !bloom.is_counting() ||
-								                 bloom.get_count(hVal) <= opt::max_threshold;
-								if (k % opt::jump == 0 && bloom.contains(hVal) && solid_if_reg &&
-								    solid_if_count) { // RLW
+								if (k % opt::jump == 0 && bloom.contains(hVal) &&
+								    is_kmer_solid(hVal, bloom, bloomrep)) { // RLW
 									check_present++;
 									if (bloom.is_counting()) {
 										check_present_median_vec.push_back(bloom.get_count(hVal));
@@ -1785,13 +1781,7 @@ kmerizeAndCorrect(
 							}
 						}
 						if (bloom.is_counting()) {
-							if (check_present_median_vec.size() > 0) {
-								std::sort(
-								    check_present_median_vec.begin(),
-								    check_present_median_vec.end());
-								check_present_median =
-								    check_present_median_vec[check_present_median_vec.size() / 2];
-							}
+							check_present_median = median(check_present_median_vec);
 						}
 
 						// revert the substitution
