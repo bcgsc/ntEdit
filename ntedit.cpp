@@ -16,7 +16,6 @@
 #include <queue>
 #include <string>
 #include <cmath>
-#include <omp.h>
 #include <cassert>
 #include <cerrno>
 #include <unistd.h>
@@ -25,6 +24,11 @@
 #include "lib/nthash.hpp" // NOLINT
 #include <btllib/bloom_filter.hpp>
 #include <btllib/counting_bloom_filter.hpp>
+
+#if _OPENMP
+#include <omp.h>
+#endif
+
 //RLW 19AUG2023
 #include <iterator>
 #include <regex>
@@ -50,8 +54,9 @@ static const char USAGE_MESSAGE[] = PROGRAM
     " Options:\n"
     "	-t,	number of threads [default=1]\n"
     "	-f,	draft genome assembly (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED\n"
-    "	-r,	Bloom filter file (generated from ntHits), REQUIRED\n"
-    "	-e,	secondary Bloom filter with k-mers to reject (generated from ntHits), OPTIONAL\n"
+    "	-r,	Bloom filter (BF) or counting BF (CBF) file (generated from ntHits v1.0.1+), REQUIRED\n"
+    "	-e,	secondary BF with k-mers to reject (generated from ntHits v1.0.1+), OPTIONAL - NOT "
+    "NEEDED with CBF\n"
     "	-b,	output file prefix, OPTIONAL\n"
     "	-z,	minimum contig length [default=100]\n"
     "	-i,	maximum number of insertion bases to try, range 0-5, [default=5]\n"
@@ -78,6 +83,9 @@ static const char USAGE_MESSAGE[] = PROGRAM
     "	-a,	soft masks missing k-mer positions having no fix (-v 1 = yes, default = 0, no)\n"
     "	-v,	verbose mode (-v 1 = yes, default = 0, no)\n"
     "\n"
+    "	-p, minimum k-mer coverage threshold (CBF only) [default=minimum of counting Bloom filter\n"
+    "counts, cannot be larger than 255]\n"
+    "	-q, maximum k-mer coverage threshold (CBF only) [default=255, largest possible value]\n"
     "	--help,		display this message and exit \n"
     "	--version,	output version information and exit\n"
     "\n"
@@ -117,9 +125,11 @@ int snv = 0;
 int mask = 0; // RLW2021
 int verbose = 0;
 int secbf = 0;
+unsigned min_threshold = 1;
+unsigned max_threshold = 255;
 } // namespace opt
 
-static const char shortopts[] = "t:f:s:k:z:b:r:v:d:i:X:Y:x:y:m:c:j:s:e:a:l:"; // RLW2021
+static const char shortopts[] = "t:f:s:k:z:b:r:v:d:i:X:Y:x:y:m:c:j:s:e:a:l:p:q:"; // RLW2021
 
 enum
 {
@@ -148,6 +158,8 @@ static const struct option longopts[] = {
 	{ "vcf_file", required_argument, nullptr, 'l' },
 	{ "mask", required_argument, nullptr, 'a' },
 	{ "verbose", required_argument, nullptr, 'v' },
+	{ "minimum_kmer_coverage", required_argument, nullptr, 'p' },
+	{ "maximum_kmer_coverage", required_argument, nullptr, 'q' },
 	{ "help", no_argument, nullptr, OPT_HELP },
 	{ "version", no_argument, nullptr, OPT_VERSION },
 	{ nullptr, 0, nullptr, 0 }
@@ -332,11 +344,12 @@ std::unordered_map<unsigned char, std::vector<std::string>> multi_possible_bases
 	    "TTTTT" } }
 };
 
-class BFWrapper
+class
+    BFWrapper // NOLINT(cppcoreguidelines-pro-type-member-init,hicpp-member-init,-warnings-as-errors)
 {
 
   public:
-	BFWrapper(const std::string& path)
+	BFWrapper(const std::string& path) // NOLINT
 	{
 		is_cbf = btllib::BloomFilter::check_file_signature(
 		    path, btllib::KMER_COUNTING_BLOOM_FILTER_SIGNATURE);
@@ -347,14 +360,15 @@ class BFWrapper
 		}
 	}
 
-	BFWrapper() = default;
+	BFWrapper() = default; // NOLINT
 
-	bool contains(const uint64_t* hashes)
+	bool contains(const uint64_t* hashes) const
 	{
 		return is_cbf ? cbf.get()->contains(hashes) > 0 : bf.get()->contains(hashes);
 	}
 
-	uint8_t get_count(const uint64_t* hashes) {
+	uint8_t get_count(const uint64_t* hashes) const
+	{
 		return is_cbf ? cbf.get()->contains(hashes) : 1;
 	}
 
@@ -367,7 +381,8 @@ class BFWrapper
 		return is_cbf ? cbf.get()->get_hash_num() : bf.get()->get_hash_num();
 	}
 
-	void print_details()
+	void
+	print_details() // NOLINT(readability-convert-member-functions-to-static,-warnings-as-errors)
 	{
 		const auto size = is_cbf ? cbf.get()->get_bytes() : bf.get()->get_bytes();
 		const auto fpr = is_cbf ? cbf.get()->get_fpr() : bf.get()->get_fpr();
@@ -381,6 +396,26 @@ class BFWrapper
 	std::unique_ptr<btllib::KmerBloomFilter> bf;
 	std::unique_ptr<btllib::KmerCountingBloomFilter8> cbf;
 };
+
+/* Returns the median of a vector of uint8_t. */
+uint8_t
+median(std::vector<uint8_t>& median_vec)
+{
+	if (median_vec.size() > 0) {
+		std::sort(median_vec.begin(), median_vec.end());
+		return median_vec[median_vec.size() / 2];
+	}
+	return 0;
+}
+
+bool
+is_kmer_solid(uint64_t* hVal, const BFWrapper& bloom, const BFWrapper& bloomrep)
+{
+	bool solid_if_reg = !opt::secbf || !bloomrep.contains(hVal);
+	bool solid_if_count = !bloom.is_counting() || bloom.get_count(hVal) <= opt::max_threshold;
+
+	return solid_if_reg && solid_if_count;
+}
 
 /* Checks that the filepath is readable and exits if it is not. */
 static inline void
@@ -1271,7 +1306,9 @@ tryDeletion(
 
 	// verify the deletion with a subset
 	unsigned check_present = 0;
-	if (bloom.contains(hVal) && (!opt::secbf || !bloomrep.contains(hVal))) {
+	std::vector<uint8_t> check_present_median_vec;
+	unsigned check_present_median = 0;
+	if (bloom.contains(hVal) && is_kmer_solid(hVal, bloom, bloomrep)) {
 		check_present++; // check for changing the kmer after deletion
 	}
 	for (unsigned k = 1; k <= (opt::k - 2) && temp_h_seq_i < contigSeq.size(); k++) {
@@ -1286,21 +1323,36 @@ tryDeletion(
 		        charIn)) {
 			NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
 			if (k % opt::jump == 0 && bloom.contains(hVal) &&
-			    (!opt::secbf || !bloomrep.contains(hVal))) {
+			    is_kmer_solid(hVal, bloom, bloomrep)) {
 				check_present++;
+				if (bloom.is_counting()) {
+					check_present_median_vec.emplace_back(bloom.get_count(hVal));
+				}
 			}
 		}
 	}
+	if (bloom.is_counting()) {
+		check_present_median = median(check_present_median_vec);
+	}
 
 	if (opt::verbose) {
-		std::cout << "\t\tdeleting: " << deleted_bases << " check_present: " << check_present
-		          << std::endl;
+		std::cout << "\t\tdeleting: " << deleted_bases << " check_present: " << check_present;
+		if (bloom.is_counting()) {
+			std::cout << " check_present_median_coverage: " << check_present_median;
+		}
+		std::cout << std::endl;
 	}
 	if ((!opt::use_ratio &&
 	     static_cast<float>(check_present) >= (static_cast<float>(opt::k) / opt::edit_threshold)) ||
 	    (opt::use_ratio &&
 	     static_cast<float>(check_present) >=
 	         (1 + (static_cast<float>(opt::k) / opt::jump)) * opt::edit_ratio)) { // RLW
+		if (bloom.is_counting()) {
+			if (!opt::snv && !(check_present_median >= opt::min_threshold)) {
+				return 0;
+			}
+			return static_cast<int>(check_present_median);
+		}
 		return static_cast<int>(check_present);
 	}
 	return 0;
@@ -1363,6 +1415,8 @@ tryIndels(
 		NTMC64_changelast(draft_char, index_char, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
 		unsigned check_present = 0;
 		unsigned k = 0; // RLW
+		std::vector<uint8_t> check_present_median_vec;
+		unsigned check_present_median = 0;
 		// check subset with the insertion
 		for (; k < insertion_bases.size() - 1 && temp_h_seq_i < contigSeq.size(); k++) {
 			NTMC64(
@@ -1375,8 +1429,11 @@ tryIndels(
 			    hVal);
 			increment(temp_h_seq_i, temp_h_node_index, newSeq);
 			if (k % opt::jump == 0 && bloom.contains(hVal) &&
-			    (!opt::secbf || !bloomrep.contains(hVal))) { // RLW
+			    is_kmer_solid(hVal, bloom, bloomrep)) { // RLW
 				check_present++;
+				if (bloom.is_counting()) {
+					check_present_median_vec.emplace_back(bloom.get_count(hVal));
+				}
 			}
 		}
 		// check subset after insertion
@@ -1392,15 +1449,25 @@ tryIndels(
 			        charIn)) {
 				NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
 				if (k % opt::jump == 0 && bloom.contains(hVal) &&
-				    (!opt::secbf || !bloomrep.contains(hVal))) { // RLW
+				    is_kmer_solid(hVal, bloom, bloomrep)) { // RLW
 					check_present++;
+					if (bloom.is_counting()) {
+						check_present_median_vec.emplace_back(bloom.get_count(hVal));
+					}
 				}
 			}
 		}
 		insertion_bases.pop_back();
+		if (bloom.is_counting()) {
+			check_present_median = median(check_present_median_vec);
+		}
 		if (opt::verbose) {
-			std::cout << "\t\tinserting: " << insertion_bases << " check_present: " << check_present
-			          << std::endl;
+			std::cout << "\t\tinserting: " << insertion_bases
+			          << " check_present: " << check_present;
+			if (bloom.is_counting()) {
+				std::cout << " check_present_median_coverage: " << check_present_median;
+			}
+			std::cout << std::endl;
 		}
 		// if the insertion is good, store the insertion accordingly RLW
 		if ((!opt::use_ratio && static_cast<float>(check_present) >=
@@ -1408,6 +1475,13 @@ tryIndels(
 		    (opt::use_ratio &&
 		     static_cast<float>(check_present) >=
 		         (static_cast<float>(opt::k) / opt::jump) * opt::edit_ratio)) { // RLW
+			if (bloom.is_counting()) {
+				if (!opt::snv && !(check_present_median <= opt::max_threshold &&
+				                   check_present_median >= opt::min_threshold)) {
+					continue;
+				}
+				check_present = check_present_median;
+			}
 			if (opt::mode == 0) {
 				// if we are in default mode, we just accept this first good insertion and return
 				best_edit_type = 2;
@@ -1543,7 +1617,8 @@ kmerizeAndCorrect(
 			std::cout << h_seq_i << " " << t_seq_i << " " << charIn << " " << h_node_index << " "
 			          << t_node_index << " " << hVal[0] << hVal[1] << hVal[2] << std::endl;
 		}
-		if (opt::snv || !bloom.contains(hVal)) {
+		if (opt::snv || !bloom.contains(hVal) ||
+		    (bloom.is_counting() && bloom.get_count(hVal) < opt::min_threshold)) {
 			// make temporary value holders
 			uint64_t temp_fhVal = fhVal;
 			uint64_t temp_rhVal = rhVal;
@@ -1558,6 +1633,8 @@ kmerizeAndCorrect(
 			// confirm missing by checking subset
 			unsigned check_missing = 0;
 			unsigned check_there = 0; // RLW
+			unsigned check_there_median = 0;
+			std::vector<uint8_t> check_there_median_vec;
 			bool do_not_fix = false;
 
 			for (unsigned k = 0; k < opt::k && temp_h_seq_i < seqLen;
@@ -1584,23 +1661,30 @@ kmerizeAndCorrect(
 					    isATGCBase(draft_char) && k % opt::jump == 0 &&
 					    bloom.contains(hVal)) { // XXRLWnov2020 important to screen for ACGT
 						check_there++;
+						if (bloom.is_counting()) {
+							check_there_median_vec.emplace_back(bloom.get_count(hVal));
+						}
 					}
 				} else {
 					do_not_fix = true;
 					break;
 				}
 			}
-
+			if (bloom.is_counting()) {
+				check_there_median = median(check_there_median_vec);
+			}
 			if (opt::verbose) {
 				std::cout << "\tcheck_missing: " << check_missing << std::endl;
 			}
-			if ((opt::snv) || ((!do_not_fix) &&
-			                   (((!opt::use_ratio &&
-			                      static_cast<float>(check_missing) >=
-			                          (static_cast<float>(opt::k) / opt::missing_threshold))) ||
-			                    ((opt::use_ratio && static_cast<float>(check_missing) >=
-			                                            ((static_cast<float>(opt::k) / opt::jump) *
-			                                             opt::missing_ratio)))))) { // RLW
+			if ((opt::snv) ||
+			    ((!do_not_fix) &&
+			     (((!opt::use_ratio &&
+			        static_cast<float>(check_missing) >=
+			            (static_cast<float>(opt::k) / opt::missing_threshold))) ||
+			      ((opt::use_ratio &&
+			        static_cast<float>(check_missing) >=
+			            ((static_cast<float>(opt::k) / opt::jump) * opt::missing_ratio))) ||
+			      (bloom.is_counting() && check_there_median < opt::min_threshold)))) { // RLW
 
 				// recorders
 				unsigned num_deletions = 1;
@@ -1626,7 +1710,11 @@ kmerizeAndCorrect(
 					     static_cast<float>(check_there) >=
 					         ((static_cast<float>(opt::k) / opt::jump)) * opt::edit_ratio)) {
 						best_sub_base = draft_char;
-						best_num_support = check_there;
+						if (bloom.is_counting()) {
+							best_num_support = check_there_median;
+						} else {
+							best_num_support = check_there;
+						}
 
 						if (opt::verbose) {
 							std::cout << "\t\tORI BEST SUB BASE: " << best_sub_base
@@ -1644,9 +1732,8 @@ kmerizeAndCorrect(
 					// hash the substitution change
 					NTMC64_changelast(
 					    draft_char, sub_base, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
-
 					// only do verification of substitution if it is found in Bloom filter
-					if ((bloom.contains(hVal) && (!opt::secbf || !bloomrep.contains(hVal))) ||
+					if ((bloom.contains(hVal) && is_kmer_solid(hVal, bloom, bloomrep)) ||
 					    opt::mode == 2) {
 						// reset temporary values
 						temp_h_node_index = h_node_index;
@@ -1662,6 +1749,8 @@ kmerizeAndCorrect(
 						}
 						// check the subset to see if this substitution is good
 						unsigned check_present = 0;
+						std::vector<uint8_t> check_present_median_vec;
+						unsigned check_present_median = 0;
 						for (unsigned k = 0; // RLW
 						     k < opt::k && temp_h_seq_i < seqLen && temp_t_seq_i < seqLen;
 						     k++) {
@@ -1677,12 +1766,18 @@ kmerizeAndCorrect(
 								NTMC64(
 								    charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
 								if (k % opt::jump == 0 && bloom.contains(hVal) &&
-								    (!opt::secbf || !bloomrep.contains(hVal))) { // RLW
+								    is_kmer_solid(hVal, bloom, bloomrep)) { // RLW
 									check_present++;
+									if (bloom.is_counting()) {
+										check_present_median_vec.push_back(bloom.get_count(hVal));
+									}
 								}
 							} else {
 								break;
 							}
+						}
+						if (bloom.is_counting()) {
+							check_present_median = median(check_present_median_vec);
 						}
 
 						// revert the substitution
@@ -1695,7 +1790,12 @@ kmerizeAndCorrect(
 						}
 						if (opt::verbose) {
 							std::cout << "\t\tsub: " << sub_base
-							          << " check_present: " << check_present << std::endl;
+							          << " check_present: " << check_present;
+							if (bloom.is_counting()) {
+								std::cout << " check_present_median_coverage: "
+								          << check_present_median;
+							}
+							std::cout << std::endl;
 						}
 
 						if ((!opt::use_ratio &&
@@ -1706,6 +1806,13 @@ kmerizeAndCorrect(
 						                               opt::edit_ratio)) { // RLW
 
 							// update the best substitution
+							if (bloom.is_counting()) {
+								if (!opt::snv && !(check_present_median <= opt::max_threshold &&
+								                   check_present_median >= opt::min_threshold)) {
+									continue;
+								}
+								check_present = check_present_median;
+							}
 							if (check_present >= best_num_support) {
 								if (altsupp2) {
 									altbase3 = altbase2;
@@ -2026,6 +2133,12 @@ main(int argc, char** argv) // NOLINT
 		case 'v':
 			arg >> opt::verbose;
 			break;
+		case 'p':
+			arg >> opt::min_threshold;
+			break;
+		case 'q':
+			arg >> opt::max_threshold;
+			break;
 		case OPT_HELP:
 			std::cerr << USAGE_MESSAGE;
 			exit(EXIT_SUCCESS);
@@ -2128,6 +2241,13 @@ main(int argc, char** argv) // NOLINT
 	opt::insertion_cap =
 	    static_cast<unsigned>(static_cast<float>(opt::k) * opt::default_insertion_cap_ratio);
 
+	if (!bloom.is_counting() && opt::min_threshold != 1) {
+		std::cerr << PROGRAM
+		    ": warning: Bloom filter is not counting, min k-mer presence threshold will be "
+		    "set to 1.\n";
+		opt::min_threshold = 1;
+	}
+
 	// print bloom filter details
 	bloom.print_details();
 
@@ -2187,6 +2307,10 @@ main(int argc, char** argv) // NOLINT
 	          << vcf_basename << "\n -a " << opt::mask << "\n -t " << opt::nthreads << "\n -v "
 	          << opt::verbose << "\n"
 	          << std::endl;
+	if (bloom.is_counting()) {
+		std::cout << " -p " << opt::min_threshold << "\n -q " << opt::max_threshold << "\n"
+		          << std::endl;
+	}
 
 	// VCF file reading RLW 19AUG2023
 	std::string line;
