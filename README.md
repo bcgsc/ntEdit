@@ -225,7 +225,6 @@ ntedit v1.4.3
 	-v,	verbose mode (-v 1 = yes, default = 0, no)
 	-p, minimum k-mer coverage threshold (CBF only) [default=minimum of counting Bloom filter counts, cannot be larger than 255]
 	-q, maximum k-mer coverage threshold (CBF only) [default=255, largest possible value]
-    	--help,		display this message and exit \n"
 
 	--help,		display this message and exit 
 	--version,	output version information and exit
