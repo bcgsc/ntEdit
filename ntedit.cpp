@@ -2354,7 +2354,7 @@ main(int argc, char** argv) // NOLINT
 				}
 				file.close();
 			} else {
-				cout << "Unable to open file";
+				std::cout << "Unable to open file";
 			}			
 		} else {
 			std::ifstream myfile(opt::vcf_filename);
