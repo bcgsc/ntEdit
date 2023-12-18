@@ -2074,16 +2074,11 @@ vcf_entry_to_map(const std::string& vcf_entry, std::map<std::string, std::string
 	std::sregex_token_iterator first{ vcf_entry.begin(), vcf_entry.end(), re, -1 }, // NOLINT
 	    last; // the '-1' is what makes the regex split (-1 := what was not matched)
 	std::vector<std::string> tokens{ first, last };
-	// cout << tokens.size() << " numtoken\n";
 	if (tokens.size() >= 8) {
 		std::ostringstream id;
 		id << tokens[0] << ">" << tokens[3] << tokens[1] << tokens[4];
 		std::string varid = id.str();
 		var_map[varid] = tokens[7];
-		// Print results
-		// for (auto t : tokens) {
-		//	std::cout << t << std::endl;
-		// }
 	}
 }
 
