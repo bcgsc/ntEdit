@@ -19,6 +19,7 @@ dependencies = [
     dependency('zlib'),
     compiler.find_library('btllib'),
     compiler.find_library('nthash'),
+    compiler.find_library('boost_iostreams'),
 ]
 
 executable(
