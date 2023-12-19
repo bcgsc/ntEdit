@@ -32,6 +32,9 @@
 //RLW 19AUG2023
 #include <iterator>
 #include <regex>
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/copy.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
 
 // clang-format on
 
@@ -2113,6 +2116,21 @@ readAndCorrect(
 	vfout.close();
 }
 
+void
+vcf_entry_to_map(const std::string& vcf_entry, std::map<std::string, std::string>& var_map)
+{
+	const std::regex re("\t");
+	std::sregex_token_iterator first{ vcf_entry.begin(), vcf_entry.end(), re, -1 }, // NOLINT
+	    last; // the '-1' is what makes the regex split (-1 := what was not matched)
+	std::vector<std::string> tokens{ first, last };
+	if (tokens.size() >= 8) {
+		std::ostringstream id;
+		id << tokens[0] << ">" << tokens[3] << tokens[1] << tokens[4];
+		std::string varid = id.str();
+		var_map[varid] = tokens[7];
+	}
+}
+
 int
 main(int argc, char** argv) // NOLINT
 {
@@ -2369,34 +2387,34 @@ main(int argc, char** argv) // NOLINT
 	if (!opt::vcf_filename.empty()) {
 		// if the file is specified check that it is readable
 		assert_readable(opt::vcf_filename);
-		if (opt::vcf_filename.substr(opt::vcf_filename.find_last_of('.') + 1) == "gz") { // NOLINT
-			std::cout << PROGRAM
-			    ": warning: *gz files are not yet supported. The VCF will not be read. Please "
-			    "relaunch ntEdit with .vcf after decompressing with unpigz or gunzip\n\n";
+		// read file handle
 
+		// check if vcf is gzipped
+		if (opt::vcf_filename.substr(opt::vcf_filename.find_last_of(".") + 1) == "gz") {
+			std::ifstream myfile(opt::vcf_filename, std::ios_base::in | std::ios_base::binary);
+			boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;
+			inbuf.push(boost::iostreams::gzip_decompressor());
+			inbuf.push(myfile);
+			// Convert streambuf to istream
+			std::istream instream(&inbuf);
+			// Iterate lines
+			if (myfile.is_open()) {
+				while (std::getline(instream, line)) {
+					vcf_entry_to_map(line, clinvar);
+				}
+				myfile.close();
+			} else {
+				std::cerr << "Unable to open file" << std::endl;
+			}
 		} else {
 			std::ifstream myfile(opt::vcf_filename);
 			if (myfile.is_open()) {
 				while (std::getline(myfile, line)) {
-					const std::regex re("\t");
-					std::sregex_token_iterator first{ line.begin(), line.end(), re, -1 }, // NOLINT
-					    last; // the '-1' is what makes the regex split (-1 := what was not matched)
-					std::vector<std::string> tokens{ first, last };
-					// cout << tokens.size() << " numtoken\n";
-					if (tokens.size() >= 8) {
-						std::ostringstream id;
-						id << tokens[0] << ">" << tokens[3] << tokens[1] << tokens[4];
-						std::string varid = id.str();
-						clinvar[varid] = tokens[7];
-						// Print results
-						// for (auto t : tokens) {
-						//	std::cout << t << std::endl;
-						// }
-					}
+					vcf_entry_to_map(line, clinvar);
 				}
 				myfile.close();
 			} else {
-				std::cout << "Unable to open file";
+				std::cerr << "Unable to open file" << std::endl;
 			}
 		}
 	}

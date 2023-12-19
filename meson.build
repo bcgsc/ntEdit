@@ -18,6 +18,7 @@ dependencies = [
     dependency('openmp'),
     dependency('zlib'),
     compiler.find_library('btllib'),
+    compiler.find_library('boost_iostreams'),
 ]
 
 executable(

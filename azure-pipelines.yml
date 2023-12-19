@@ -13,7 +13,7 @@ jobs:
       - script: |
           source activate ntedit_CI
           conda install --yes -c conda-forge mamba python=3.9
-          mamba install --yes -c conda-forge -c bioconda libcxx llvm clang compilers meson ninja btllib make clang-tools perl zlib nthits ntcard
+          mamba install --yes -c conda-forge -c bioconda libcxx llvm clang compilers=1.7.0 meson ninja btllib make clang-tools perl zlib nthits ntcard boost
         displayName: Install dependencies
       - script: |
           source activate ntedit_CI
@@ -51,7 +51,7 @@ jobs:
         displayName: Create Anaconda environment
       - script: |
           source activate ntedit_ci
-          conda install --yes --quiet --name ntedit_ci -c conda-forge -c bioconda compilers llvm-openmp make btllib perl zlib clang-tools meson ninja nthits ntcard
+          conda install --yes --quiet --name ntedit_ci -c conda-forge -c bioconda compilers=1.7.0 llvm-openmp make btllib perl zlib clang-tools meson ninja nthits ntcard boost
         displayName: Install Anaconda packages
       - script: |
           source activate ntedit_CI
