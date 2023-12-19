@@ -296,7 +296,6 @@ https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar_XXDATEXX.vcf.gz
 Note: If you use clinvar, you MUST ensure you use GRCh38 AND that the chromosome IDs in the 
 headers of your supplied (-f) GRCH38 FASTA file matches that of clinvar's (e.g. >1 in FASTA and 1 in ClinVar VCF's #CHROM column).
 If you use any other VCF files as (-l) input, ensure consistency with FASTA headers.
-Make sure you decompress vcf.gz before use (e.g., unpigz/gunzip clinvar_20230813.vcf.gz)
 
 example command:
 /usr/bin/time -v -o HGrefHG004nteditSNV140-s1-l.time ./ntedit -f GRCh38.fa -b nteditSNV140-s1-l -s 1 -r solid_k50.bf -t 48 -l clinvar_20230813.vcf
