@@ -17,16 +17,6 @@ jobs:
         displayName: Install dependencies
       - script: |
           source activate ntedit_CI
-          git clone https://github.com/bcgsc/ntHash.git
-          cd ntHash
-          meson build --prefix=$(pwd)/test_install
-          cd build
-          ninja install
-        displayName: Install nthash
-      - script: |
-          source activate ntedit_CI
-          export CPPFLAGS="-isystem $(pwd)/ntHash/test_install/include $CPPFLAGS"
-          export LDFLAGS="-L$(pwd)/ntHash/test_install/lib -lnthash $LDFLAGS"
           meson build --prefix=$(pwd)/test_build
           cd build
           ninja install
@@ -55,16 +45,6 @@ jobs:
         displayName: Install Anaconda packages
       - script: |
           source activate ntedit_CI
-          git clone https://github.com/bcgsc/ntHash.git
-          cd ntHash
-          meson build --prefix=$(pwd)/test_install
-          cd build
-          ninja install
-        displayName: Install nthash
-      - script: |
-          source activate ntedit_CI
-          export CPPFLAGS="-isystem $(pwd)/ntHash/test_install/include $CPPFLAGS"
-          export LDFLAGS="-L$(pwd)/ntHash/test_install/lib -lnthash $LDFLAGS"
           meson build --prefix=$(pwd)/test_build
           cd build
           ninja install
