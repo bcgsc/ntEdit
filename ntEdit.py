@@ -97,9 +97,6 @@ def main():
 
     base_dir = os.path.dirname(os.path.realpath(__file__))
 
-    if args.cap is None:
-        args.cap = args.k * 1.5
-
     if args.mode == "bf":
         mode = "ntedit"
     elif args.mode == "cbf":
@@ -135,8 +132,11 @@ def main():
 
     command = f"snakemake -s {base_dir}/ntedit_run_pipeline.smk {mode} -p --cores {args.t} " \
             f"--config draft={args.draft} reads={args.reads} k={args.k} cutoff={args.cutoff} t={args.t} " \
-            f"solid={args.solid} z={args.z} i={args.i} d={args.d} x={args.x} y={args.y} cap={args.cap} " \
+            f"solid={args.solid} z={args.z} i={args.i} d={args.d} x={args.x} y={args.y} " \
             f"m={args.m} v={args.v} X={args.X} Y={args.Y} p={args.p} q={args.q} "
+
+    if args.cap is not None:
+        command += "cap={args.cap}"
 
     if version.parse(snakemake.__version__) >= version.parse("7.8.0"): # Keep behaviour consistent for smk versions
         command += "--rerun-trigger mtime "

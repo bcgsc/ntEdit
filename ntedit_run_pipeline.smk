@@ -115,10 +115,10 @@ rule ntedit:
     input:
         bloom_filter=f"{reads_prefix}_k{k}.bf"
     output:
-        edited_draft=f"ntedit_k{k}_edited.fa"
+        edited_draft=f"{b}ntedit_k{k}_edited.fa"
     run:
         shell(
-            f"{time_command} ntedit_{reads_prefix}_k{k}.time ntedit -r {input.bloom_filter} -f {input.draft} -b {b}ntedit_k{k} -t {t} -z {z} -i {i} -d {d} -x {x} -y {y} -c {cap} -m {m} -v {v} -a {a} -j {j} -X {X} -Y {Y} -s {s}"
+            f"{time_command} ntedit_{reads_prefix}_k{k}.time ntedit -r {input.bloom_filter} -f {draft} -b {b}ntedit_k{k} -t {t} -z {z} -i {i} -d {d} -x {x} -y {y} -c {cap} -m {m} -v {v} -a {a} -j {j} -X {X} -Y {Y} -s {s}"
         )
 
 rule nthits:
@@ -139,17 +139,17 @@ rule ntcard:
         hist=f"{reads_prefix}_k{k}.hist"
     run:
         shell(
-            f"{time_command} ntcard_{reads_prefix}_k{k}.time ntcard -k {k} -t {t} -o {output.hist} {input.reads_files}"
+            f"{time_command} ntcard_{reads_prefix}_k{k}.time ntcard -k {k} -t {t} -p {reads_prefix} {input.reads_files}"
         )
 
 rule ntedit_cbf:
     input:
         bloom_filter=f"{reads_prefix}_k{k}.cbf"
     output:
-        edited_draft=f"ntedit_k{k}_cbf_p{p}_q{q}_edited.fa"
+        edited_draft=f"{b}ntedit_k{k}_cbf_p{p}_q{q}_edited.fa"
     run:
         shell(
-            f"{time_command} ntedit_{reads_prefix}_k{k}_cbf_p{p}_q{q}.time ntedit -r {input.bloom_filter} -f {input.draft} -b {b}ntedit_k{k}_cbf_p{p}_q{q} -p {p} -q {q} -t {t} -z {z} -i {i} -d {d} -x {x} -y {y} -c {cap} -m {m} -v {v} -a {a} -j {j} -X {X} -Y {Y} -s {s}"
+            f"{time_command} ntedit_{reads_prefix}_k{k}_cbf_p{p}_q{q}.time ntedit -r {input.bloom_filter} -f {draft} -b {b}ntedit_k{k}_cbf_p{p}_q{q} -p {p} -q {q} -t {t} -z {z} -i {i} -d {d} -x {x} -y {y} -c {cap} -m {m} -v {v} -a {a} -j {j} -X {X} -Y {Y} -s {s}"
         )
 
 rule nthits_cbf:
