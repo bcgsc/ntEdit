@@ -30,4 +30,4 @@ executable(
 )
 
 scripts = ['ntEdit.py', 'ntedit_run_pipeline.smk']
-install_data(scripts, install_dir : 'bin')
+install_data(scripts, install_dir : 'bin', install_mode : 'rwxr--r--')
