@@ -15,4 +15,4 @@ wget -nc https://www.bcgsc.ca/downloads/btl/ntedit/sim_reads_ecoli/Sim_100_300_1
 #echo -e "\nRUNNING NTEDIT"
 #ntedit -f ecoliWithMismatches001Indels0001.fa.gz -r nthits.cbf -b ntedit
 
-ntEdit.py --mode cbf -k 31 -reads Sim_100_300 --draft ecoliWithMismatches001Indels0001.fa.gz
+ntEdit.py --mode cbf -k 31 --reads Sim_100_300 --draft ecoliWithMismatches001Indels0001.fa.gz
