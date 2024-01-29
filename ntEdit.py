@@ -37,7 +37,7 @@ def main():
                         required=True)
 
     parser.add_argument("--cutoff",
-                        help="The minimum coverage of kmers in output bloom filter, [default=2, ignored if solid=True]",
+                        help="The minimum coverage of kmers in output Bloom filter, [default=2, ignored if solid=True]",
                         default=2, type=int)
 
     parser.add_argument("-t",
