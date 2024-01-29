@@ -26,7 +26,7 @@ if k <= 0:
     raise ValueError("k must be greater than 0.")
 
 # Common parameters
-t = config["t"] if "t" in config else 1
+t = config["t"] if "t" in config else 4
 b = config["b"] + "_" if "b" in config and config["b"] != "" else ""
 
 # ntHits parameters
@@ -35,7 +35,7 @@ cutoff = config["cutoff"] if "cutoff" in config else 2
 
 # ntEdit parameters
 z = config["z"] if "z" in config else 100
-i = config["i"] if "i" in config else 4
+i = config["i"] if "i" in config else 5
 d = config["d"] if "d" in config else 5
 x = config["x"] if "x" in config else 5.000
 y = config["y"] if "y" in config else 9.000
@@ -71,30 +71,30 @@ rule help:
         echo "    draft    draft genome assembly. Must be specified with exact FILE NAME. Ex: draft=myDraft.fa (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED"
         echo "    reads    prefix of reads file(s). All files in the working directory with the specified prefix will be used for polishing (fastq, fasta, gz, bz, zip), REQUIRED"
         echo "    time     logs time and memory usage to file for main steps (Set to 1 to enable logging)"
-        echo "    k        kmer size, REQUIRED"
-        echo "    t        number of threads [default=1]"
+        echo "    k        k-mer size, REQUIRED"
+        echo "    t        number of threads [default=4]"
         echo "    b        output file prefix, OPTIONAL"
         echo ""
         echo "Options specific to ntHits:"
         echo "    solid    output the solid k-mers (non-erroneous k-mers), True = yes, False = no [default=False]"
-        echo "	  cutoff   the minimum coverage of kmers in output bloom filter, [default=2, ignored if solid=True]"
+        echo "	  cutoff   the minimum coverage of k-mers in output bloom filter, [default=2, ignored if solid=True]"
         echo ""
         echo "Options specific to ntEdit:"
         echo "    z        minimum contig length [default=100]"
-        echo "    i        maximum number of insertion bases to try, range 0-5, [default=4]"
-        echo "    d        maximum number of deletions bases to try, range 0-5, [default=5]"
-        echo "    x        k/x ratio for the number of kmers that should be missing, [default=5.000]"
-        echo "    y        k/y ratio for the number of edited kmers that should be present, [default=9.000]"
-        echo "    j        controls size of kmer subset. When checking subset of kmers, check every jth kmer, [default=3]"
+        echo "    i        maximum number of insertion bases to try, range 0-5, [default=5]"
+        echo "    d        maximum number of deletions bases to try, range 0-10, [default=5]"
+        echo "    x        k/x ratio for the number of k-mers that should be missing, [default=5.000]"
+        echo "    y        k/y ratio for the number of edited k-mers that should be present, [default=9.000]"
+        echo "    j        controls size of k-mer subset. When checking subset of k-mers, check every jth k-mer, [default=3]"
         echo "    cap      cap for the number of base insertions that can be made at one position, [default=k*1.5]"
-        echo "    X        ratio of number of kmers in the k subset that should be missing in order to attempt fix (higher=stringent), [default=0.5]"
-        echo "    Y        ratio of number of kmers in the k subset that should be present to accept an edit (higher=stringent), [default=0.5]"
+        echo "    X        ratio of number of k-mers in the k subset that should be missing in order to attempt fix (higher=stringent), [default=0.5]"
+        echo "    Y        ratio of number of k-mers in the k subset that should be present to accept an edit (higher=stringent), [default=0.5]"
         echo "    m        mode of editing, range 0-2, [default=0]"
         echo "                 0: best substitution, or first good indel"
         echo "                 1: best substitution, or best indel"
         echo "                 2: best edit overall (suggestion that you reduce i and d for performance)"
-        echo "    a        Soft masks missing kmer positions having no fix (-v 1 = yes, default = 0, no)"
-        echo "    s        SNV mode. Overrides draft kmer checks, forcing reassessment at each position (1 = yes, default = 0, no. EXPERIMENTAL)"
+        echo "    a        Soft masks missing k-mer positions having no fix (-v 1 = yes, default = 0, no)"
+        echo "    s        SNV mode. Overrides draft k-mer checks, forcing reassessment at each position (1 = yes, default = 0, no. EXPERIMENTAL)"
         echo "    v        verbose mode (1 = yes, default = 0, no)"
         echo "    p, minimum k-mer coverage threshold (CBF only) [default=minimum of counting Bloom filter\n"
         echo "    counts, cannot be larger than 255]\n"

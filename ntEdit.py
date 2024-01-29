@@ -67,7 +67,11 @@ def main():
                         default=None, type=float)
 
     parser.add_argument("-m",
-                        help="Mode of editing, range 0-2, [default=0]", default=0, type=int, choices=range(0, 2))
+                        help="""Mode of editing, range 0-2, [default=0]\n
+                        0: best substitution, or first good indel\n
+                        1: best substitution, or best indel\n
+                        2: best edit overall (suggestion that you reduce i and d for performance)""", 
+                        default=0, type=int, choices=range(0, 2))
 
     parser.add_argument("-v",
                         help="Verbose mode (1 = yes, default = 0, no)", default=0, type=int)

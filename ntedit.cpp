@@ -55,7 +55,7 @@ static const char USAGE_MESSAGE[] = PROGRAM
     " Fast, lightweight, scalable genome sequence polishing and SNV detection & annotation\n"
     "\n"
     " Options:\n"
-    "	-t,	number of threads [default=1]\n"
+    "	-t,	number of threads [default=4]\n"
     "	-f,	draft genome assembly (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED\n"
     "	-r,	Bloom filter (BF) or counting BF (CBF) file (generated from ntHits v1.0.1+), REQUIRED\n"
     "	-e,	secondary BF with k-mers to reject (generated from ntHits v1.0.1+), OPTIONAL - NOT "
@@ -108,7 +108,7 @@ float edit_ratio = 0.5;
 float missing_ratio = 0.5;
 bool use_ratio = false;
 unsigned jump = 3;
-unsigned nthreads = 1;
+unsigned nthreads = 4;
 std::string draft_filename;    // NOLINT
 std::string vcf_filename;      // NOLINT
 std::string bloom_filename;    // NOLINT
