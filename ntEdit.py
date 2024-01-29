@@ -90,7 +90,7 @@ def main():
 
     parser.add_argument("-n", "--dry-run", help="Print out the commands that will be executed", action="store_true")
 
-    parser.add_argument("-f", "--force", help="Run all ntSynt steps, regardless of existing output files",
+    parser.add_argument("-f", "--force", help="Run all ntEdit steps, regardless of existing output files",
                         action="store_true")
 
     args = parser.parse_args()
