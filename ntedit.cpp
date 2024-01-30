@@ -443,8 +443,10 @@ NTMC64_changelast(
 {
 	fhVal ^= btllib::hashing_internals::SEED_TAB[charOut];
 	fhVal ^= btllib::hashing_internals::SEED_TAB[charIn];
-	rhVal ^= btllib::hashing_internals::srol_table(charOut, k - 1);
-	rhVal ^= btllib::hashing_internals::srol_table(charIn, k - 1);
+	unsigned char out_rev = charOut & btllib::hashing_internals::CP_OFF;
+	unsigned char in_rev = charIn & btllib::hashing_internals::CP_OFF;
+	rhVal ^= btllib::hashing_internals::srol_table(out_rev, k - 1);
+	rhVal ^= btllib::hashing_internals::srol_table(in_rev, k - 1);
 	uint64_t base_hash = btllib::hashing_internals::canonical(fhVal, rhVal);
 	btllib::hashing_internals::extend_hashes(base_hash, k, m, hVal);
 }
