@@ -19,8 +19,8 @@ def main():
     parser = argparse.ArgumentParser(description="ntEdit: Fast, lightweight, scalable genome sequence polishing and SNV detection & annotation",
                                      formatter_class=argparse.RawTextHelpFormatter)
 
-    parser.add_argument("--mode",
-                        help="Mode of ntEdit (bf, cbf), [default=bf]", default="bf", type=str, choices=["bf", "cbf"])
+    parser.add_argument("--bloomType",
+                        help="type of Bloom filter (bf, cbf), [default=bf]", default="bf", type=str, choices=["bf", "cbf"])
 
     parser.add_argument("-k",
                         help="k-mer size, REQUIRED",
@@ -44,7 +44,7 @@ def main():
                         help="Number of threads [default=4]", default=4, type=int)
 
     parser.add_argument("--solid",
-                        help="Output the solid k-mers (non-erroneous k-mers), True = yes, False = no [default=False]",
+                        help="Output the solid k-mers (non-erroneous k-mers), [default=False]",
                         action="store_true", default=False)
 
     parser.add_argument("-z",
@@ -74,7 +74,7 @@ def main():
                         default=0, type=int, choices=range(0, 2))
 
     parser.add_argument("-v",
-                        help="Verbose mode (1 = yes, default = 0, no)", default=0, type=int)
+                        help="Verbose mode, [default=False]", action="store_true", default=False)
 
     parser.add_argument("-a",
                         help="Soft masks missing k-mer positions having no fix (1 = yes, default = 0, no)", default=0, type=int, choices=range(0, 1))
@@ -90,11 +90,11 @@ def main():
 
     parser.add_argument("-X",
                         help="Ratio of number of k-mers in the k subset that should be missing in order to attempt fix (higher=stringent), "
-                            "[default=0.5]", default=0.5, type=float)
+                            "[default=0.5, if -Y is specified]", default=-1, type=float)
 
     parser.add_argument("-Y",
                         help="Ratio of number of k-mers in the k subset that should be present to accept an edit (higher=stringent), "
-                            "[default=0.5]", default=0.5, type=float)
+                            "[default=0.5, if -X is specified]", default=-1, type=float)
 
     parser.add_argument("-p",
                         help="Minimum k-mer coverage threshold (CBF only) [default=1]", default=1, type=int)
@@ -115,23 +115,17 @@ def main():
 
     intro_string = ["Running ntedit...",
                     f"Parameter settings:",
-                    f"\t--mode {mode}",
+                    f"\t--bloomType {args.bloomType}",
                     f"\t-k {args.k}",
                     f"\t--draft {args.draft}",
                     f"\t--reads {args.reads}",
-                    f"\t--cutoff {args.cutoff}",
                     f"\t-t {args.t}",
-                    f"\t--solid {args.solid}",
                     f"\t-z {args.z}",
                     f"\t-i {args.i}",
                     f"\t-d {args.d}",
                     f"\t-x {args.x}",
                     f"\t-y {args.y}",
-                    f"\t--cap {args.cap}",
                     f"\t-m {args.m}",
-                    f"\t-v {args.v}",
-                    f"\t-X {args.X}",
-                    f"\t-Y {args.Y}",
                     f"\t-p {args.p}",
                     f"\t-q {args.q}",
                     f"\t-a {args.a}",
@@ -139,25 +133,64 @@ def main():
                     f"\t-s {args.s}",
                     ]
 
-    if args.l is not "":
+    if args.l != "":
+        if not os.path.isfile(args.l):
+            raise FileNotFoundError(f"VCF file {args.l} not found")
         intro_string.append(f"\t--l {args.l}")
+
+    if args.X != -1 or args.Y != -1:
+        if args.X == -1:
+            args.X = 0.5
+        if args.Y == -1:
+            args.Y = 0.5
+        intro_string.append(f"\t-X {args.X}")
+        intro_string.append(f"\t-Y {args.Y}")
+    
+    if args.solid:
+        intro_string.append(f"\t--solid")
+    else:
+        intro_string.append(f"\t--cutoff {args.cutoff}")
+
+    if args.cap is not None:
+        intro_string.append(f"\t--cap {args.cap}")
+
+    if args.v:
+        intro_string.append(f"\t-v")
+
+    if args.bloomType == "cbf":
+        smk_rule = "ntedit_cbf"
+    else:
+        smk_rule = "ntedit"
 
 
     print("\n".join(intro_string), flush=True)
 
-    command = f"snakemake -s {base_dir}/ntedit_run_pipeline.smk {mode} -p --cores {args.t} " \
-            f"--config draft={args.draft} reads={args.reads} k={args.k} cutoff={args.cutoff} t={args.t} " \
-            f"solid={args.solid} z={args.z} i={args.i} d={args.d} x={args.x} y={args.y} " \
-            f"m={args.m} v={args.v} X={args.X} Y={args.Y} p={args.p} q={args.q} a={args.a} j={args.j} s={args.s}"
+    command = f"snakemake -s {base_dir}/ntedit_run_pipeline.smk {smk_rule} -p --cores {args.t} " \
+            f"--config draft={args.draft} reads={args.reads} k={args.k} t={args.t} " \
+            f"z={args.z} i={args.i} d={args.d} x={args.x} y={args.y} " \
+            f"m={args.m} v={args.v} p={args.p} q={args.q} a={args.a} j={args.j} s={args.s}"
     
-    if args.l is not "":
+    if args.solid:
+        command += f" solid={args.solid}"
+    else:
+        command += f" cutoff={args.cutoff}"
+
+    if args.v:
+        command += f" v=1"
+    else:
+        command += f" v=0"
+    
+    if args.l != "":
         command += f" l={args.l}"
 
+    if args.X != -1 or args.Y != -1:
+        command += f" X={args.X} Y={args.Y}"
+
     if args.cap is not None:
-        command += "cap={args.cap}"
+        command += " cap={args.cap}"
 
     if version.parse(snakemake.__version__) >= version.parse("7.8.0"): # Keep behaviour consistent for smk versions
-        command += "--rerun-trigger mtime "
+        command += " --rerun-trigger mtime "
 
     if args.dry_run:
         command += " -n"

@@ -45,13 +45,26 @@ v = config["v"] if "v" in config else 0
 a = config["a"] if "a" in config else 0
 j = config["j"] if "j" in config else 3
 s = config["s"] if "s" in config else 0
-X = config["X"] if "X" in config else 0.5
-Y = config["Y"] if "Y" in config else 0.5
+X = config["X"] if "X" in config else -1
+Y = config["Y"] if "Y" in config else -1
 p = config["p"] if "p" in config else 1
 q = config["q"] if "q" in config else 255
+l = config["l"] if "l" in config else ""
+
+if l != "":
+    if not os.path.isfile(l):
+        raise ValueError("VCF file not found. Please check that the file name is correct.")
+
+if X != -1 or Y != -1:
+    if X == -1:
+        X = 0.5
+    if Y == -1:
+        Y = 0.5
 
 # time command
-time_command = "command time -v -o"
+mac_time_command = "command time -l -o"
+linux_time_command = "command time -v -o"
+time_command = mac_time_command if os.uname().sysname == "Darwin" else linux_time_command
 
 rule all:
     input:
@@ -116,49 +129,60 @@ rule ntedit:
         bloom_filter=f"{reads_prefix}_k{k}.bf"
     output:
         edited_draft=f"{b}ntedit_k{k}_edited.fa"
-    run:
-        shell(
-            f"{time_command} ntedit_{reads_prefix}_k{k}.time ntedit -r {input.bloom_filter} -f {draft} -b {b}ntedit_k{k} -t {t} -z {z} -i {i} -d {d} -x {x} -y {y} -c {cap} -m {m} -v {v} -a {a} -j {j} -X {X} -Y {Y} -s {s}"
-        )
+    params:
+        prefix = f"{b}ntedit_k{k}",
+        benchmark = f"{time_command} ntedit_{reads_prefix}.time",
+        ratio = f"-X {X} -Y {Y}" if X != -1 or Y != -1 else "",
+        vcf = f"-l {l}" if l != "" else ""
+    shell:
+        "{params.benchmark} ntedit -r {input.bloom_filter} -f {draft} -b {params.prefix} -t {t} -z {z} -i {i} -d {d} -x {x} -y {y} -c {cap} -m {m} -v {v} -a {a} -j {j} {params.ratio} -s {s} {params.vcf}"
+        
 
 rule nthits:
     input:
         hist=f"{reads_prefix}_k{k}.hist",
         reads_files = [file for file in os.listdir('.') if file.startswith(config["reads"]) and file.endswith((".fq", ".fq.gz", ".fastq", ".fastq.gz"))]
     output:
-        bloom_filter=f"{reads_prefix}_k{k}.bf"        
-    run:
-        shell(
-            f"{time_command} nthits_{reads_prefix}_k{k}.time nthits bf -t {t} -f {input.hist} -o {output.bloom_filter} -k {k} {('--solid ' if solid else '')}-cmin {cutoff} {input.reads_files}"
-        )
+        bloom_filter=f"{reads_prefix}_k{k}.bf"
+    params:
+        benchmark = f"{time_command} nthits_{reads_prefix}_k{k}.time",
+        min_cutoff = f"--solid" if solid else f"-cmin {cutoff}"         
+    shell:
+        "{params.benchmark} nthits bf -t {t} -f {input.hist} -o {output.bloom_filter} -k {k} {params.min_cutoff} {input.reads_files}"
+        
 
 rule ntcard:
     input:
         reads_files = [file for file in os.listdir('.') if file.startswith(config["reads"]) and file.endswith((".fq", ".fq.gz", ".fastq", ".fastq.gz"))]
     output:
         hist=f"{reads_prefix}_k{k}.hist"
-    run:
-        shell(
-            f"{time_command} ntcard_{reads_prefix}_k{k}.time ntcard -k {k} -t {t} -p {reads_prefix} {input.reads_files}"
-        )
+    params:
+        benchmark = f"{time_command} ntcard_{reads_prefix}_k{k}.time"
+    shell:
+        "{params.benchmark} ntcard -k {k} -t {t} -p {reads_prefix} {input.reads_files}"
+
 
 rule ntedit_cbf:
     input:
         bloom_filter=f"{reads_prefix}_k{k}.cbf"
     output:
         edited_draft=f"{b}ntedit_k{k}_cbf_p{p}_q{q}_edited.fa"
-    run:
-        shell(
-            f"{time_command} ntedit_{reads_prefix}_k{k}_cbf_p{p}_q{q}.time ntedit -r {input.bloom_filter} -f {draft} -b {b}ntedit_k{k}_cbf_p{p}_q{q} -p {p} -q {q} -t {t} -z {z} -i {i} -d {d} -x {x} -y {y} -c {cap} -m {m} -v {v} -a {a} -j {j} -X {X} -Y {Y} -s {s}"
-        )
+    params:
+        prefix = f"{b}ntedit_k{k}_cbf_p{p}_q{q}",
+        benchmark = f"{time_command} ntedit_{reads_prefix}_k{k}_cbf_p{p}_q{q}.time",
+        ratio = f"-X {X} -Y {Y}" if X != -1 or Y != -1 else "",
+        vcf = f"-l {l}" if l != "" else ""
+    shell:
+        "{params.benchmark} ntedit -r {input.bloom_filter} -f {draft} -b  {params.prefix} -p {p} -q {q} -t {t} -z {z} -i {i} -d {d} -x {x} -y {y} -c {cap} -m {m} -v {v} -a {a} -j {j} {params.ratio} -s {s} {params.vcf}"        
 
 rule nthits_cbf:
     input:
         hist=f"{reads_prefix}_k{k}.hist",
         reads_files = [file for file in os.listdir('.') if file.startswith(config["reads"]) and file.endswith((".fq", ".fq.gz", ".fastq", ".fastq.gz"))]
     output:
-        bloom_filter=f"{reads_prefix}_k{k}.cbf"        
-    run:
-        shell(
-            f"{time_command} nthits_{reads_prefix}_k{k}_cbf.time nthits cbf -t {t} -f {input.hist} -o {output.bloom_filter} -k {k} {('--solid ' if solid else '')}-cmin {cutoff} {input.reads_files}"
-        )
+        bloom_filter=f"{reads_prefix}_k{k}.cbf"
+    params:
+        benchmark = f"{time_command} nthits_{reads_prefix}_k{k}_cbf.time",
+        min_cutoff = f"--solid" if solid else f"-cmin {cutoff}"      
+    shell:
+        "{params.benchmark} nthits cbf -t {t} -f {input.hist} -o {output.bloom_filter} -k {k} {params.min_cutoff} {input.reads_files}"
