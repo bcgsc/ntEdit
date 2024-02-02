@@ -29,5 +29,5 @@ executable(
     install: true,
 )
 
-scripts = ['run-ntEdit', 'ntedit_run_pipeline.smk']
+scripts = ['run-ntedit', 'ntedit_run_pipeline.smk']
 install_data(scripts, install_dir : 'bin', install_mode : 'rwxr-xr--')
