@@ -2044,8 +2044,16 @@ readAndCorrect(
 	rfout.open(r_filename);
 	// printf ( "OUT OF %.1f\n", ceil( double(opt::k) / double(opt::jump) ) );
 
-	rfout << "ID\tbpPosition+1\tOriginalBase\tNewBase\tSupport " << opt::k << "-mer (out of "
-	      << ceil(double(opt::k) / double(opt::jump)) << ")\tAlt.Base1\tAlt.Support1\t"
+	rfout << "ID\tbpPosition+1\tOriginalBase\tNewBase\t";
+	if (bloom.is_counting()){
+		rfout << "Coverage (max 255)";
+	}
+	else {
+		rfout << "Support " << opt::k << "-mer (out of "
+		      << ceil(double(opt::k) / double(opt::jump)) << ")";
+	
+	}
+	rfout << "\tAlt.Base1\tAlt.Support1\t"
 	      << "Alt.Base2\tAlt.Support2\tAlt.Base3\tAlt.Support3\n"; // RLW
 
 	vfout.open(v_filename);
@@ -2065,7 +2073,7 @@ readAndCorrect(
 	}
 
 	vfout << "##fileDate=" << year << month << day << std::endl;
-	vfout << "##source=ntEditV1.4.3" << std::endl;
+	vfout << "##source=" << PROGRAM << std::endl;
 	vfout << "##reference=file:" << opt::draft_filename << std::endl;
 	vfout << "##INFO=<ID=AD,Number=2,Type=Integer,Description=\"Kmer Depth\">" << std::endl;
 	vfout << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tINTEGRATION" << std::endl;
