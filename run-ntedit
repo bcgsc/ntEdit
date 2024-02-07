@@ -51,10 +51,10 @@ def main():
                         help="Minimum contig length [default=100]", default=100, type=int)
 
     parser.add_argument("-i",
-                        help="Maximum number of insertion bases to try, range 0-5, [default=5]", default=5, type=int, choices=range(0, 5))
+                        help="Maximum number of insertion bases to try, range 0-5, [default=5]", default=5, type=int, choices=range(0, 6))
 
     parser.add_argument("-d",
-                        help="Maximum number of deletions bases to try, range 0-10, [default=5]", default=5, type=int, choices=range(0, 10))
+                        help="Maximum number of deletions bases to try, range 0-10, [default=5]", default=5, type=int, choices=range(0, 11))
 
     parser.add_argument("-x",
                         help="k/x ratio for the number of k-mers that should be missing, [default=5.000]", default=5.000, type=float)
@@ -71,13 +71,13 @@ def main():
                         0: best substitution, or first good indel\n
                         1: best substitution, or best indel
                         2: best edit overall (suggestion that you reduce i and d for performance)""", 
-                        default=0, type=int, choices=range(0, 2))
+                        default=0, type=int, choices=range(0, 3))
 
     parser.add_argument("-v",
                         help="Verbose mode, [default=False]", action="store_true", default=False)
 
     parser.add_argument("-a",
-                        help="Soft masks missing k-mer positions having no fix (1 = yes, default = 0, no)", default=0, type=int, choices=range(0, 1))
+                        help="Soft masks missing k-mer positions having no fix (1 = yes, default = 0, no)", default=0, type=int, choices=range(0, 2))
 
     parser.add_argument("-j",
                         help="controls size of k-mer subset. When checking subset of k-mers, check every jth k-mer, [default=3]", default=3, type=int)
