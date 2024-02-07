@@ -16,7 +16,9 @@ if not os.path.isfile(draft):
 # Check that reads files exist
 if [file for file in os.listdir('.') if file.startswith(config["reads"]) and file.endswith((".fq", ".fq.gz", ".fastq", ".fastq.gz"))] == []:
     raise ValueError("Reads files do not exist. Please check that the prefix is correct and that the files are in the current working directory.")
-    reads_files_list = [file for file in os.listdir('.') if file.startswith(config["reads"]) and file.endswith((".fq", ".fq.gz", ".fastq", ".fastq.gz"))]
+
+reads_files = [file for file in os.listdir('.') if file.startswith(config["reads"]) and file.endswith((".fq", ".fq.gz", ".fastq", ".fastq.gz"))]
+
 # Check that k is an integer
 try:
     k = int(k)
@@ -147,9 +149,9 @@ rule nthits:
         bloom_filter=f"{reads_prefix}_k{k}.bf"
     params:
         benchmark = f"{time_command} nthits_{reads_prefix}_k{k}.time",
-        min_cutoff = f"--solid" if solid else f"-cmin {cutoff}"         
+        min_cutoff = f"--solid" if solid else f"-cmin {cutoff}"      
     shell:
-        "{params.benchmark} nthits bf -t {t} -f {input.hist} -o {output.bloom_filter} -k {k} {params.min_cutoff} {input.reads_files}"
+        "{params.benchmark} nthits bf -t {t} -f {input.hist} -o {output.bloom_filter} -k {k} {params.min_cutoff} -v {input.reads_files}"
         
 
 rule ntcard:
