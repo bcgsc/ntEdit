@@ -16,6 +16,7 @@ if not os.path.isfile(draft):
 # Check that reads files exist
 if [file for file in os.listdir('.') if file.startswith(config["reads"]) and file.endswith((".fq", ".fq.gz", ".fastq", ".fastq.gz"))] == []:
     raise ValueError("Reads files do not exist. Please check that the prefix is correct and that the files are in the current working directory.")
+    reads_files_list = [file for file in os.listdir('.') if file.startswith(config["reads"]) and file.endswith((".fq", ".fq.gz", ".fastq", ".fastq.gz"))]
 # Check that k is an integer
 try:
     k = int(k)
@@ -141,7 +142,7 @@ rule ntedit:
 rule nthits:
     input:
         hist=f"{reads_prefix}_k{k}.hist",
-        reads_files = [file for file in os.listdir('.') if file.startswith(config["reads"]) and file.endswith((".fq", ".fq.gz", ".fastq", ".fastq.gz"))]
+        reads_files = reads_files
     output:
         bloom_filter=f"{reads_prefix}_k{k}.bf"
     params:
@@ -153,7 +154,7 @@ rule nthits:
 
 rule ntcard:
     input:
-        reads_files = [file for file in os.listdir('.') if file.startswith(config["reads"]) and file.endswith((".fq", ".fq.gz", ".fastq", ".fastq.gz"))]
+        reads_files = reads_files
     output:
         hist=f"{reads_prefix}_k{k}.hist"
     params:
@@ -178,7 +179,7 @@ rule ntedit_cbf:
 rule nthits_cbf:
     input:
         hist=f"{reads_prefix}_k{k}.hist",
-        reads_files = [file for file in os.listdir('.') if file.startswith(config["reads"]) and file.endswith((".fq", ".fq.gz", ".fastq", ".fastq.gz"))]
+        reads_files = reads_files
     output:
         bloom_filter=f"{reads_prefix}_k{k}.cbf"
     params:
