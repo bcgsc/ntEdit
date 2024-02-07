@@ -1,5 +1,5 @@
 CXXFLAGS=-O3 -std=c++11 -fopenmp
-LDLIBS=-lz
+LDLIBS=-lz -lboost_iostreams
 
 all: ntedit
 
@@ -19,9 +19,7 @@ ifneq ("$(wildcard *.fixed)","")
 endif
 
 check:
-	./ntedit -f demo/ecoliWithMismatches001Indels0001.fa.gz -r demo/solidBF_k25.bf -d 5 -i 4 -b ntEditEcolik25Test
-	diff -q ntEditEcolik25Test_changes.tsv demo/nteditk25_changes.tsv && rm ntEditEcolik25Test_changes.tsv
-	diff -q ntEditEcolik25Test_edited.fa demo/nteditk25_edited.fa && rm ntEditEcolik25Test_edited.fa
+	cd demo  && bash runme.sh
 
 clean: 
 	rm ntedit
