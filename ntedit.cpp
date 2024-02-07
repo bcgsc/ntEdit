@@ -466,7 +466,7 @@ bool
 is_kmer_solid(uint64_t* hVal, const BFWrapper& bloom, const BFWrapper& bloomrep)
 {
 	bool solid_if_reg = !opt::secbf || !bloomrep.contains(hVal);
-	bool solid_if_count = !bloom.is_counting() || bloom.get_count(hVal) <= opt::max_threshold;
+	bool solid_if_count = !bloom.is_counting() || (bloom.get_count(hVal) <= opt::max_threshold && bloom.get_count(hVal) >= opt::min_threshold);
 
 	return solid_if_reg && solid_if_count;
 }
@@ -1714,9 +1714,11 @@ kmerizeAndCorrect(
 					} else if (
 					    isATGCBase(draft_char) && k % opt::jump == 0 &&
 					    bloom.contains(hVal)) { // XXRLWnov2020 important to screen for ACGT
-						check_there++;
-						if (bloom.is_counting()) {
+						if (bloom.is_counting() && bloom.get_count(hVal) >= opt::min_threshold) { // TODO logic refactor
 							check_there_median_vec.emplace_back(bloom.get_count(hVal));
+							check_there++;
+						} else {
+							check_there++;
 						}
 					}
 				} else {
