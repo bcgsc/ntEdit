@@ -950,10 +950,13 @@ writeEditsToFile(
 			       substitution_record.front().pos <= curr_node.e_pos) {
 				std::vector<char> alt_base_vcf(0);
 				std::vector<unsigned> alt_supp_vcf(0);
-				rfout << contigHdr.c_str() << "\t" << substitution_record.front().pos + 1 << "\t"
-				      << substitution_record.front().draft_char << "\t"
-				      << substitution_record.front().sub_base << "\t"
-				      << substitution_record.front().num_support;
+				bool snv_mode_no_edit = !(opt::snv && substitution_record.front().draft_char  == substitution_record.front().sub_base);
+				if (snv_mode_no_edit) {
+					rfout << contigHdr.c_str() << "\t" << substitution_record.front().pos + 1 << "\t"
+						<< substitution_record.front().draft_char << "\t"
+						<< substitution_record.front().sub_base << "\t"
+						<< substitution_record.front().num_support;
+				}
 				std::string base(1, substitution_record.front().sub_base);
 				std::string support = std::to_string(substitution_record.front().num_support);
 				std::string clinvarinfo; // RLW 23AUG2023
@@ -969,24 +972,32 @@ writeEditsToFile(
 					clinvarinfo += clinvar[varid];
 				}
 				if (substitution_record.front().altsupp1 > 0) { // XXRLWXX
-					rfout << "\t" << substitution_record.front().altbase1 << "\t"
-					      << substitution_record.front().altsupp1;
+					if (snv_mode_no_edit) {
+						rfout << "\t" << substitution_record.front().altbase1 << "\t"
+							<< substitution_record.front().altsupp1;
+					}
 					alt_base_vcf.emplace_back(substitution_record.front().altbase1);
 					alt_supp_vcf.emplace_back(substitution_record.front().altsupp1);
 				}
 				if (substitution_record.front().altsupp2 > 0) { // XXRLWXX
-					rfout << "\t" << substitution_record.front().altbase2 << "\t"
-					      << substitution_record.front().altsupp2;
+					if (snv_mode_no_edit) {
+						rfout << "\t" << substitution_record.front().altbase2 << "\t"
+							<< substitution_record.front().altsupp2;
+					}
 					alt_base_vcf.emplace_back(substitution_record.front().altbase2);
 					alt_supp_vcf.emplace_back(substitution_record.front().altsupp2);
 				}
 				if (substitution_record.front().altsupp3 > 0) { // XXRLWXX
+					if (snv_mode_no_edit) {
 					rfout << "\t" << substitution_record.front().altbase3 << "\t"
 					      << substitution_record.front().altsupp3;
+					}
 					alt_base_vcf.emplace_back(substitution_record.front().altbase3);
 					alt_supp_vcf.emplace_back(substitution_record.front().altsupp3);
 				}
-				rfout << "\n";
+				if (snv_mode_no_edit) {
+					rfout << "\n";
+				}
 				unsigned curr_best_alt_supp = 0;
 				char best_alt_base = '1';
 				std::string best_alt_supp;
@@ -994,39 +1005,52 @@ writeEditsToFile(
 				// If there are alt bases
 				if (!alt_base_vcf.empty()) {
 					if (opt::snv) {
-						bool ref = false;
-						for (size_t i = 0; i < alt_base_vcf.size(); ++i) {
-							// Prioritize ref base over other alt base
-							if (substitution_record.front().draft_char == alt_base_vcf[i]) {
-								curr_best_alt_supp = alt_supp_vcf[i];
-								ref = true;
-								break;
+						if (!snv_mode_no_edit) {
+							for (size_t i = 0; i < alt_base_vcf.size(); ++i) {
+								if (alt_supp_vcf[i] > curr_best_alt_supp) {
+									curr_best_alt_supp = alt_supp_vcf[i];
+									base = alt_base_vcf[i];
+								}
 							}
-							if (alt_supp_vcf[i] > curr_best_alt_supp) {
-								curr_best_alt_supp = alt_supp_vcf[i];
-								best_alt_base = alt_base_vcf[i];
-							}
-						}
-						best_alt_supp = std::to_string(curr_best_alt_supp);
-						if (ref) {
+							best_alt_supp = std::to_string(curr_best_alt_supp);
 							support.append(",");
 							support.append(best_alt_supp);
 							genotype = "0/1";
-						} else {
-							genotype = "1/2";
-							support += ",";
-							support += best_alt_supp;
-							base += ",";
-							base += best_alt_base;
-							std::ostringstream altid; // RLW 21AUG2023
-							altid << contigHdr.c_str() << ">"
-							      << char(toupper(substitution_record.front().draft_char))
-							      << substitution_record.front().pos + 1
-							      << char(toupper(best_alt_base)); // RLW 21AUG2023
-							std::string altvarid = altid.str();    // RLW 21AUG2023
-							if (!clinvar[altvarid].empty()) {
-								clinvarinfo += "^";
-								clinvarinfo += clinvar[altvarid];
+						}
+						else {
+							bool ref = false;
+							for (size_t i = 0; i < alt_base_vcf.size(); ++i) {
+								// Prioritize ref base over other alt base
+								if (substitution_record.front().draft_char == alt_base_vcf[i]) {
+									curr_best_alt_supp = alt_supp_vcf[i];
+									ref = true;
+									break;
+								}
+								if (alt_supp_vcf[i] > curr_best_alt_supp) {
+									curr_best_alt_supp = alt_supp_vcf[i];
+									best_alt_base = alt_base_vcf[i];
+								}
+							}
+							best_alt_supp = std::to_string(curr_best_alt_supp);
+							if (ref) {
+								support = best_alt_supp + "," + support;
+								genotype = "0/1";
+							} else {
+								genotype = "1/2";
+								support += ",";
+								support += best_alt_supp;
+								base += ",";
+								base += best_alt_base;
+								std::ostringstream altid; // RLW 21AUG2023
+								altid << contigHdr.c_str() << ">"
+									<< char(toupper(substitution_record.front().draft_char))
+									<< substitution_record.front().pos + 1
+									<< char(toupper(best_alt_base)); // RLW 21AUG2023
+								std::string altvarid = altid.str();    // RLW 21AUG2023
+								if (!clinvar[altvarid].empty()) {
+									clinvarinfo += "^";
+									clinvarinfo += clinvar[altvarid];
+								}
 							}
 						}
 					} else {
@@ -1309,6 +1333,22 @@ makeEdit(
 		if (opt::verbose) {
 			std::cout << "\tt_seq_i: " << t_seq_i << " FIX NOT FOUND" << std::endl;
 		}
+		if (opt::snv) {
+			sRec subst;
+			subst.draft_char = draft_char;
+			subst.pos = t_seq_i;
+			subst.sub_base = draft_char; // same char as signal to not write to changes.tsv
+			subst.num_support = best_num_support;
+			subst.altbase1 = altbase1;
+			subst.altsupp1 = altsupp1;
+			subst.altbase2 = altbase2;
+			subst.altsupp2 = altsupp2;
+			subst.altbase3 = altbase3;
+			subst.altsupp3 = altsupp3;
+			if (altsupp1) {
+				substitution_record.push(subst);
+			}
+		}
 		break;
 	default:
 		break;
@@ -1402,7 +1442,7 @@ tryDeletion(
 	     static_cast<float>(check_present) >=
 	         (1 + (static_cast<float>(opt::k) / opt::jump)) * opt::edit_ratio)) { // RLW
 		if (bloom.is_counting()) {
-			if (!opt::snv && !(check_present_median >= opt::min_threshold)) {
+			if (!opt::snv && !(check_present_median >= opt::min_threshold)) { //TODO
 				return 0;
 			}
 			return static_cast<int>(check_present_median);
@@ -1774,7 +1814,11 @@ kmerizeAndCorrect(
 
 						if (opt::verbose) {
 							std::cout << "\t\tORI BEST SUB BASE: " << best_sub_base
-							          << " NUMBER: " << best_num_support << std::endl;
+							          << " NUMBER: " << best_num_support;
+							if (bloom.is_counting()) {
+							std::cout << " COVERAGE: " << check_there_median;
+							}
+							std::cout << std::endl;
 						}
 					}
 				}
@@ -1789,6 +1833,8 @@ kmerizeAndCorrect(
 					NTMC64_changelast(
 					    draft_char, sub_base, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
 					// only do verification of substitution if it is found in Bloom filter
+
+
 					if ((bloom.contains(hVal) && is_kmer_solid(hVal, bloom, bloomrep)) ||
 					    opt::mode == 2) {
 						// reset temporary values
@@ -1867,7 +1913,9 @@ kmerizeAndCorrect(
 								                   check_present_median >= opt::min_threshold)) {
 									continue;
 								}
-								check_present = check_present_median;
+								if (!opt::snv) {
+									check_present = check_present_median;
+								}
 							}
 							if (check_present >= best_num_support) {
 								if (altsupp2) {
@@ -2055,8 +2103,14 @@ readAndCorrect(
 		      << ceil(double(opt::k) / double(opt::jump)) << ")";
 	
 	}
-	rfout << "\tAlt.Base1\tAlt.Support1\t"
-	      << "Alt.Base2\tAlt.Support2\tAlt.Base3\tAlt.Support3\n"; // RLW
+
+	std::string alt_evi = "Support";
+	if (bloom.is_counting()) {
+		alt_evi = "Coverage";
+	}
+	rfout << "\tAlt.Base1\tAlt." << alt_evi << "1\t"
+	      << "Alt.Base2\tAlt." << alt_evi << "2\t"
+		  << "Alt.Base3\tAlt." << alt_evi << "3\n"; // RLW
 
 	vfout.open(v_filename);
 
