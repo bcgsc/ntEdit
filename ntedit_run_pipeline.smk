@@ -5,8 +5,12 @@ import os
 
 # Read parameters from config or set default values
 draft=config["draft"]
-reads_prefix=config["reads"]
+reads_prefix=config["reads"] if "reads" in config else ""
 k=config["k"]
+
+# ancestry parameters
+genomes = config["genomes"] if "genomes" in config else ""
+genome_prefix = ".".join([genome.removesuffix(".fa").removesuffix(".fasta").removesuffix(".fna") for genome in genomes])
 
 if draft is None or reads_prefix is None or k is None:
     raise ValueError("You must specify draft, reads, and k in your command. See 'snakemake -s ntedit_run_pipeline.smk help' for more information.")
@@ -14,10 +18,11 @@ if draft is None or reads_prefix is None or k is None:
 if not os.path.isfile(draft):
     raise ValueError("Draft file does not exist. Please check that the file name is correct and that the file is in the current working directory.")
 # Check that reads files exist
-if [file for file in os.listdir('.') if file.startswith(config["reads"]) and file.endswith((".fq", ".fq.gz", ".fastq", ".fastq.gz"))] == []:
-    raise ValueError("Reads files do not exist. Please check that the prefix is correct and that the files are in the current working directory.")
+if [file for file in os.listdir('.') if file.startswith(reads_prefix) and file.endswith((".fq", ".fq.gz", ".fastq", ".fastq.gz"))] == []:
+    if genomes == "":
+        raise ValueError("Reads files do not exist. Please check that the prefix is correct and that the files are in the current working directory.")
 
-reads_files = [file for file in os.listdir('.') if file.startswith(config["reads"]) and file.endswith((".fq", ".fq.gz", ".fastq", ".fastq.gz"))]
+reads_files = [file for file in os.listdir('.') if file.startswith(reads_prefix) and file.endswith((".fq", ".fq.gz", ".fastq", ".fastq.gz"))]
 
 # Check that k is an integer
 try:
@@ -53,6 +58,7 @@ Y = config["Y"] if "Y" in config else -1
 p = config["p"] if "p" in config else 1
 q = config["q"] if "q" in config else 255
 l = config["l"] if "l" in config else ""
+
 
 if l != "":
     if not os.path.isfile(l):
@@ -189,3 +195,62 @@ rule nthits_cbf:
         min_cutoff = f"--solid" if solid else f"-cmin {cutoff}"      
     shell:
         "{params.benchmark} nthits cbf -t {t} -f {input.hist} -o {output.bloom_filter} -k {k} {params.min_cutoff} {input.reads_files}"
+
+# TODO: These rules are set-up ready to be updated when we add the script for analyzing ancestry
+rule ntedit_ancestry_genome:
+    input: f"{genome_prefix}_ntedit_k{k}_variants.vcf"
+
+rule ntedit_ancestry_reads:
+    input: f"{reads_prefix}_ntedit_k{k}_variants.vcf"
+
+
+rule ntedit_snv_genome:
+    input: f"{genome_prefix}_ntedit_k{k}_variants.vcf"
+
+rule ntedit_snv_reads:
+    input: f"{reads_prefix}_ntedit_k{k}_variants.vcf"
+
+rule ntedit_snv:
+    input:
+        bloom_filter = expand("{{prefix}}_k{k}.bf", k=k)
+    output:
+        out_vcf=expand("{{prefix}}_ntedit_k{k}_variants.vcf", k=k)
+    params:
+        prefix = expand("{{prefix}}_ntedit_k{k}", k=k),
+        benchmark = expand("{time_command} ntedit_{{prefix}}.time", time_command=time_command),
+        ratio = f"-X {X} -Y {Y}" if X != -1 or Y != -1 else "",
+        vcf = f"-l {l}" if l != "" else ""
+    shell:
+        "{params.benchmark} ntedit -r {input.bloom_filter} -f {draft} -b {params.prefix} -t {t} -z {z} -y {y} -v {v} -a {a} -j {j} {params.ratio} -s 1 {params.vcf}"
+
+
+rule ntedit_ancestry_genome_bf:
+    input:
+        ntcard_f_stats = f"{genome_prefix}.k{k}.tsv",
+        genomes = genomes
+    output:
+        f"{genome_prefix}_k{k}.bf"
+    params:
+        options = f"-k {k} -t {t}",
+        benchmark = f"{time_command} make_bf_{genome_prefix}_k{k}.time"
+    run:
+        with open(input.ntcard_f_stats, 'r', encoding="utf8") as fin:
+            for line in fin:
+                _, f, num = line.strip().split("\t")
+                if f == "F0":
+                    num_elements = num
+                    break
+        shell("{params.benchmark} make_genome_bf --genome {input.genomes} {params.options} --num_elements {num_elements} -o {output}")
+        
+
+rule ancestry_ntcard:
+    input: 
+        genomes = genomes
+    output:
+        hist=f"{genome_prefix}.k{k}.hist",
+        f_stats=f"{genome_prefix}.k{k}.tsv"
+    params:
+        benchmark = f"{time_command} ntcard_{genome_prefix}_k{k}.time",
+        options = f"-t {t} -k {k}"
+    shell:
+        "{params.benchmark} ntcard {params.options} -o {output.hist} {input.genomes} &> {output.f_stats}"

@@ -21,6 +21,12 @@ dependencies = [
     compiler.find_library('boost_iostreams'),
 ]
 
+include_dirs = [
+    include_directories('src/vendor/argparse/include'),
+]
+
+link_args = [ '-lbtllib' ]
+
 executable(
     'ntedit',
     'ntedit.cpp',
@@ -28,6 +34,10 @@ executable(
     include_directories: 'lib',
     install: true,
 )
+
+src_files = [ 'make_genome_bf.cpp' ]
+# Source files and scripts
+subdir('src')
 
 scripts = ['run-ntedit', 'ntedit_run_pipeline.smk']
 install_data(scripts, install_dir : 'bin', install_mode : 'rwxr-xr--')
