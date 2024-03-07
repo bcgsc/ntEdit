@@ -17,126 +17,158 @@ NTEDIT_VERSION = "ntEdit v2.0.0"
 def main():
     "Run ntEdit snakemake file"
 
-    parser = argparse.ArgumentParser(description="ntEdit: Fast, lightweight, scalable genome sequence polishing and SNV detection & annotation",
+    parser = argparse.ArgumentParser(description="ntEdit: Fast, lightweight, scalable genome sequence"
+                                                "polishing and SNV detection & annotation",
                                      formatter_class=argparse.RawTextHelpFormatter)
 
-    subparsers = parser.add_subparsers(help="ntEdit can be run in polishing, SNV or ancestry modes.",
+    subparsers = parser.add_subparsers(help="ntEdit can be run in polishing or SNV modes.",
                                        dest="mode")
 
     parser_polishing = subparsers.add_parser("polish", help="Run ntEdit polishing")
 
     parser_snv = subparsers.add_parser("snv", help="Run ntEdit SNV mode (Experimental)")
 
-    parser_ancestry = subparsers.add_parser("ancestry", help="Run ntEdit ancestry inference")
-
     # Add draft argument first to ensure at top of help page
-    for subparser in [parser_snv, parser_ancestry, parser_polishing]:
+    for subparser in [parser_snv, parser_polishing]:
         subparser.add_argument("--draft",
-                help="Draft genome assembly. Must be specified with exact FILE NAME. "
-                    "Ex: --draft myDraft.fa (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED",
-                required=True)
+                               help="Draft genome assembly. Must be specified with exact FILE NAME. "
+                                    "Ex: --draft myDraft.fa (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED",
+                                    required=True)
 
-    # Arguments for SNV mode and ancestry mode
-    for subparser in [parser_snv, parser_ancestry]:
-        subparser.add_argument("--reads",
-                    help="Prefix of input reads file(s) for variant calling. All files in the working directory with the specified prefix will be used for polishing "
-                        "(fastq, fasta, gz, bz, zip)", type=str)
-        subparser.add_argument("--genome",
-                               help="Genome assembly file(s) for detecting SNV on --draft",
-                               nargs="+")
-        subparser.add_argument("-l",
-                               help="input VCF file with annotated variants (e.g., clinvar.vcf)",
-                               type=str)
+    # Arguments for SNV mode
+    parser_snv.add_argument("--reads",
+                            help="Prefix of input reads file(s) for variant calling."
+                            "All files in the working directory with the specified prefix will be used for polishing "
+                            "(fastq, fasta, gz, bz, zip)", type=str)
+    parser_snv.add_argument("--genome",
+                            help="Genome assembly file(s) for detecting SNV on --draft",
+                            nargs="+")
+    parser_snv.add_argument("-l",
+                            help="input VCF file with annotated variants (e.g., clinvar.vcf)",
+                            type=str)
     # Arguments for polishing only
     parser_polishing.add_argument("--reads",
-                        help="Prefix of reads file(s). All files in the working directory with the specified prefix will be used for polishing "
-                            "(fastq, fasta, gz, bz, zip), REQUIRED",
-                        required=True)
+                                  help="Prefix of reads file(s)."
+                                    "All files in the working directory with the specified prefix will be used for polishing "
+                                    "(fastq, fasta, gz, bz, zip), REQUIRED",
+                                    required=True)
     parser_polishing.add_argument("-i",
-                            help="Maximum number of insertion bases to try, range 0-5, [default=5]", default=5, type=int, choices=range(0, 6))
+                                  help="Maximum number of insertion bases to try, range 0-5, [default=5]",
+                                  default=5, type=int, choices=range(0, 6))
 
     parser_polishing.add_argument("-d",
-                            help="Maximum number of deletions bases to try, range 0-10, [default=5]", default=5, type=int, choices=range(0, 11))
+                                  help="Maximum number of deletions bases to try, range 0-10, [default=5]",
+                                  default=5, type=int, choices=range(0, 11))
     parser_polishing.add_argument("-x",
-                                  help="k/x ratio for the number of k-mers that should be missing, [default=5.000]", default=5.000, type=float)
+                                  help="k/x ratio for the number of k-mers that should be missing, [default=5.000]",
+                                  default=5.000, type=float)
     parser_polishing.add_argument("--cap",
-                        help="Cap for the number of base insertions that can be made at one position, [default=k*1.5]",
-                        type=float)
+                                  help="Cap for the number of base insertions that can be made at one position"
+                                    "[default=k*1.5]",
+                                  type=float)
     parser_polishing.add_argument("-m",
-                        help="""Mode of editing, range 0-2, [default=0]\n
-                        0: best substitution, or first good indel\n
-                        1: best substitution, or best indel
-                        2: best edit overall (suggestion that you reduce i and d for performance)""",
-                        default=0, type=int, choices=range(0, 3))
+                                  help="""Mode of editing, range 0-2, [default=0]\n
+                                  0: best substitution, or first good indel\n
+                                  1: best substitution, or best indel
+                                  2: best edit overall (suggestion that you reduce i and d for performance)""",
+                                  default=0, type=int, choices=range(0, 3))
     parser_polishing.add_argument("-a",
-                        help="Soft masks missing k-mer positions having no fix (1 = yes, default = 0, no)",
-                        default=0, type=int, choices=range(0, 2))
+                                  help="Soft masks missing k-mer positions having no fix (1 = yes, default = 0, no)",
+                                  default=0, type=int, choices=range(0, 2))
 
 
     # Arguments common to all modes
-    for subparser in [parser_polishing, parser_snv, parser_ancestry]:   
+    for subparser in [parser_polishing, parser_snv]:
         subparser.add_argument("-k",
-                            help="k-mer size, REQUIRED",
-                            required=True, type=int)
-        subparser.add_argument("--bloomType", # !! TODO - want this in only some?
-                    help="type of Bloom filter (bf, cbf), [default=bf]", default="bf", type=str, choices=["bf", "cbf"])
+                               help="k-mer size, REQUIRED",
+                               required=True, type=int)
+        subparser.add_argument("--bloomType",
+                               help="type of Bloom filter (bf, cbf), [default=bf]",
+                               default="bf", type=str, choices=["bf", "cbf"])
         subparser.add_argument("--cutoff",
-                            help="The minimum coverage of k-mers in output Bloom filter, [default=2, ignored if solid=True]",
-                            default=2, type=int)
+                               help="The minimum coverage of k-mers in output Bloom filter"
+                                    "[default=2, ignored if solid=True]",
+                               default=2, type=int)
 
         subparser.add_argument("-t",
-                            help="Number of threads [default=4]", default=4, type=int)
+                               help="Number of threads [default=4]", default=4, type=int)
 
         subparser.add_argument("--solid",
-                            help="Output the solid k-mers (non-erroneous k-mers), [default=False]",
-                            action="store_true", default=False)
+                               help="Output the solid k-mers (non-erroneous k-mers), [default=False]",
+                               action="store_true", default=False)
         subparser.add_argument("-z",
-                        help="Minimum contig length [default=100]", default=100, type=int)
+                               help="Minimum contig length [default=100]", default=100, type=int)
         subparser.add_argument("-y",
-                        help="k/y ratio for the number of edited k-mers that should be present, [default=9.000]",
-                        default=9.000, type=float)
+                               help="k/y ratio for the number of edited k-mers that should be present, [default=9.000]",
+                               default=9.000, type=float)
         subparser.add_argument("-v",
-                        help="Verbose mode, [default=False]", action="store_true", default=False)
+                               help="Verbose mode, [default=False]", action="store_true", default=False)
         subparser.add_argument("-j",
-                        help="controls size of k-mer subset. When checking subset of k-mers, check every jth k-mer, [default=3]", default=3, type=int)
+                               help="controls size of k-mer subset. When checking subset of k-mers, check every jth k-mer [default=3]",
+                               default=3, type=int)
         subparser.add_argument("-X",
-                        help="Ratio of number of k-mers in the k subset that should be missing in order to attempt fix (higher=stringent), "
-                            "[default=0.5, if -Y is specified]", default=-1, type=float)
+                               help="Ratio of number of k-mers in the k subset that should be missing in order"
+                                    "to attempt fix (higher=stringent) "
+                                    "[default=0.5, if -Y is specified]", default=-1, type=float)
 
         subparser.add_argument("-Y",
-                            help="Ratio of number of k-mers in the k subset that should be present to accept an edit (higher=stringent), "
-                                "[default=0.5, if -X is specified]", default=-1, type=float)
+                               help="Ratio of number of k-mers in the k subset that should"
+                                    "be present to accept an edit (higher=stringent) [default=0.5, if -X is specified]",
+                                    default=-1, type=float)
 
         subparser.add_argument("-p",
-                            help="Minimum k-mer coverage threshold (CBF only) [default=1]", default=1, type=int)
+                               help="Minimum k-mer coverage threshold (CBF only) [default=1]", default=1, type=int)
 
         subparser.add_argument("-q",
-                            help="Maximum k-mer coverage threshold (CBF only) [default=255, largest possible value]", default=255, type=int)
+                               help="Maximum k-mer coverage threshold (CBF only) [default=255, largest possible value]",
+                               default=255, type=int)
 
         subparser.add_argument("-V", "--version", action="version", version=NTEDIT_VERSION)
 
-        subparser.add_argument("-n", "--dry-run", help="Print out the commands that will be executed", action="store_true")
+        subparser.add_argument("-n", "--dry-run", help="Print out the commands that will be executed",
+                               action="store_true")
 
         subparser.add_argument("-f", "--force", help="Run all ntEdit steps, regardless of existing output files",
-                            action="store_true")
+                               action="store_true")
 
 
     args = parser.parse_args()
-    
+
     if args.mode is None:
         parser.print_help()
         sys.exit()
 
     base_dir = os.path.dirname(os.path.realpath(__file__))
 
-    intro_string = ["Running ntedit...",
-                    f"Parameter settings:"]
+    # Determining which snakemake target to run
+    if args.mode == "snv":
+        if args.reads:
+            if args.bloomType == "cbf":
+                smk_rule = "ntedit_snv_reads_cbf"
+            else:
+                smk_rule = "ntedit_snv_reads"
+        if args.genome:
+            smk_rule = "ntedit_snv_genome"
+    else:
+        if args.bloomType == "cbf":
+            smk_rule = "ntedit_cbf"
+        else:
+            smk_rule = "ntedit"
+
+    intro_string = ["Running ntEdit...",
+                    "Parameter settings:"]
+
+    command = f"snakemake -s {base_dir}/ntedit_run_pipeline.smk {smk_rule} -p --cores {args.t} " \
+            f"--config draft={args.draft} k={args.k} t={args.t} " \
+            f"z={args.z} y={args.y} v={args.v} p={args.p} q={args.q} j={args.j} "
 
     if args.genome:
         intro_string.append(f"\t--genome {args.genome}")
+        command += f"genomes={args.genome} "
     else:
         intro_string.append(f"\t--reads {args.reads}")
-    
+        command += f"reads={args.reads}"
+
     intro_string.extend([f"\t--bloomType {args.bloomType}",
                         f"\t-k {args.k}",
                         f"\t--draft {args.draft}",
@@ -145,8 +177,7 @@ def main():
                         f"\t-y {args.y}",
                         f"\t-p {args.p}",
                         f"\t-q {args.q}",
-                        f"\t-j {args.j}",
-                    ])
+                        f"\t-j {args.j}"])
 
     if args.X != -1 or args.Y != -1:
         if args.X == -1:
@@ -155,86 +186,47 @@ def main():
             args.Y = 0.5
         intro_string.append(f"\t-X {args.X}")
         intro_string.append(f"\t-Y {args.Y}")
+        command += f" X={args.X} Y={args.Y}"
 
-    if not args.genome: 
+    if not args.genome:
         if args.solid:
-            intro_string.append(f"\t--solid")
+            intro_string.append("\t--solid")
+            command += f" solid={args.solid}"
         else:
-            intro_string.append(f"\t--cutoff {args.cutoff}")
+            intro_string.append("\t--cutoff {args.cutoff}")
+            command += f" cutoff={args.cutoff}"
 
     if args.v:
-        intro_string.append(f"\t-v")
+        intro_string.append("\t-v")
+        command += " v=1"
+    else:
+        command += " v=0"
 
     # Polishing-specific parameter logs
     if args.mode == "polishing":
         if args.cap:
             intro_string.append(f"\t--cap {args.cap}")
+            command += " cap={args.cap}"
         intro_string.append(f"\t-i {args.i}")
         intro_string.append(f"\t-d {args.d}")
         intro_string.append(f"\t-x {args.x}")
         intro_string.append(f"\t-m {args.m}")
         intro_string.append(f"\t-a {args.a}")
-        
+        command += f" i={args.i} d={args.d} x={args.x} m={args.m} a={args.a} "
+
     # SNV / Ancestry-specific parameter logs
-    if args.mode == "snv" or args.mode == "ancestry":
+    if args.mode == "snv":
         if args.l:
             if not os.path.isfile(args.l):
                 raise FileNotFoundError(f"VCF file {args.l} not found")
             intro_string.append(f"\t-l {args.l}")
+            command += f" l={args.l}"
         if args.reads and args.genome:
             raise argparse.ArgumentTypeError("Please specify --reads OR --genome")
         if not args.reads and not args.genome:
             raise argparse.ArgumentTypeError("Please specify --reads OR --genome")
 
-
-    if args.mode == "ancestry":
-        if args.reads:
-            smk_rule = "ntedit_ancestry_reads"
-        if args.genome:
-            smk_rule = "ntedit_ancestry_genome"
-    elif args.mode == "snv":
-        if args.reads:
-            smk_rule = "ntedit_snv_reads"
-        if args.genome:
-            smk_rule = "ntedit_snv_genome"    
-    else:
-        if args.bloomType == "cbf":
-            smk_rule = "ntedit_cbf"
-        else:
-            smk_rule = "ntedit"
-
     print("\n".join(intro_string), flush=True)
-
-    command = f"snakemake -s {base_dir}/ntedit_run_pipeline.smk {smk_rule} -p --cores {args.t} " \
-            f"--config draft={args.draft} k={args.k} t={args.t} " \
-            f"z={args.z} y={args.y} " \
-            f"v={args.v} p={args.p} q={args.q} j={args.j} "
-            
-    if args.mode == "polishing":
-        command += f"i={args.i} d={args.d} x={args.x} m={args.m} a={args.a} "
-        if args.cap is not None:
-            command += " cap={args.cap}"
-            
-    if args.genome:
-        command += f"genomes={args.genome} "
-    else:
-        command += f"reads={args.reads}"
-        if args.solid:
-            command += f" solid={args.solid}"
-        else:
-            command += f" cutoff={args.cutoff}"
-
-    if args.v:
-        command += f" v=1"
-    else:
-        command += f" v=0"
-
-    if args.l and (args.mode == "ancestry" or args.mode == "snv"):
-        command += f" l={args.l}"
-
-    if args.X != -1 or args.Y != -1:
-        command += f" X={args.X} Y={args.Y}"
-
 
     if version.parse(snakemake.__version__) >= version.parse("7.8.0"): # Keep behaviour consistent for smk versions
         command += " --rerun-trigger mtime "

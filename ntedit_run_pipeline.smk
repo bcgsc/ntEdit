@@ -196,19 +196,28 @@ rule nthits_cbf:
     shell:
         "{params.benchmark} nthits cbf -t {t} -f {input.hist} -o {output.bloom_filter} -k {k} {params.min_cutoff} {input.reads_files}"
 
-# TODO: These rules are set-up ready to be updated when we add the script for analyzing ancestry
-rule ntedit_ancestry_genome:
-    input: f"{genome_prefix}_ntedit_k{k}_variants.vcf"
-
-rule ntedit_ancestry_reads:
-    input: f"{reads_prefix}_ntedit_k{k}_variants.vcf"
-
 
 rule ntedit_snv_genome:
     input: f"{genome_prefix}_ntedit_k{k}_variants.vcf"
 
 rule ntedit_snv_reads:
     input: f"{reads_prefix}_ntedit_k{k}_variants.vcf"
+
+rule ntedit_snv_reads_cbf:
+    input: f"{reads_prefix}_ntedit_k{k}_cbf_variants.vcf"
+
+rule ntedit_snv_cbf:
+    input:
+        bloom_filter = expand("{{prefix}}_k{k}.cbf", k=k)
+    output:
+        out_vcf=expand("{{prefix}}_ntedit_k{k}_cbf_variants.vcf", k=k)
+    params:
+        prefix = expand("{{prefix}}_ntedit_k{k}_cbf", k=k),
+        benchmark = expand("{time_command} ntedit_{{prefix}}.time", time_command=time_command),
+        ratio = f"-X {X} -Y {Y}" if X != -1 or Y != -1 else "",
+        vcf = f"-l {l}" if l != "" else ""
+    shell:
+        "{params.benchmark} ntedit -r {input.bloom_filter} -f {draft} -b {params.prefix} -t {t} -z {z} -y {y} -v {v} -a {a} -j {j} {params.ratio} -s 1 {params.vcf}"
 
 rule ntedit_snv:
     input:
