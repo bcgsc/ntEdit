@@ -233,7 +233,7 @@ rule ntedit_snv:
         "{params.benchmark} ntedit -r {input.bloom_filter} -f {draft} -b {params.prefix} -t {t} -z {z} -y {y} -v {v} -a {a} -j {j} {params.ratio} -s 1 {params.vcf}"
 
 
-rule ntedit_ancestry_genome_bf:
+rule ntedit_genome_bf:
     input:
         ntcard_f_stats = f"{genome_prefix}.k{k}.tsv",
         genomes = genomes
@@ -252,7 +252,7 @@ rule ntedit_ancestry_genome_bf:
         shell("{params.benchmark} make_genome_bf --genome {input.genomes} {params.options} --num_elements {num_elements} -o {output}")
         
 
-rule ancestry_ntcard:
+rule genomes_ntcard:
     input: 
         genomes = genomes
     output:
