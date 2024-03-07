@@ -10,7 +10,7 @@ k=config["k"]
 
 # ancestry parameters
 genomes = config["genomes"] if "genomes" in config else ""
-genome_prefix = ".".join([genome.removesuffix(".fa").removesuffix(".fasta").removesuffix(".fna") for genome in genomes])
+genome_prefix = ".".join([os.path.basename(os.path.realpath(genome)).removesuffix(".fa").removesuffix(".fasta").removesuffix(".fna") for genome in genomes])
 
 if draft is None or reads_prefix is None or k is None:
     raise ValueError("You must specify draft, reads, and k in your command. See 'snakemake -s ntedit_run_pipeline.smk help' for more information.")

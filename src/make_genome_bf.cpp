@@ -150,7 +150,9 @@ long long bf_size;
 
       #pragma omp parallel
       for (const auto record : reader) {
-        bf->insert(record.seq);
+        if (record.seq.length() >= k) {
+          bf->insert(record.seq);
+        }
     }
   }
 
