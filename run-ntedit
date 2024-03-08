@@ -82,9 +82,6 @@ def main():
         subparser.add_argument("-k",
                                help="k-mer size, REQUIRED",
                                required=True, type=int)
-        subparser.add_argument("--bloomType",
-                               help="type of Bloom filter (bf, cbf), [default=bf]",
-                               default="bf", type=str, choices=["bf", "cbf"])
         subparser.add_argument("--cutoff",
                                help="The minimum coverage of k-mers in output Bloom filter"
                                     "[default=2, ignored if solid=True]",
@@ -116,13 +113,6 @@ def main():
                                     "be present to accept an edit (higher=stringent) [default=0.5, if -X is specified]",
                                     default=-1, type=float)
 
-        subparser.add_argument("-p",
-                               help="Minimum k-mer coverage threshold (CBF only) [default=1]", default=1, type=int)
-
-        subparser.add_argument("-q",
-                               help="Maximum k-mer coverage threshold (CBF only) [default=255, largest possible value]",
-                               default=255, type=int)
-
         subparser.add_argument("-V", "--version", action="version", version=NTEDIT_VERSION)
 
         subparser.add_argument("-n", "--dry-run", help="Print out the commands that will be executed",
@@ -143,24 +133,18 @@ def main():
     # Determining which snakemake target to run
     if args.mode == "snv":
         if args.reads:
-            if args.bloomType == "cbf":
-                smk_rule = "ntedit_snv_reads_cbf"
-            else:
-                smk_rule = "ntedit_snv_reads"
+            smk_rule = "ntedit_snv_reads"
         if args.genome:
             smk_rule = "ntedit_snv_genome"
     else:
-        if args.bloomType == "cbf":
-            smk_rule = "ntedit_cbf"
-        else:
-            smk_rule = "ntedit"
+        smk_rule = "ntedit"
 
     intro_string = ["Running ntEdit...",
                     "Parameter settings:"]
 
     command = f"snakemake -s {base_dir}/ntedit_run_pipeline.smk {smk_rule} -p --cores {args.t} " \
             f"--config draft={args.draft} k={args.k} t={args.t} " \
-            f"z={args.z} y={args.y} v={args.v} p={args.p} q={args.q} j={args.j} "
+            f"z={args.z} y={args.y} v={args.v} j={args.j} "
 
     if args.genome:
         intro_string.append(f"\t--genome {args.genome}")
@@ -169,14 +153,11 @@ def main():
         intro_string.append(f"\t--reads {args.reads}")
         command += f"reads={args.reads}"
 
-    intro_string.extend([f"\t--bloomType {args.bloomType}",
-                        f"\t-k {args.k}",
+    intro_string.extend([f"\t-k {args.k}",
                         f"\t--draft {args.draft}",
                         f"\t-t {args.t}",
                         f"\t-z {args.z}",
                         f"\t-y {args.y}",
-                        f"\t-p {args.p}",
-                        f"\t-q {args.q}",
                         f"\t-j {args.j}"])
 
     if args.X != -1 or args.Y != -1:
