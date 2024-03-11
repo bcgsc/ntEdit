@@ -22,18 +22,16 @@ Thank you for your [![Stars](https://img.shields.io/github/stars/bcgsc/ntEdit.sv
 5. [Documentation](#docs)
 6. [Citing ntEdit](#citing)
 7. [Credits](#credits)
-8. [How to run in a pipeline](#howto)
+8. [How to run ntEdit](#howto)
 9. [Running ntEdit](#run)
 10. [ntEdit modes](#modes)
 11. [Soft-mask option](#soft)
-12. [SNV option](#snv)
+12. [SNV mode](#snv)
 13. [VCF input option](#clinvarvcf)
-14. [Secondary Bloom filter](#secondary)
-15. [ntedit-make](#make)
-16. [Test data](#test)
-17. [Algorithm](#how)
-18. [Output files](#output)
-19. [License](#license)
+14. [Test data](#test)
+15. [Algorithm](#how)
+16. [Output files](#output)
+17. [License](#license)
 
 ## Description <a name=description></a>
 
@@ -149,7 +147,7 @@ optional arguments:
   -h, --help    show this help message and exit
 ```
 
-# Running in polishing mode
+### Running in polishing mode
 ```
 run-ntedit polish --help
 usage: run-ntedit polish [-h] --draft DRAFT --reads READS [-i {0,1,2,3,4,5}] [-d {0,1,2,3,4,5,6,7,8,9,10}] [-x X] [--cap CAP] [-m {0,1,2}] [-a {0,1}] -k K
@@ -185,7 +183,7 @@ optional arguments:
   -f, --force           Run all ntEdit steps, regardless of existing output files
 ```
 
-# Running ntEdit in SNV mode
+### Running ntEdit in SNV mode
 ```
 run-ntedit snv --help
 usage: run-ntedit snv [-h] --draft DRAFT [--reads READS] [--genome GENOME [GENOME ...]] [-l L] -k K [--cutoff CUTOFF] [-t T] [--solid] [-z Z] [-y Y] [-v] [-j J]
@@ -216,12 +214,12 @@ optional arguments:
   -f, --force           Run all ntEdit steps, regardless of existing output files
 ```
 
-# Example ntEdit command - polishing the draft `ecoliWithMismatches001Indels0001.fa` in solid mode using input reads `my_reads_1.fq.gz` and `my_reads_2.fq.gz` using a k-mer size of 55 and 48 threads
+#### Example ntEdit command - polishing the draft `ecoliWithMismatches001Indels0001.fa` in solid mode using input reads `my_reads_1.fq.gz` and `my_reads_2.fq.gz` using a k-mer size of 55 and 48 threads
 ```
 run-ntedit polish --draft ecoliWithMismatches001Indels0001.fa --reads my_reads -k 55 -t 48 --solid
 ```
 
-# Example ntEdit command - same experimental set-up as above, but using a k-mer coverage cutoff of 2
+#### Example ntEdit command - same experimental set-up as above, but using a k-mer coverage cutoff of 2
 ```
 run-ntedit polish --draft ecoliWithMismatches001Indels0001.fa --reads my_reads -k 55 -t 48 --cutoff 2
 ```
@@ -316,18 +314,19 @@ run-ntedit snv --draft GRCh38.fa --genome HG004.asm.fa -k 50 -t 48 -l clinvar_20
 The demo script will use the installed ntEdit binary. Please ensure that the ntEdit binary is in your PATH.
 <pre>
 export PATH=/path/to/ntEdit:$PATH
-<pre>
+</pre>
 Running the demo
 <pre>
 Go to ./demo
 (cd demo)
+</pre>
 
 run:
+```
 ./runme.sh
+```
 
-(ntedit -f ecoliWithMismatches001Indels0001.fa.gz -r nthits.cbf -b ntedit)
-
-ntEdit will polish an E. coli genome sequence with substitution error ~0.001 and indels ~0.0001 using pre-made ntHits counting Bloom filter
+ntEdit will polish an _E. coli_ genome sequence with ~0.001 substitution error rate and ~0.0001 indel rate
 
 Expected files will be:
 ntedit_k25_changes.tsv
@@ -336,7 +335,7 @@ ntedit_k25_edited.fa
 Compare with:
 ecoli_ntedit_k25_changes.tsv
 ecoli_ntedit_k25_edited.fa
-</pre>
+
 
 
 ## Algorithm - how it works <a name=how></a>
