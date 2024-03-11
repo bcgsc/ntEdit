@@ -146,7 +146,7 @@ def main():
             f"--config draft={args.draft} k={args.k} t={args.t} " \
             f"z={args.z} y={args.y} v={args.v} j={args.j} "
 
-    if args.genome:
+    if args.mode == "snv" and args.genome:
         intro_string.append(f"\t--genome {args.genome}")
         command += f"genomes={args.genome} "
     else:
@@ -169,12 +169,12 @@ def main():
         intro_string.append(f"\t-Y {args.Y}")
         command += f" X={args.X} Y={args.Y}"
 
-    if not args.genome:
+    if not (args.mode == "snv" and args.genome):
         if args.solid:
             intro_string.append("\t--solid")
             command += f" solid={args.solid}"
         else:
-            intro_string.append("\t--cutoff {args.cutoff}")
+            intro_string.append(f"\t--cutoff {args.cutoff}")
             command += f" cutoff={args.cutoff}"
 
     if args.v:
