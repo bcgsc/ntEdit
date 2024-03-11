@@ -226,7 +226,7 @@ run-ntedit polish --draft ecoliWithMismatches001Indels0001.fa --reads my_reads -
 
 ## Tips for running ntEdit
 - For more advanced users, please see the help documentation for the `ntedit` executable, which has information about additional options
-  - More information about the secondary Bloom filter mode is available on our (wiki page)[https://github.com/bcgsc/ntEdit/wiki/ntEdit-Secondary-Bloom-filter]
+  - More information about the secondary Bloom filter mode is available on our [wiki page](https://github.com/bcgsc/ntEdit/wiki/ntEdit-Secondary-Bloom-filter)
 - `--solid mode` will work well ONLY if you have sufficient read coverage (>30X). Otherwise, set the kmer coverage threshold to -c 2 (>=20X) or -c 1 (<20X)
   - solid mode will output non-error kmers, as determined by ntCard. Use this option only when you don't wish to set the threshold (-c) manually
 
@@ -278,7 +278,6 @@ VCF output (v1.3.2+ _variants.vcf): We assume a diploid genome for reporting on 
 
 ## ntEdit SNV -l input VCF file with annotated variants <a name=clinvarvcf></a>
 
-<pre>
 This handy option is used to supply a VCF input file to ntEdit, for cross-referencing base variants.
 For instance, users may wish to identify annotated clinical variants in their genomics datasets.
 For this, users would build Bloom filters with their read datasets using ntHits and run 
@@ -306,8 +305,6 @@ The SNV mode can also work on an input draft assembly:
 run-ntedit snv --draft GRCh38.fa --genome HG004.asm.fa -k 50 -t 48 -l clinvar_20230813.vcf
 ```
 
-</pre>
-
 
 
 ### Test data <a name=test></a>
@@ -329,13 +326,16 @@ run:
 ntEdit will polish an _E. coli_ genome sequence with ~0.001 substitution error rate and ~0.0001 indel rate
 
 Expected files will be:
+```
 ntedit_k25_changes.tsv
 ntedit_k25_edited.fa
+```
 
 Compare with:
+```
 ecoli_ntedit_k25_changes.tsv
 ecoli_ntedit_k25_edited.fa
-
+```
 
 
 ## Algorithm - how it works <a name=how></a>
