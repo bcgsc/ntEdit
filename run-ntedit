@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 '''
 ntEdit: Fast, lightweight, scalable genome sequence polishing and SNV detection & annotation
-Written by Johnathan Wong, adapted from https://github.com/bcgsc/ntSynt/blob/main/bin/ntSynt
+Written by Johnathan Wong and Lauren Coombe, adapted from https://github.com/bcgsc/ntSynt/blob/main/bin/ntSynt
 '''
 import argparse
 import os
@@ -26,7 +26,7 @@ def main():
 
     parser_polishing = subparsers.add_parser("polish", help="Run ntEdit polishing")
 
-    parser_snv = subparsers.add_parser("snv", help="Run ntEdit SNV mode (Experimental)")
+    parser_snv = subparsers.add_parser("snv", help="Run ntEdit SNV mode")
 
     # Add draft argument first to ensure at top of help page
     for subparser in [parser_snv, parser_polishing]:
@@ -35,7 +35,7 @@ def main():
                                     "Ex: --draft myDraft.fa (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED",
                                     required=True)
 
-    # Arguments for SNV mode
+    # Arguments for SNV mode only
     parser_snv.add_argument("--reads",
                             help="Prefix of input reads file(s) for variant calling."
                             "All files in the working directory with the specified prefix will be used for polishing "
@@ -86,20 +86,18 @@ def main():
                                help="The minimum coverage of k-mers in output Bloom filter"
                                     "[default=2, ignored if solid=True]",
                                default=2, type=int)
+        subparser.add_argument("--solid",
+                               help="Output the solid k-mers (non-erroneous k-mers), [default=False]",
+                               action="store_true", default=False)
 
         subparser.add_argument("-t",
                                help="Number of threads [default=4]", default=4, type=int)
 
-        subparser.add_argument("--solid",
-                               help="Output the solid k-mers (non-erroneous k-mers), [default=False]",
-                               action="store_true", default=False)
         subparser.add_argument("-z",
                                help="Minimum contig length [default=100]", default=100, type=int)
         subparser.add_argument("-y",
                                help="k/y ratio for the number of edited k-mers that should be present, [default=9.000]",
                                default=9.000, type=float)
-        subparser.add_argument("-v",
-                               help="Verbose mode, [default=False]", action="store_true", default=False)
         subparser.add_argument("-j",
                                help="controls size of k-mer subset. When checking subset of k-mers, check every jth k-mer [default=3]",
                                default=3, type=int)
@@ -112,7 +110,8 @@ def main():
                                help="Ratio of number of k-mers in the k subset that should"
                                     "be present to accept an edit (higher=stringent) [default=0.5, if -X is specified]",
                                     default=-1, type=float)
-
+        subparser.add_argument("-v",
+                               help="Verbose mode, [default=False]", action="store_true", default=False)
         subparser.add_argument("-V", "--version", action="version", version=NTEDIT_VERSION)
 
         subparser.add_argument("-n", "--dry-run", help="Print out the commands that will be executed",
