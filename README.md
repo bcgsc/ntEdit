@@ -10,7 +10,7 @@ Thank you for your [![Stars](https://img.shields.io/github/stars/bcgsc/ntEdit.sv
 # ntEdit
 
 ## Fast, lightweight, scalable genome sequence polishing and SNV detection & annotation 
-### 2018-2024
+### 2018-current
 
 
 ## Contents
@@ -84,7 +84,7 @@ ninja install
 7. [snakemake](https://snakemake.readthedocs.io/en/stable/)
 
 ```diff
-! NOTE: ntEdit IS ONLY compatible with ntHits release v1.0.0+
+! NOTE: ntEdit v2.0.0+ IS ONLY compatible with ntHits release v1.0.0+
 ```
 We recommend installing ntEdit and its dependencies, using conda: 
 <pre>
@@ -127,6 +127,8 @@ nthits / nthash / BloomFilter.pm: Hamid Mohamadi, Parham Kazemi
 C++ implementation: Jessica Zhang, Rene Warren, Johnathan Wong
 
 Integration tests: Murathan T Goktas
+
+ntEdit workflow: Johnathan Wong and Lauren Coombe
 
 
 ## How to run ntEdit <a name=howto></a>
@@ -357,7 +359,7 @@ note: ntEdit will polish input sequences in upper or lowercase bases. The case o
 
 ## License <a name=license></a>
 
-ntEdit Copyright (c) 2018-2024 British Columbia Cancer Agency Branch.  All rights reserved.
+ntEdit Copyright (c) 2018-current British Columbia Cancer Agency Branch.  All rights reserved.
 
 ntEdit is released under the GNU General Public License v3
 
