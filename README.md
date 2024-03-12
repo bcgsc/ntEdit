@@ -122,7 +122,7 @@ The experimental data described in our paper can be downloaded from: http://www.
 
 ntedit (concept, algorithm design and prototype): Rene Warren
 
-nthits / nthash / BloomFilter.pm: Hamid Mohamadi, Parham Kazemi
+nthits / nthash: Hamid Mohamadi, Parham Kazemi
 
 C++ implementation: Jessica Zhang, Rene Warren, Johnathan Wong
 
