@@ -10,7 +10,7 @@ Thank you for your [![Stars](https://img.shields.io/github/stars/bcgsc/ntEdit.sv
 # ntEdit
 
 ## Fast, lightweight, scalable genome sequence polishing and SNV detection & annotation 
-### 2018-2023
+### 2018-current
 
 
 ## Contents
@@ -22,18 +22,16 @@ Thank you for your [![Stars](https://img.shields.io/github/stars/bcgsc/ntEdit.sv
 5. [Documentation](#docs)
 6. [Citing ntEdit](#citing)
 7. [Credits](#credits)
-8. [How to run in a pipeline](#howto)
+8. [How to run ntEdit](#howto)
 9. [Running ntEdit](#run)
 10. [ntEdit modes](#modes)
 11. [Soft-mask option](#soft)
-12. [SNV option](#snv)
+12. [SNV mode](#snv)
 13. [VCF input option](#clinvarvcf)
-14. [Secondary Bloom filter](#secondary)
-15. [ntedit-make](#make)
-16. [Test data](#test)
-17. [Algorithm](#how)
-18. [Output files](#output)
-19. [License](#license)
+14. [Test data](#test)
+15. [Algorithm](#how)
+16. [Output files](#output)
+17. [License](#license)
 
 ## Description <a name=description></a>
 
@@ -55,7 +53,7 @@ ACCESS THE <a href=https://github.com/bcgsc/ntedit_sealer_protocol target=blank>
 
 ## Implementation and requirements <a name=implementation></a>
 
-ntEdit v1.2 and subsequent versions are written in C++. 
+ntEdit v1.2.0 and subsequent versions are written in C++. 
 
 (We compiled with gcc 5.5.0)
 
@@ -69,18 +67,24 @@ cd ntEdit
 </pre>
 Compile ntEdit.
 <pre>
-make ntedit
+meson setup build --prefix=/path/to/ntedit/install/dir
+cd build
+ninja install
 </pre>
 
 
 ## Dependencies <a name=dependencies></a>
 
-1. ntHits (v0.0.1, https://github.com/bcgsc/nthits)
+1. ntHits (v1.0.0+, https://github.com/bcgsc/nthits)
 2. BloomFilter utilities (provided in ./lib)
 3. kseq (provided in ./lib)
+4. [meson](https://mesonbuild.com/)
+5. [ninja](https://ninja-build.org/)
+6. [btllib](https://github.com/bcgsc/btllib)
+7. [snakemake](https://snakemake.readthedocs.io/en/stable/)
 
 ```diff
-! NOTE: ntEdit IS ONLY compatible with ntHits release v0.0.1. It will not work with ntHits release v1.0.0 and above.  
+! NOTE: ntEdit v2.0.0+ IS ONLY compatible with ntHits release v1.0.0+
 ```
 We recommend installing ntEdit and its dependencies, using conda: 
 <pre>
@@ -118,123 +122,119 @@ The experimental data described in our paper can be downloaded from: http://www.
 
 ntedit (concept, algorithm design and prototype): Rene Warren
 
-nthits / nthash / BloomFilter.pm: Hamid Mohamadi
+nthits / nthash: Hamid Mohamadi, Parham Kazemi
 
 C++ implementation: Jessica Zhang, Rene Warren, Johnathan Wong
 
 Integration tests: Murathan T Goktas
 
-
-## How to run in a pipeline <a name=howto></a>
-
-1. nthits (please see nthits documentation : https://github.com/bcgsc/ntHits)
-<pre>
-nthits -c <kmer coverage threshold> -b <Bloom filter bit size> -k <kmer length> -t <number of threads> reads
-eg.
-nthits -c 2 --outbloom -p solidBF -b 36 -k 25 -t 48 Sim_100_300_1.fq Sim_100_300_2.fq
-or
-nthits -c 2 --outbloom -p solidBF -b 36 -k 25 -t 48 @reads.in
-
-Where @reads.in is a file listing the path to all read fastq files to kmerize
-note the options --outbloom and -p must be set when using ntHits with ntEdit. 
-
-If not specifying a hard threshold (-c), and relying instead on ntCard* to identify the error kmer coverage, please run with the --solid:
-
-nthits -b 36 -k 50 -t 48 --outbloom --solid @reads.in 
-
-NOTE: THIS WILL WORK WELL WITH ntEdit ONLY IF YOU HAVE SUFFICIENT READ COVERAGE (>30X), OTHERWISE SET KMER COVERAGE TO -c2 (>=20X) or -c 1 (<20X).
+ntEdit workflow: Johnathan Wong and Lauren Coombe
 
 
-Summary/Guidelines for running ntHits:
+## How to run ntEdit <a name=howto></a>
 
-A) Coverage <20X
-nthits -c 1 --outbloom -p solidBF -b 36 -k 40 -t 48 @reads.in
+General ntEdit usage:
+```
+run-ntedit --help
+usage: run-ntedit [-h] {polish,snv} ...
 
-B) Coverage 20-30X
-nthits -c 2 --outbloom -p solidBF -b 36 -k 40 -t 48 @reads.in
+ntEdit: Fast, lightweight, scalable genome sequencepolishing and SNV detection & annotation
 
-C) Coverage >30X
-nthits -b 36 -k 40 -t 48 --outbloom --solid @reads.in
+positional arguments:
+  {polish,snv}  ntEdit can be run in polishing or SNV modes.
+    polish      Run ntEdit polishing
+    snv         Run ntEdit SNV mode (Experimental)
 
-Where @reads.in is a file listing the path to all read fastq files to kmerize
+optional arguments:
+  -h, --help    show this help message and exit
+```
 
--c sets a hard coverage threshold for reporting kmers (-c n : keeping kmers with coverage > n)
---solid will output non-error kmers, as determined by ntCard. Use this option only when you don't wish to set the threshold (-c) manually.
---outbloom simply outputs the coverage-thresholded kmers in a Bloom filter, whether it's from using -c or --solid.
--b is the Bloom filter bit size.  Use -b 36 to keep the Bloom filter false positive rate low (~0.0005).
+### Running in polishing mode
+```
+run-ntedit polish --help
+usage: run-ntedit polish [-h] --draft DRAFT --reads READS [-i {0,1,2,3,4,5}] [-d {0,1,2,3,4,5,6,7,8,9,10}] [-x X] [--cap CAP] [-m {0,1,2}] [-a {0,1}] -k K
+                         [--cutoff CUTOFF] [-t T] [--solid] [-z Z] [-y Y] [-v] [-j J] [-X X] [-Y Y] [-V] [-n] [-f]
 
+optional arguments:
+  -h, --help            show this help message and exit
+  --draft DRAFT         Draft genome assembly. Must be specified with exact FILE NAME. Ex: --draft myDraft.fa (FASTA, Multi-FASTA, and/or gzipped compatible),
+                        REQUIRED
+  --reads READS         Prefix of reads file(s).All files in the working directory with the specified prefix will be used for polishing (fastq, fasta, gz, bz,
+                        zip), REQUIRED
+  -i {0,1,2,3,4,5}      Maximum number of insertion bases to try, range 0-5, [default=5]
+  -d {0,1,2,3,4,5,6,7,8,9,10}
+                        Maximum number of deletions bases to try, range 0-10, [default=5]
+  -x X                  k/x ratio for the number of k-mers that should be missing, [default=5.000]
+  --cap CAP             Cap for the number of base insertions that can be made at one position[default=k*1.5]
+  -m {0,1,2}            Mode of editing, range 0-2, [default=0] 0: best substitution, or first good indel 1: best substitution, or best indel 2: best edit
+                        overall (suggestion that you reduce i and d for performance)
+  -a {0,1}              Soft masks missing k-mer positions having no fix (1 = yes, default = 0, no)
+  -k K                  k-mer size, REQUIRED
+  --cutoff CUTOFF       The minimum coverage of k-mers in output Bloom filter[default=2, ignored if solid=True]
+  -t T                  Number of threads [default=4]
+  --solid               Output the solid k-mers (non-erroneous k-mers), [default=False]
+  -z Z                  Minimum contig length [default=100]
+  -y Y                  k/y ratio for the number of edited k-mers that should be present, [default=9.000]
+  -v                    Verbose mode, [default=False]
+  -j J                  controls size of k-mer subset. When checking subset of k-mers, check every jth k-mer [default=3]
+  -X X                  Ratio of number of k-mers in the k subset that should be missing in orderto attempt fix (higher=stringent) [default=0.5, if -Y is
+                        specified]
+  -Y Y                  Ratio of number of k-mers in the k subset that shouldbe present to accept an edit (higher=stringent) [default=0.5, if -X is specified]
+  -V, --version         show program's version number and exit
+  -n, --dry-run         Print out the commands that will be executed
+  -f, --force           Run all ntEdit steps, regardless of existing output files
+```
 
-*About ntCard
-We recommend that you run ntCard independently on your short read data, and plot the kmer coverage distribution.
-Ideally, you may select a coverage threshold cutoff (nthits -c) based on the histogram.
+### Running ntEdit in SNV mode
+```
+run-ntedit snv --help
+usage: run-ntedit snv [-h] --draft DRAFT [--reads READS] [--genome GENOME [GENOME ...]] [-l L] -k K [--cutoff CUTOFF] [-t T] [--solid] [-z Z] [-y Y] [-v] [-j J]
+                      [-X X] [-Y Y] [-V] [-n] [-f]
 
-https://github.com/bcgsc/ntCard
-Bioinformatics. 2017 May 1; 33(9): 1324–1330.
-Published online 2017 Jan 5. doi: 10.1093/bioinformatics/btw832
-PMCID: PMC5408799
-PMID: 28453674
-ntCard: a streaming algorithm for cardinality estimation in genomics data
-Hamid Mohamadi, Hamza Khan and Inanc Birol
-</pre>
+optional arguments:
+  -h, --help            show this help message and exit
+  --draft DRAFT         Draft genome assembly. Must be specified with exact FILE NAME. Ex: --draft myDraft.fa (FASTA, Multi-FASTA, and/or gzipped compatible),
+                        REQUIRED
+  --reads READS         Prefix of input reads file(s) for variant calling.All files in the working directory with the specified prefix will be used for
+                        polishing (fastq, fasta, gz, bz, zip)
+  --genome GENOME [GENOME ...]
+                        Genome assembly file(s) for detecting SNV on --draft
+  -l L                  input VCF file with annotated variants (e.g., clinvar.vcf)
+  -k K                  k-mer size, REQUIRED
+  --cutoff CUTOFF       The minimum coverage of k-mers in output Bloom filter[default=2, ignored if solid=True]
+  -t T                  Number of threads [default=4]
+  --solid               Output the solid k-mers (non-erroneous k-mers), [default=False]
+  -z Z                  Minimum contig length [default=100]
+  -y Y                  k/y ratio for the number of edited k-mers that should be present, [default=9.000]
+  -v                    Verbose mode, [default=False]
+  -j J                  controls size of k-mer subset. When checking subset of k-mers, check every jth k-mer [default=3]
+  -X X                  Ratio of number of k-mers in the k subset that should be missing in orderto attempt fix (higher=stringent) [default=0.5, if -Y is
+                        specified]
+  -Y Y                  Ratio of number of k-mers in the k subset that shouldbe present to accept an edit (higher=stringent) [default=0.5, if -X is specified]
+  -V, --version         show program's version number and exit
+  -n, --dry-run         Print out the commands that will be executed
+  -f, --force           Run all ntEdit steps, regardless of existing output files
+```
 
+#### Example ntEdit command - polishing the draft `ecoliWithMismatches001Indels0001.fa` in solid mode using input reads `my_reads_1.fq.gz` and `my_reads_2.fq.gz` using a k-mer size of 55 and 48 threads
+```
+run-ntedit polish --draft ecoliWithMismatches001Indels0001.fa --reads my_reads -k 55 -t 48 --solid
+```
 
-2. ntEdit (see complete usage below)
-<pre>
-./ntedit -f <fasta file to polish> -r <Bloom filter from nthits> -b <base output name> -t <threads>
+#### Example ntEdit command - same experimental set-up as above, but using a k-mer coverage cutoff of 2
+```
+run-ntedit polish --draft ecoliWithMismatches001Indels0001.fa --reads my_reads -k 55 -t 48 --cutoff 2
+```
 
-eg.
-./ntedit -f ecoliWithMismatches001Indels0001.fa -r solidBF_k25.bf -b ntEditEcolik25 -t 48
-</pre>
+## Tips for running ntEdit
+- For more advanced users, please see the help documentation for the `ntedit` executable, which has information about additional options
+  - More information about the secondary Bloom filter mode is available on our [wiki page](https://github.com/bcgsc/ntEdit/wiki/ntEdit-Secondary-Bloom-filter)
+- `--solid mode` will work well ONLY if you have sufficient read coverage (>30X). Otherwise, set the kmer coverage threshold to -c 2 (>=20X) or -c 1 (<20X)
+  - solid mode will output non-error kmers, as determined by ntCard. Use this option only when you don't wish to set the threshold (-c) manually
 
-## Running ntEdit <a name=run></a>
-
-<pre>
-e.g. ./ntedit -f ecoliWithMismatches001Indels0001.fa -r solidBF_k25.bf -b ntEditEcolik25
-     _ __   __________________  __________
-    _ _/ | / /_  __/ ____/ __ \/  _/_  __/
-   _ _/  |/ / / / / __/ / / / // /  / /
-  _ _/ /|  / / / / /___/ /_/ // /  / /
- _ _/_/ |_/ /_/ /_____/_____/___/ /_/
-
-ntedit v1.4.3
-
- Fast, lightweight, scalable genome sequence polishing and SNV detection & annotation
-
- Options:
-	-t,	number of threads [default=1]
-	-f,	draft genome assembly (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED
-	-r,	Bloom filter (BF) or counting BF (CBF) file (generated from ntHits v1.0.1+), REQUIRED
-	-e,	secondary BF with k-mers to reject (generated from ntHits v1.0.1+), OPTIONAL - NOT NEEDED with CBF
-	-b,	output file prefix, OPTIONAL
-	-z,	minimum contig length [default=100]
-	-i,	maximum number of insertion bases to try, range 0-5, [default=5]
-	-d,	maximum number of deletions bases to try, range 0-10, [default=5]
-	-x,	k/x ratio for the number of k-mers that should be missing, [default=5.000]
-	-y, 	k/y ratio for the number of edited k-mers that should be present, [default=9.000]
-	-X, 	ratio of number of k-mers in the k subset that should be missing in order to attempt fix (higher=stringent), [default=0.5]
-	-Y, 	ratio of number of k-mers in the k subset that should be present to accept an edit (higher=stringent), [default=0.5]
-	-c,	cap for the number of base insertions that can be made at one position, [default=k*1.5]
-	-j, 	controls size of k-mer subset. When checking subset of k-mers, check every jth k-mer, [default=3]
-	-m,	mode of editing, range 0-2, [default=0]
-			0: best substitution, or first good indel
-			1: best substitution, or best indel
-			2: best edit overall (suggestion that you reduce i and d for performance)
-	-s,     SNV mode. Overrides draft k-mer checks, forcing reassessment at each position (-s 1 = yes, default = 0, no)
-	-l,	input VCF file with annotated variants (e.g., clinvar.vcf), OPTIONAL
-	-a,	soft masks missing k-mer positions having no fix (-v 1 = yes, default = 0, no)
-	-v,	verbose mode (-v 1 = yes, default = 0, no)
-	-p, minimum k-mer coverage threshold (CBF only) [default=minimum of counting Bloom filter counts, cannot be larger than 255]
-	-q, maximum k-mer coverage threshold (CBF only) [default=255, largest possible value]
-
-	--help,		display this message and exit 
-	--version,	output version information and exit
-
-	If one of X/Y is set, ntEdit will use those parameters instead. Otherwise, it uses x/y by default.
-
-</pre>
 
 ## ntEdit Modes <a name=modes></a>
-
+The ntEdit mode is only used in polishing mode, and is controlled by `-m`
 <pre>
 Mode 0: (default)
 	ntEdit will try to substitute the last base of an incorrect k-mer with a different ATGC base. If that k-mer is found in the bloom filter and has enough subset support, ntEdit will then try the other substitution bases and then choose the best substitution fix. However, if the substituion was not found, then ntEdit will try all indels of max length (-i) and (-d) starting with that substitution base and make edit based on the first accepted indel. 
@@ -246,7 +246,7 @@ Mode 2:
 	ntEdit will choose the best substitution or indel for each incorrect k-mer. Since this can be very computationally expensive because ntEdit tries every combination possible, it is recommended that you reduce (-i) and (-d). 
 </pre>
 
-*We recommend running ntEdit in Mode 1 (or 0)
+*We recommend running ntEdit polishing in Mode 1 (or 0)
 
 ## ntEdit -a (soft mask) <a name=soft></a>
 See https://github.com/bcgsc/ntedit_sealer_protocol and https://github.com/bcgsc/goldrush-edit for genome polishing pipelines that make use of this mode
@@ -261,12 +261,12 @@ The nucleotide soft-masking effectively "paints a target" for other polishers/ge
 This strategy is used in the ntedit_sealer_protocol and GoldPolish [a.k.a. goldrush-edit] (URLs above)
 </pre>
 
-## ntEdit -s (SNV) option <a name=snv></a> 
+## ntEdit SNV mode <a name=snv></a> 
 
 <pre>
-This option can be useful for identifying unresolved genomic regions, those with no equivalent in the supplied Bloom filter(s).
+This mode can be useful for identifying unresolved genomic regions, those with no equivalent in the supplied Bloom filter(s).
 
-Version 1.3 implements a new mode (-s 1) to help detect simple base variation in genome sequences.
+Version 1.3+ implements a new mode (`run-ntedit snv`) to help detect simple base variation in genome sequences.
 
 It works by overriding the kmer absence verification stage of ntEdit, effectively testing every base position for possible alternate k kmers. At the moment, ntEdit only reports possible base substitutions (no indels), along with the number of supported kmers (the latter is NOT a proxy for read/kmer coverage). In our tests on simulated (C. elegans, H. sapiens) and experimental (GIAB, HG001/HG004), we find k52/k55 (-j 3 -- see below) to give the best performance.
 
@@ -278,14 +278,13 @@ VCF output (v1.3.2+ _variants.vcf): We assume a diploid genome for reporting on 
 
 </pre>
 
-## ntEdit -l input VCF file with annotated variants <a name=clinvarvcf></a>
+## ntEdit SNV -l input VCF file with annotated variants <a name=clinvarvcf></a>
 
-<pre>
 This handy option is used to supply a VCF input file to ntEdit, for cross-referencing base variants.
 For instance, users may wish to identify annotated clinical variants in their genomics datasets.
 For this, users would build Bloom filters with their read datasets using ntHits and run 
 ntEdit in -s 1 mode, with the reference human genome as (-f) input.
-Note: it will also work in polishing (-s 0) mode on single nucleotide variants, but is
+Note: it will also work in polishing mode on single nucleotide variants, but is
 of limited value since only homozygously divergent sites (i.e., with completely absent k-mers and k*k-mer) are reported in polishing mode. 
 
 We recommend the use of clinvar resources:
@@ -294,102 +293,51 @@ https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/
 https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar_XXDATEXX.vcf.gz
 
 Note: If you use clinvar, you MUST ensure you use GRCh38 AND that the chromosome IDs in the 
-headers of your supplied (-f) GRCH38 FASTA file matches that of clinvar's (e.g. >1 in FASTA and 1 in ClinVar VCF's #CHROM column).
+headers of your supplied (--draft) GRCH38 FASTA file matches that of clinvar's (e.g. >1 in FASTA and 1 in ClinVar VCF's #CHROM column).
 If you use any other VCF files as (-l) input, ensure consistency with FASTA headers.
 
 example command:
-/usr/bin/time -v -o HGrefHG004nteditSNV140-s1-l.time ./ntedit -f GRCh38.fa -b nteditSNV140-s1-l -s 1 -r solid_k50.bf -t 48 -l clinvar_20230813.vcf
+```
+run-ntedit snv --draft GRCh38.fa --reads HG004 -k 50 -t 48 -l clinvar_20230813.vcf
+```
+where the input reads have the prefix `HG004`
 
-where solid_k50.bf is the Bloom filter built from HG004 (NA24143) short sequencing reads
-
-</pre>
-
-## ntEdit -e Secondary Bloom filter, with kmers to exclude <a name=secondarybf></a>
-
-<pre>
-
-A secondary Bloom filter with kmers to exclude may be provided to ntEdit v1.3 with the -e option.
-This option is useful when running ntEdit in -s 1 mode, effectively taking a "slice" of robust (non-error and non-repeated) kmers. For example:
--f draft from A (pseudo haploid)
--r Bloom filter from A (diploid): non-error kmers
--e Bloom filter from A (diploid): repeat kmers
--s 1
-
-When computing a repeat kmer Bloom filter with ntHits, we recommend that you first run ntCard and plot the kmer coverage histogram to identify the repeat cutoff value. A higher precision can be achieved with a more strict repeat filter cutoff, albeit at the risk of impacting sensitivity.
+The SNV mode can also work on an input draft assembly:
+```
+run-ntedit snv --draft GRCh38.fa --genome HG004.asm.fa -k 50 -t 48 -l clinvar_20230813.vcf
+```
 
 
-Alternate kmers that pass the presence verification stage of ntEdit will not be considered if present in the secondary Bloom filter.
-This option may be used to map homozygous variation between species/individual. For example, in such a set up:
--f draft from A (pseudo haploid)
--r Bloom filter from B (different individual or species, diploid): non-error kmers 
--e Bloom filter from A (diploid): non-error kmers
--s 0
-This will map sites that are different (homozygous variants) between B and A.
-
-
-*These are provided as examples. Other experimental setup are possible.
-
-
-We recommend setting the jump parameter (j) to 1 when using the secondary Bloom filter or using the following compatible j/k values:
-
--j 1: all k combinations may be used
--j 2: k31, k33, k35, k37, k39, k41, k43, k45, k47, k49, k51, k53, k55, k57, k59, k61 (odd k value) 
--j 3: k31, k34, k37, k40, k43, k46, k49, k52, k55, k58, k61
-
-Faster ntEdit runs are achieved at -j 3. Higher values of j would not provide enough kmers in the k subset and have not been tested.
-
-Users should perform their own benchmarks.
-
-</pre>
-
-
-## ntedit-make <a name=make></a>
-
-The ntEdit pipeline can be run with a Makefile (`ntedit-make`), which will run ntHits, then ntEdit for you.
- - Inputs: Read file(s), draft genome to be polished.
- - Outputs: Polished scaffolds in FASTA format.
- - If you submit more than one read file, ensure each file has the same prefix (ex. myReads1.fq.gz, myReads2.fq.gz, ...) and specify the prefix with "reads=prefix". Ensure each read file is in an acceptable format (fastq, fasta, gz, bz, zip).
- - We suggest either specifying the cutoff parameter or defining solid=true in your command to set it automatically.
-
-Example usage:
- - Draft genome to be polished: myDraft.fa
- - Input reads: myReads1.fq, myReads2.fq
-<pre>
-	./ntedit-make ntedit draft=myDraft.fa reads=myReads k=64 cutoff=2   or
-	./ntedit-make ntedit draft=myDraft.fa reads=myReads k=64 solid=true
-</pre>
-
-For more information about usage:
-<pre>
-	./ntedit-make help
-</pre>
 
 ### Test data <a name=test></a>
 The demo script will use the installed ntEdit binary. Please ensure that the ntEdit binary is in your PATH.
 <pre>
 export PATH=/path/to/ntEdit:$PATH
-<pre>
+</pre>
 Running the demo
 <pre>
 Go to ./demo
 (cd demo)
+</pre>
 
 run:
+```
 ./runme.sh
+```
 
-(ntedit -f ecoliWithMismatches001Indels0001.fa.gz -r nthits.cbf -b ntedit)
-
-ntEdit will polish an E. coli genome sequence with substitution error ~0.001 and indels ~0.0001 using pre-made ntHits counting Bloom filter
+ntEdit will polish an _E. coli_ genome sequence with ~0.001 substitution error rate and ~0.0001 indel rate
 
 Expected files will be:
-ntEditEcolik25_changes.tsv
-ntEditEcolik25_edited.fa
+```
+ntedit_k25_changes.tsv
+ntedit_k25_edited.fa
+```
 
 Compare with:
-nteditk25_changes.tsv
-nteditk25_edited.fa
-
-</pre>
+```
+ecoli_ntedit_k25_changes.tsv
+ecoli_ntedit_k25_edited.fa
+```
 
 
 ## Algorithm - how it works <a name=how></a>
@@ -411,7 +359,7 @@ note: ntEdit will polish input sequences in upper or lowercase bases. The case o
 
 ## License <a name=license></a>
 
-ntEdit Copyright (c) 2018-2023 British Columbia Cancer Agency Branch.  All rights reserved.
+ntEdit Copyright (c) 2018-current British Columbia Cancer Agency Branch.  All rights reserved.
 
 ntEdit is released under the GNU General Public License v3
 
