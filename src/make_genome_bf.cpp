@@ -20,8 +20,8 @@ const unsigned NUM_BITS_PER_BYTE = 8;
 /*
 Return the genome size of the given fasta file
 */
-long long find_genome_size(std::vector<std::string> genome_files, int threads) {
-  long long genome_size = 0;
+uint64_t find_genome_size(std::vector<std::string> genome_files, int threads) {
+  uint64_t genome_size = 0;
   for (const auto& genome_file : genome_files) {
     btllib::SeqReader reader(
       genome_file, btllib::SeqReader::Flag::LONG_MODE, threads);
@@ -38,11 +38,11 @@ Approximate the required BF size based on the expected number of elements
 Using the formula found in Broder & Mitzenmacher, 2004, 
 code adapted from ntHits (https://github.com/bcgsc/ntHits)
 */
-long long
-get_bf_size(long long num_elements, double num_hashes, double fpr)
+uint64_t
+get_bf_size(uint64_t num_elements, double num_hashes, double fpr)
 {
   double r = -num_hashes / log(1.0 - exp(log(fpr) / num_hashes));
-  long long m = ceil(num_elements * r) / NUM_BITS_PER_BYTE;
+  uint64_t m = ceil(num_elements * r) / NUM_BITS_PER_BYTE;
   return m;
 }
 
@@ -77,11 +77,11 @@ main(int argc, const char** argv)
 
   parser.add_argument("--bf")
     .help("Bloom filter size in bytes (optional)")
-    .scan<'d', long long>();
+    .scan<'d', uint64_t>();
 
   parser.add_argument("--num_elements")
     .help("Approximate number of elements for Bloom filter (used for calculating Bloom filter size, optional)")
-    .scan<'d', long long>();
+    .scan<'d', uint64_t>();
 
   parser.add_argument("-t")
     .help("Number of threads")
@@ -122,18 +122,18 @@ main(int argc, const char** argv)
   #endif
 
   /* Calculate BF size based on genome size */
-long long bf_size;
+uint64_t bf_size;
   if (parser.is_used("--bf")) {
-    bf_size = parser.get<long long>("bf");
+    bf_size = parser.get<uint64_t>("bf");
     std::cout << "\t\t--bf " << bf_size << std::endl;
   } else if (parser.is_used("--num_elements")) {
-    long long num_elements = parser.get<long long>("num_elements");
+    uint64_t num_elements = parser.get<uint64_t>("num_elements");
     std::cout <<"\t\t--num_elements " << num_elements << std::endl;
     bf_size = get_bf_size(num_elements, hashes, fpr);
   }
   else {
     std::cout << "Calculating BF size based on input genome size" << std::endl;
-    long long genome_sum = find_genome_size(genome_files, num_threads);
+    uint64_t genome_sum = find_genome_size(genome_files, num_threads);
     bf_size = get_bf_size(genome_sum, hashes, fpr);
   }
   std::cout << "BF size (bytes): " << bf_size << std::endl;
