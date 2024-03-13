@@ -2060,23 +2060,13 @@ kmerizeAndCorrect(
 	{
 		// write edits to file
 		writeEditsToFile(
-		    dfout,
-		    rfout,
-		    vfout,
-		    contigHdr,
-		    contigSeq,
-		    newSeq,
-		    substitution_record,
-		    clinvar);
+		    dfout, rfout, vfout, contigHdr, contigSeq, newSeq, substitution_record, clinvar);
 	}
 }
 
 /* Read the contigs from the file and polish each contig. */
 void
-readAndCorrect(
-    BFWrapper& bloom,
-    BFWrapper& bloomrep,
-    std::map<std::string, std::string>& clinvar)
+readAndCorrect(BFWrapper& bloom, BFWrapper& bloomrep, std::map<std::string, std::string>& clinvar)
 {
 	// read file handle
 	gzFile dfp;
