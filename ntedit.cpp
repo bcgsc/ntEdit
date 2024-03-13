@@ -918,7 +918,7 @@ writeEditsToFile(
     const std::string& contigSeq,
     std::vector<seqNode>& newSeq,
     std::queue<sRec>& substitution_record,
-    std::map<std::string, std::string> clinvar)
+    std::map<std::string, std::string>& clinvar)
 {
 	dfout << ">" << contigHdr.c_str() << "\n"; // FASTA HEADER RLWYY
 	unsigned node_index = 0;
@@ -1664,7 +1664,7 @@ kmerizeAndCorrect(
     std::ofstream& dfout,
     std::ofstream& rfout,
     std::ofstream& vfout,
-    std::map<std::string, std::string> clinvar)
+    std::map<std::string, std::string>& clinvar)
 {
 
 	// initialize values for hashing
@@ -2067,7 +2067,7 @@ kmerizeAndCorrect(
 		    contigSeq,
 		    newSeq,
 		    substitution_record,
-		    std::move(clinvar));
+		    clinvar);
 	}
 }
 
@@ -2076,7 +2076,7 @@ void
 readAndCorrect(
     BFWrapper& bloom,
     BFWrapper& bloomrep,
-    std::map<std::string, std::string> const& clinvar)
+    std::map<std::string, std::string>& clinvar)
 {
 	// read file handle
 	gzFile dfp;
