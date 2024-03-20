@@ -54,7 +54,7 @@ We anticipate that ntEdit will find further applications in the rapid mapping of
 
 ## Implementation and requirements <a name=implementation></a>
 
-ntEdit v1.2 and subsequent versions are written in C++. 
+ntEdit v1.2.0 and subsequent versions are written in C++. 
 
 (We compiled with gcc 5.5.0)
 
