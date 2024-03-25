@@ -672,7 +672,7 @@ getCharacter(unsigned& pos, seqNode node, const string& contigSeq)
 void
 increment(unsigned& pos, unsigned& node_index, vector<seqNode>& newSeq)
 {
-	seqNode node = newSeq[node_index];
+	seqNode node = newSeq.at(node_index);
 	if (node.node_type == 0) {
 		pos++;
 		if (pos > node.e_pos) {
