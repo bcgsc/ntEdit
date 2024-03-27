@@ -249,7 +249,7 @@ rule ntedit_genome_bf:
                 if f == "F0":
                     num_elements = num
                     break
-        shell("{params.benchmark} make_genome_bf --genome {input.genomes} {params.options} --num_elements {num_elements} -o {output}")
+        shell("{params.benchmark} ntedit_make_genome_bf --genome {input.genomes} {params.options} --num_elements {num_elements} -o {output}")
         
 
 rule genomes_ntcard:
