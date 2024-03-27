@@ -32,10 +32,11 @@ executable(
     'ntedit.cpp',
     dependencies: dependencies,
     include_directories: 'lib',
+    link_args: link_args,
     install: true,
 )
 
-src_files = [ 'make_genome_bf.cpp' ]
+src_files = [ 'ntedit_make_genome_bf.cpp' ]
 # Source files and scripts
 subdir('src')
 
