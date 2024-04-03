@@ -17,7 +17,7 @@ NTEDIT_VERSION = "ntEdit v2.0.0"
 def main():
     "Run ntEdit snakemake file"
 
-    parser = argparse.ArgumentParser(description="ntEdit: Fast, lightweight, scalable genome sequence"
+    parser = argparse.ArgumentParser(description="ntEdit: Fast, lightweight, scalable genome sequence "
                                                 "polishing and SNV detection & annotation",
                                      formatter_class=argparse.RawTextHelpFormatter)
 

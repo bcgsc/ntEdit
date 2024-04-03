@@ -138,7 +138,7 @@ General ntEdit usage:
 run-ntedit --help
 usage: run-ntedit [-h] {polish,snv} ...
 
-ntEdit: Fast, lightweight, scalable genome sequencepolishing and SNV detection & annotation
+ntEdit: Fast, lightweight, scalable genome sequence polishing and SNV detection & annotation
 
 positional arguments:
   {polish,snv}  ntEdit can be run in polishing or SNV modes.
