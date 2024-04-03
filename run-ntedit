@@ -37,7 +37,7 @@ def main():
 
     # Arguments for SNV mode only
     parser_snv.add_argument("--reads",
-                            help="Prefix of input reads file(s) for variant calling."
+                            help="Prefix of input reads file(s) for variant calling. "
                             "All files in the working directory with the specified prefix will be used for polishing "
                             "(fastq, fasta, gz, bz, zip)", type=str)
     parser_snv.add_argument("--genome",
@@ -48,7 +48,7 @@ def main():
                             type=str)
     # Arguments for polishing only
     parser_polishing.add_argument("--reads",
-                                  help="Prefix of reads file(s)."
+                                  help="Prefix of reads file(s). "
                                     "All files in the working directory with the specified prefix will be used for polishing "
                                     "(fastq, fasta, gz, bz, zip), REQUIRED",
                                     required=True)

@@ -159,7 +159,7 @@ optional arguments:
   -h, --help            show this help message and exit
   --draft DRAFT         Draft genome assembly. Must be specified with exact FILE NAME. Ex: --draft myDraft.fa (FASTA, Multi-FASTA, and/or gzipped compatible),
                         REQUIRED
-  --reads READS         Prefix of reads file(s).All files in the working directory with the specified prefix will be used for polishing (fastq, fasta, gz, bz,
+  --reads READS         Prefix of reads file(s). All files in the working directory with the specified prefix will be used for polishing (fastq, fasta, gz, bz,
                         zip), REQUIRED
   -i {0,1,2,3,4,5}      Maximum number of insertion bases to try, range 0-5, [default=5]
   -d {0,1,2,3,4,5,6,7,8,9,10}
@@ -195,7 +195,7 @@ optional arguments:
   -h, --help            show this help message and exit
   --draft DRAFT         Draft genome assembly. Must be specified with exact FILE NAME. Ex: --draft myDraft.fa (FASTA, Multi-FASTA, and/or gzipped compatible),
                         REQUIRED
-  --reads READS         Prefix of input reads file(s) for variant calling.All files in the working directory with the specified prefix will be used for
+  --reads READS         Prefix of input reads file(s) for variant calling. All files in the working directory with the specified prefix will be used for
                         polishing (fastq, fasta, gz, bz, zip)
   --genome GENOME [GENOME ...]
                         Genome assembly file(s) for detecting SNV on --draft
@@ -229,8 +229,8 @@ run-ntedit polish --draft ecoliWithMismatches001Indels0001.fa --reads my_reads -
 ## Tips for running ntEdit
 - For more advanced users, please see the help documentation for the `ntedit` executable, which has information about additional options
   - More information about the secondary Bloom filter mode is available on our [wiki page](https://github.com/bcgsc/ntEdit/wiki/ntEdit-Secondary-Bloom-filter)
-- `--solid mode` will work well ONLY if you have sufficient read coverage (>30X). Otherwise, set the kmer coverage threshold to -c 2 (>=20X) or -c 1 (<20X)
-  - solid mode will output non-error kmers, as determined by ntCard. Use this option only when you don't wish to set the threshold (-c) manually
+- `--solid mode` will work well ONLY if you have sufficient read coverage (>30X). Otherwise, set the kmer coverage threshold to --cutoff 2 (>=20X) or --cutoff 1 (<20X)
+  - solid mode will output non-error kmers, as determined by ntCard. Use this option only when you don't wish to set the threshold (--cutoff) manually
 
 
 ## ntEdit Modes <a name=modes></a>
