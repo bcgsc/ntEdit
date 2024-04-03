@@ -988,8 +988,8 @@ writeEditsToFile(
 				} else {
 					clinvarinfo += "^NA";
 				}
-				//std::cerr << "varid: " << id.str() << std::endl;
-				//std::cerr << "clinvarinfo: " << clinvarinfo << std::endl;
+				// std::cerr << "varid: " << id.str() << std::endl;
+				// std::cerr << "clinvarinfo: " << clinvarinfo << std::endl;
 				if (substitution_record.front().altsupp1 > 0) { // XXRLWXX
 					if (snv_mode_no_edit) {
 						rfout << "\t" << substitution_record.front().altbase1 << "\t"
@@ -1065,15 +1065,15 @@ writeEditsToFile(
 								      << substitution_record.front().pos + 1
 								      << char(toupper(best_alt_base)); // RLW 21AUG2023
 								std::string altvarid = altid.str();    // RLW 21AUG2023
-								//std::cerr << "altvarid: " << altid.str() << std::endl;
+								// std::cerr << "altvarid: " << altid.str() << std::endl;
 								if (!clinvar[altvarid].empty()) {
 									clinvarinfo += "^";
 									clinvarinfo += clinvar[altvarid];
 								} else {
 									clinvarinfo += "^NA";
 								}
-								//std::cerr << "clinvarinfo: " << clinvarinfo << std::endl;
-								//exit(0);
+								// std::cerr << "clinvarinfo: " << clinvarinfo << std::endl;
+								// exit(0);
 							}
 						}
 					} else {
@@ -1099,7 +1099,7 @@ writeEditsToFile(
 						      << substitution_record.front().pos + 1
 						      << char(toupper(best_alt_base)); // RLW 21AUG2023
 						std::string altvarid = altid.str();    // RLW 21AUG2023
-						//std::cerr << "altvarid: " << altid.str() << std::endl;
+						// std::cerr << "altvarid: " << altid.str() << std::endl;
 						if (!clinvar[altvarid].empty()) {
 							clinvarinfo += "^";
 							clinvarinfo += clinvar[altvarid];
@@ -1467,10 +1467,10 @@ tryDeletion(
 	     static_cast<float>(check_present) >=
 	         (1 + (static_cast<float>(opt::k) / opt::jump)) * opt::edit_ratio)) { // RLW
 		/*if (bloom.is_counting()) {
-			if (!opt::snv && !(check_present_median >= opt::min_threshold && check_present_median <= opt::max_insertions)) {
-				return 0;
-			}
-			return static_cast<int>(check_present_median);
+		    if (!opt::snv && !(check_present_median >= opt::min_threshold && check_present_median <=
+		opt::max_insertions)) { return 0;
+		    }
+		    return static_cast<int>(check_present_median);
 		}*/
 		return static_cast<int>(check_present);
 	}
@@ -1595,11 +1595,11 @@ tryIndels(
 		     static_cast<float>(check_present) >=
 		         (static_cast<float>(opt::k) / opt::jump) * opt::edit_ratio)) { // RLW
 			/*if (bloom.is_counting()) {
-				if (!opt::snv && !(check_present_median <= opt::max_threshold &&
-				                   check_present_median >= opt::min_threshold)) {
-					continue;
-				}
-				check_present = check_present_median;
+			    if (!opt::snv && !(check_present_median <= opt::max_threshold &&
+			                       check_present_median >= opt::min_threshold)) {
+			        continue;
+			    }
+			    check_present = check_present_median;
 			}*/
 			if (opt::mode == 0) {
 				// if we are in default mode, we just accept this first good insertion and return
@@ -1776,13 +1776,13 @@ kmerizeAndCorrect(
 					    !bloom.contains(hVal)) { // XXRLWnov2020 important to not screen for
 						                         // IUPAC here, may filter out some bases
 						check_missing++;
-					} else if (isATGCBase(draft_char) && k % opt::jump == 0 &&
-    						bloom.contains(hVal) &&
-    						(!bloom.is_counting() || bloom.get_count(hVal) >= opt::min_threshold)) {
-    					check_there++;
-    					if (bloom.is_counting()) {
-        					check_there_median_vec.emplace_back(bloom.get_count(hVal));
-    					}
+					} else if (
+					    isATGCBase(draft_char) && k % opt::jump == 0 && bloom.contains(hVal) &&
+					    (!bloom.is_counting() || bloom.get_count(hVal) >= opt::min_threshold)) {
+						check_there++;
+						if (bloom.is_counting()) {
+							check_there_median_vec.emplace_back(bloom.get_count(hVal));
+						}
 					}
 				} else {
 					do_not_fix = true;
@@ -1931,12 +1931,12 @@ kmerizeAndCorrect(
 
 							// update the best substitution
 							/*if (bloom.is_counting()) {
-								if (!opt::snv && !(check_present_median <= opt::max_threshold &&
-								                   check_present_median >= opt::min_threshold)) {
-									continue;
-								}
-								check_present = check_present_median;
-								
+							    if (!opt::snv && !(check_present_median <= opt::max_threshold &&
+							                       check_present_median >= opt::min_threshold)) {
+							        continue;
+							    }
+							    check_present = check_present_median;
+
 							}*/
 							if (check_present >= best_num_support) {
 								if (altsupp2) {
