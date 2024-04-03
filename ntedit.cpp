@@ -964,6 +964,18 @@ writeEditsToFile(
 				std::string support = std::to_string(substitution_record.front().num_support);
 				std::string clinvarinfo; // RLW 23AUG2023
 
+				std::ostringstream orig_id;
+				orig_id << contigHdr.c_str() << ">"
+				        << char(toupper(substitution_record.front().draft_char))
+				        << substitution_record.front().pos + 1
+				        << char(toupper(substitution_record.front().draft_char));
+				std::string origid = orig_id.str();
+				if (!clinvar[origid].empty()) {
+					clinvarinfo += "^";
+					clinvarinfo += clinvar[origid];
+				} else {
+					clinvarinfo += "^NA";
+				}
 				std::ostringstream id; // RLW 21AUG2023
 				id << contigHdr.c_str() << ">"
 				   << char(toupper(substitution_record.front().draft_char))
@@ -971,9 +983,13 @@ writeEditsToFile(
 				   << char(toupper(base.at(0))); // RLW 21AUG2023
 				std::string varid = id.str();    // RLW 21AUG2023
 				if (!clinvar[varid].empty()) {
-					clinvarinfo = "^";
+					clinvarinfo += "^";
 					clinvarinfo += clinvar[varid];
+				} else {
+					clinvarinfo += "^NA";
 				}
+				// std::cerr << "varid: " << id.str() << std::endl;
+				// std::cerr << "clinvarinfo: " << clinvarinfo << std::endl;
 				if (substitution_record.front().altsupp1 > 0) { // XXRLWXX
 					if (snv_mode_no_edit) {
 						rfout << "\t" << substitution_record.front().altbase1 << "\t"
@@ -1049,10 +1065,15 @@ writeEditsToFile(
 								      << substitution_record.front().pos + 1
 								      << char(toupper(best_alt_base)); // RLW 21AUG2023
 								std::string altvarid = altid.str();    // RLW 21AUG2023
+								// std::cerr << "altvarid: " << altid.str() << std::endl;
 								if (!clinvar[altvarid].empty()) {
 									clinvarinfo += "^";
 									clinvarinfo += clinvar[altvarid];
+								} else {
+									clinvarinfo += "^NA";
 								}
+								// std::cerr << "clinvarinfo: " << clinvarinfo << std::endl;
+								// exit(0);
 							}
 						}
 					} else {
@@ -1078,10 +1099,12 @@ writeEditsToFile(
 						      << substitution_record.front().pos + 1
 						      << char(toupper(best_alt_base)); // RLW 21AUG2023
 						std::string altvarid = altid.str();    // RLW 21AUG2023
-
+						// std::cerr << "altvarid: " << altid.str() << std::endl;
 						if (!clinvar[altvarid].empty()) {
 							clinvarinfo += "^";
 							clinvarinfo += clinvar[altvarid];
+						} else {
+							clinvarinfo += "^NA";
 						}
 					}
 				} else {
@@ -1447,12 +1470,12 @@ tryDeletion(
 	    (opt::use_ratio &&
 	     static_cast<float>(check_present) >=
 	         (1 + (static_cast<float>(opt::k) / opt::jump)) * opt::edit_ratio)) { // RLW
-		if (bloom.is_counting()) {
-			if (!opt::snv && !(check_present_median >= opt::min_threshold)) { // TODO
-				return 0;
-			}
-			return static_cast<int>(check_present_median);
-		}
+		/*if (bloom.is_counting()) {
+		    if (!opt::snv && !(check_present_median >= opt::min_threshold && check_present_median <=
+		opt::max_insertions)) { return 0;
+		    }
+		    return static_cast<int>(check_present_median);
+		}*/
 		return static_cast<int>(check_present);
 	}
 	return 0;
@@ -1575,13 +1598,13 @@ tryIndels(
 		    (opt::use_ratio &&
 		     static_cast<float>(check_present) >=
 		         (static_cast<float>(opt::k) / opt::jump) * opt::edit_ratio)) { // RLW
-			if (bloom.is_counting()) {
-				if (!opt::snv && !(check_present_median <= opt::max_threshold &&
-				                   check_present_median >= opt::min_threshold)) {
-					continue;
-				}
-				check_present = check_present_median;
-			}
+			/*if (bloom.is_counting()) {
+			    if (!opt::snv && !(check_present_median <= opt::max_threshold &&
+			                       check_present_median >= opt::min_threshold)) {
+			        continue;
+			    }
+			    check_present = check_present_median;
+			}*/
 			if (opt::mode == 0) {
 				// if we are in default mode, we just accept this first good insertion and return
 				best_edit_type = 2;
@@ -1758,14 +1781,11 @@ kmerizeAndCorrect(
 						                         // IUPAC here, may filter out some bases
 						check_missing++;
 					} else if (
-					    isATGCBase(draft_char) && k % opt::jump == 0 &&
-					    bloom.contains(hVal)) { // XXRLWnov2020 important to screen for ACGT
-						if (bloom.is_counting() &&
-						    bloom.get_count(hVal) >= opt::min_threshold) { // TODO logic refactor
+					    isATGCBase(draft_char) && k % opt::jump == 0 && bloom.contains(hVal) &&
+					    (!bloom.is_counting() || bloom.get_count(hVal) >= opt::min_threshold)) {
+						check_there++;
+						if (bloom.is_counting()) {
 							check_there_median_vec.emplace_back(bloom.get_count(hVal));
-							check_there++;
-						} else {
-							check_there++;
 						}
 					}
 				} else {
@@ -1914,15 +1934,14 @@ kmerizeAndCorrect(
 						                               opt::edit_ratio)) { // RLW
 
 							// update the best substitution
-							if (bloom.is_counting()) {
-								if (!opt::snv && !(check_present_median <= opt::max_threshold &&
-								                   check_present_median >= opt::min_threshold)) {
-									continue;
-								}
-								if (!opt::snv) {
-									check_present = check_present_median;
-								}
-							}
+							/*if (bloom.is_counting()) {
+							    if (!opt::snv && !(check_present_median <= opt::max_threshold &&
+							                       check_present_median >= opt::min_threshold)) {
+							        continue;
+							    }
+							    check_present = check_present_median;
+
+							}*/
 							if (check_present >= best_num_support) {
 								if (altsupp2) {
 									altbase3 = altbase2;
