@@ -44,7 +44,7 @@ KSEQ_INIT(gzFile, gzread)
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)
 static const char VERSION_MESSAGE[] =
     PROGRAM "\n"
-            "written by Rene L Warren, Jessica Zhang, Murathan T Goktas, Hamid Mohamadi and "
+            "written by Rene L Warren, Jessica Zhang, Murathan T Goktas, Hamid Mohamadi,"
             "Parham Kazemi and Johnathan Wong.\n"
             "copyright 2018-current Canada's Michael Smith Genome Science Centre\n";
 
