@@ -1,4 +1,4 @@
-#define PROGRAM "ntEdit v1.4.3" // NOLINT
+#define PROGRAM "ntEdit v2.0.0" // NOLINT
 
 // clang-format off
 #include <iostream> //NOLINT(llvm-include-order)
@@ -16,17 +16,25 @@
 #include <queue>
 #include <string>
 #include <cmath>
-#include <omp.h>
 #include <cassert>
 #include <cerrno>
 #include <unistd.h>
 #include <map>
 #include "lib/kseq.h"
-#include "lib/nthash.hpp" // NOLINT
-#include "lib/BloomFilter.hpp"
+#include <btllib/bloom_filter.hpp>
+#include <btllib/counting_bloom_filter.hpp>
+#include <btllib/nthash.hpp>
+
+#if _OPENMP
+#include <omp.h>
+#endif
+
 //RLW 19AUG2023
 #include <iterator>
 #include <regex>
+#include <boost/iostreams/filtering_streambuf.hpp>
+#include <boost/iostreams/copy.hpp>
+#include <boost/iostreams/filter/gzip.hpp>
 
 // clang-format on
 
@@ -36,9 +44,9 @@ KSEQ_INIT(gzFile, gzread)
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)
 static const char VERSION_MESSAGE[] =
     PROGRAM "\n"
-            "written by Rene L Warren, Jessica Zhang, Murathan T Goktas, Hamid Mohamadi and "
-            "Johnathan Wong.\n"
-            "copyright 2018-2023 Canada's Michael smith Genome Science Centre\n";
+            "written by Rene L Warren, Jessica Zhang, Murathan T Goktas, Hamid Mohamadi,"
+            "Parham Kazemi and Johnathan Wong.\n"
+            "copyright 2018-current Canada's Michael Smith Genome Science Centre\n";
 
 // NOLINTNEXTLINE(modernize-avoid-c-arrays)
 static const char USAGE_MESSAGE[] = PROGRAM
@@ -47,10 +55,11 @@ static const char USAGE_MESSAGE[] = PROGRAM
     " Fast, lightweight, scalable genome sequence polishing and SNV detection & annotation\n"
     "\n"
     " Options:\n"
-    "	-t,	number of threads [default=1]\n"
+    "	-t,	number of threads [default=4]\n"
     "	-f,	draft genome assembly (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED\n"
-    "	-r,	Bloom filter file (generated from ntHits), REQUIRED\n"
-    "	-e,	secondary Bloom filter with k-mers to reject (generated from ntHits), OPTIONAL\n"
+    "	-r,	Bloom filter (BF) or counting BF (CBF) file (generated from ntHits v1.0.1+), REQUIRED\n"
+    "	-e,	secondary BF with k-mers to reject (generated from ntHits v1.0.1+), OPTIONAL - NOT "
+    "NEEDED with CBF\n"
     "	-b,	output file prefix, OPTIONAL\n"
     "	-z,	minimum contig length [default=100]\n"
     "	-i,	maximum number of insertion bases to try, range 0-5, [default=5]\n"
@@ -77,6 +86,9 @@ static const char USAGE_MESSAGE[] = PROGRAM
     "	-a,	soft masks missing k-mer positions having no fix (-v 1 = yes, default = 0, no)\n"
     "	-v,	verbose mode (-v 1 = yes, default = 0, no)\n"
     "\n"
+    "	-p, minimum k-mer coverage threshold (CBF only) [default=minimum of counting Bloom filter\n"
+    "counts, cannot be larger than 255]\n"
+    "	-q, maximum k-mer coverage threshold (CBF only) [default=255, largest possible value]\n"
     "	--help,		display this message and exit \n"
     "	--version,	output version information and exit\n"
     "\n"
@@ -96,7 +108,7 @@ float edit_ratio = 0.5;
 float missing_ratio = 0.5;
 bool use_ratio = false;
 unsigned jump = 3;
-unsigned nthreads = 1;
+unsigned nthreads = 4;
 std::string draft_filename;    // NOLINT
 std::string vcf_filename;      // NOLINT
 std::string bloom_filename;    // NOLINT
@@ -116,9 +128,11 @@ int snv = 0;
 int mask = 0; // RLW2021
 int verbose = 0;
 int secbf = 0;
+unsigned min_threshold = 1;
+unsigned max_threshold = 255;
 } // namespace opt
 
-static const char shortopts[] = "t:f:s:k:z:b:r:v:d:i:X:Y:x:y:m:c:j:s:e:a:l:"; // RLW2021
+static const char shortopts[] = "t:f:s:k:z:b:r:v:d:i:X:Y:x:y:m:c:j:s:e:a:l:p:q:"; // RLW2021
 
 enum
 {
@@ -147,13 +161,15 @@ static const struct option longopts[] = {
 	{ "vcf_file", required_argument, nullptr, 'l' },
 	{ "mask", required_argument, nullptr, 'a' },
 	{ "verbose", required_argument, nullptr, 'v' },
+	{ "minimum_kmer_coverage", required_argument, nullptr, 'p' },
+	{ "maximum_kmer_coverage", required_argument, nullptr, 'q' },
 	{ "help", no_argument, nullptr, OPT_HELP },
 	{ "version", no_argument, nullptr, OPT_VERSION },
 	{ nullptr, 0, nullptr, 0 }
 };
 
 // Setting up the number of tries when for each number of base insertion
-std::vector<int> num_tries = { 0, 1, 5, 21, 85, 341 }; // NOLINT
+std::vector<unsigned> num_tries = { 0, 1, 5, 21, 85, 341 }; // NOLINT
 
 // Initialize current base array
 // NOLINTNEXTLINE
@@ -184,7 +200,7 @@ std::unordered_map<unsigned char, std::vector<unsigned char>> snv_bases_array = 
 
 // Setting all the indel combos
 // NOLINTNEXTLINE
-std::unordered_map<unsigned char, std::vector<string>> multi_possible_bases = {
+std::unordered_map<unsigned char, std::vector<std::string>> multi_possible_bases = {
 	{ 'A',
 	  { "A",     "AA",    "AC",    "AG",    "AT",    "AAA",   "AAC",   "AAG",   "AAT",   "ACA",
 	    "ACC",   "ACG",   "ACT",   "AGA",   "AGC",   "AGG",   "AGT",   "ATA",   "ATC",   "ATG",
@@ -331,6 +347,131 @@ std::unordered_map<unsigned char, std::vector<string>> multi_possible_bases = {
 	    "TTTTT" } }
 };
 
+class
+    BFWrapper // NOLINT(cppcoreguidelines-pro-type-member-init,hicpp-member-init,-warnings-as-errors)
+{
+
+  public:
+	BFWrapper(const std::string& path) // NOLINT
+	{
+		is_cbf = btllib::BloomFilter::check_file_signature(
+		    path, btllib::KMER_COUNTING_BLOOM_FILTER_SIGNATURE);
+		if (is_cbf) {
+			cbf = std::make_unique<btllib::KmerCountingBloomFilter8>(path);
+		} else {
+			bf = std::make_unique<btllib::KmerBloomFilter>(path);
+		}
+	}
+
+	BFWrapper() = default; // NOLINT
+
+	bool contains(const uint64_t* hashes) const
+	{
+		return is_cbf ? cbf.get()->contains(hashes) > 0 : bf.get()->contains(hashes);
+	}
+
+	uint8_t get_count(const uint64_t* hashes) const
+	{
+		return is_cbf ? cbf.get()->contains(hashes) : 1;
+	}
+
+	bool is_counting() const { return is_cbf; }
+
+	unsigned get_k() const { return is_cbf ? cbf.get()->get_k() : bf.get()->get_k(); }
+
+	unsigned get_hash_num() const
+	{
+		return is_cbf ? cbf.get()->get_hash_num() : bf.get()->get_hash_num();
+	}
+
+	void
+	print_details() // NOLINT(readability-convert-member-functions-to-static,-warnings-as-errors)
+	{
+		const auto size = is_cbf ? cbf.get()->get_bytes() : bf.get()->get_bytes();
+		const auto fpr = is_cbf ? cbf.get()->get_fpr() : bf.get()->get_fpr();
+		std::cout << "BLOOM::\tcounting: " << (is_cbf ? "YES" : "NO") << "\tsize: " << size
+		          << "\tnumber hash functions: " << get_hash_num() << "\tkmer size: " << get_k()
+		          << "\tFPR: " << fpr << std::endl;
+	}
+
+  private:
+	bool is_cbf;
+	std::unique_ptr<btllib::KmerBloomFilter> bf;
+	std::unique_ptr<btllib::KmerCountingBloomFilter8> cbf;
+};
+
+inline void
+NTMC64(
+    const char* kmerSeq,
+    const unsigned k,
+    const unsigned m,
+    uint64_t& fhVal,
+    uint64_t& rhVal,
+    uint64_t* hVal)
+{
+	fhVal = btllib::hashing_internals::base_forward_hash(kmerSeq, k);
+	rhVal = btllib::hashing_internals::base_reverse_hash(kmerSeq, k);
+	uint64_t base_hash = btllib::hashing_internals::canonical(fhVal, rhVal);
+	btllib::hashing_internals::extend_hashes(base_hash, k, m, hVal);
+}
+
+inline void
+NTMC64(
+    const unsigned char charOut,
+    const unsigned char charIn,
+    const unsigned k,
+    const unsigned m,
+    uint64_t& fhVal,
+    uint64_t& rhVal,
+    uint64_t* hVal)
+{
+	fhVal = btllib::hashing_internals::next_forward_hash(fhVal, k, charOut, charIn);
+	rhVal = btllib::hashing_internals::next_reverse_hash(rhVal, k, charOut, charIn);
+	uint64_t base_hash = btllib::hashing_internals::canonical(fhVal, rhVal);
+	btllib::hashing_internals::extend_hashes(base_hash, k, m, hVal);
+}
+
+inline void
+NTMC64_changelast(
+    const unsigned char charOut,
+    const unsigned char charIn,
+    const unsigned k,
+    const unsigned m,
+    uint64_t& fhVal,
+    uint64_t& rhVal,
+    uint64_t* hVal)
+{
+	fhVal ^= btllib::hashing_internals::SEED_TAB[charOut];
+	fhVal ^= btllib::hashing_internals::SEED_TAB[charIn];
+	unsigned char out_rev = charOut & btllib::hashing_internals::CP_OFF;
+	unsigned char in_rev = charIn & btllib::hashing_internals::CP_OFF;
+	rhVal ^= btllib::hashing_internals::srol_table(out_rev, k - 1);
+	rhVal ^= btllib::hashing_internals::srol_table(in_rev, k - 1);
+	uint64_t base_hash = btllib::hashing_internals::canonical(fhVal, rhVal);
+	btllib::hashing_internals::extend_hashes(base_hash, k, m, hVal);
+}
+
+/* Returns the median of a vector of uint8_t. */
+uint8_t
+median(std::vector<uint8_t>& median_vec)
+{
+	if (median_vec.size() > 0) {
+		std::sort(median_vec.begin(), median_vec.end());
+		return median_vec[median_vec.size() / 2];
+	}
+	return 0;
+}
+
+bool
+is_kmer_solid(uint64_t* hVal, const BFWrapper& bloom, const BFWrapper& bloomrep)
+{
+	bool solid_if_reg = !opt::secbf || !bloomrep.contains(hVal);
+	bool solid_if_count = !bloom.is_counting() || (bloom.get_count(hVal) <= opt::max_threshold &&
+	                                               bloom.get_count(hVal) >= opt::min_threshold);
+
+	return solid_if_reg && solid_if_count;
+}
+
 /* Checks that the filepath is readable and exits if it is not. */
 static inline void
 assert_readable(const std::string& path)
@@ -471,7 +612,7 @@ struct seqNode
 void
 makeInsertion(
     unsigned& t_node_index,
-    int insert_pos,
+    unsigned insert_pos,
     const std::string& insertion_bases,
     unsigned num_support,
     std::vector<seqNode>& newSeq)
@@ -656,7 +797,7 @@ makeDeletion(
 
 /* Returns the character at pos based on the seqNode structure. */
 unsigned char
-getCharacter(unsigned& pos, seqNode node, const string& contigSeq)
+getCharacter(unsigned& pos, seqNode node, const std::string& contigSeq)
 {
 	if (node.node_type == 0) {
 		return contigSeq.at(pos);
@@ -670,7 +811,7 @@ getCharacter(unsigned& pos, seqNode node, const string& contigSeq)
 
 /* Increments the position and adjusts the node accordingly based on seqNode structure. */
 void
-increment(unsigned& pos, unsigned& node_index, vector<seqNode>& newSeq)
+increment(unsigned& pos, unsigned& node_index, std::vector<seqNode>& newSeq)
 {
 	seqNode node = newSeq[node_index];
 	if (node.node_type == 0) {
@@ -697,8 +838,8 @@ findAcceptedKmer(
     unsigned& t_seq_i,
     unsigned& h_node_index,
     unsigned& t_node_index,
-    const string& contigSeq,
-    vector<seqNode>& newSeq)
+    const std::string& contigSeq,
+    std::vector<seqNode>& newSeq)
 {
 	// temporary values
 	std::string kmer_str;
@@ -751,7 +892,7 @@ findAcceptedKmer(
 /* Get the previous insertion (aka continuous string of character nodes) starting at t_node_index.
  */
 std::string
-getPrevInsertion(unsigned t_seq_i, unsigned t_node_index, vector<seqNode>& newSeq)
+getPrevInsertion(unsigned t_seq_i, unsigned t_node_index, std::vector<seqNode>& newSeq)
 {
 	std::string prev_insertion;
 	// if we just finished the insertion
@@ -777,7 +918,7 @@ writeEditsToFile(
     const std::string& contigSeq,
     std::vector<seqNode>& newSeq,
     std::queue<sRec>& substitution_record,
-    std::map<std::string, std::string> clinvar)
+    std::map<std::string, std::string>& clinvar)
 {
 	dfout << ">" << contigHdr.c_str() << "\n"; // FASTA HEADER RLWYY
 	unsigned node_index = 0;
@@ -810,14 +951,31 @@ writeEditsToFile(
 			       substitution_record.front().pos <= curr_node.e_pos) {
 				std::vector<char> alt_base_vcf(0);
 				std::vector<unsigned> alt_supp_vcf(0);
-				rfout << contigHdr.c_str() << "\t" << substitution_record.front().pos + 1 << "\t"
-				      << substitution_record.front().draft_char << "\t"
-				      << substitution_record.front().sub_base << "\t"
-				      << substitution_record.front().num_support;
+				bool snv_mode_no_edit =
+				    !(opt::snv && substitution_record.front().draft_char ==
+				                      substitution_record.front().sub_base);
+				if (snv_mode_no_edit) {
+					rfout << contigHdr.c_str() << "\t" << substitution_record.front().pos + 1
+					      << "\t" << substitution_record.front().draft_char << "\t"
+					      << substitution_record.front().sub_base << "\t"
+					      << substitution_record.front().num_support;
+				}
 				std::string base(1, substitution_record.front().sub_base);
 				std::string support = std::to_string(substitution_record.front().num_support);
 				std::string clinvarinfo; // RLW 23AUG2023
 
+				std::ostringstream orig_id;
+				orig_id << contigHdr.c_str() << ">"
+				        << char(toupper(substitution_record.front().draft_char))
+				        << substitution_record.front().pos + 1
+				        << char(toupper(substitution_record.front().draft_char));
+				std::string origid = orig_id.str();
+				if (!clinvar[origid].empty()) {
+					clinvarinfo += "^";
+					clinvarinfo += clinvar[origid];
+				} else {
+					clinvarinfo += "^NA";
+				}
 				std::ostringstream id; // RLW 21AUG2023
 				id << contigHdr.c_str() << ">"
 				   << char(toupper(substitution_record.front().draft_char))
@@ -825,73 +983,101 @@ writeEditsToFile(
 				   << char(toupper(base.at(0))); // RLW 21AUG2023
 				std::string varid = id.str();    // RLW 21AUG2023
 				if (!clinvar[varid].empty()) {
-					clinvarinfo = "^";
+					clinvarinfo += "^";
 					clinvarinfo += clinvar[varid];
+				} else {
+					clinvarinfo += "^NA";
 				}
+				// std::cerr << "varid: " << id.str() << std::endl;
+				// std::cerr << "clinvarinfo: " << clinvarinfo << std::endl;
 				if (substitution_record.front().altsupp1 > 0) { // XXRLWXX
-					rfout << "\t" << substitution_record.front().altbase1 << "\t"
-					      << substitution_record.front().altsupp1;
+					if (snv_mode_no_edit) {
+						rfout << "\t" << substitution_record.front().altbase1 << "\t"
+						      << substitution_record.front().altsupp1;
+					}
 					alt_base_vcf.emplace_back(substitution_record.front().altbase1);
 					alt_supp_vcf.emplace_back(substitution_record.front().altsupp1);
 				}
 				if (substitution_record.front().altsupp2 > 0) { // XXRLWXX
-					rfout << "\t" << substitution_record.front().altbase2 << "\t"
-					      << substitution_record.front().altsupp2;
+					if (snv_mode_no_edit) {
+						rfout << "\t" << substitution_record.front().altbase2 << "\t"
+						      << substitution_record.front().altsupp2;
+					}
 					alt_base_vcf.emplace_back(substitution_record.front().altbase2);
 					alt_supp_vcf.emplace_back(substitution_record.front().altsupp2);
 				}
 				if (substitution_record.front().altsupp3 > 0) { // XXRLWXX
-					rfout << "\t" << substitution_record.front().altbase3 << "\t"
-					      << substitution_record.front().altsupp3;
+					if (snv_mode_no_edit) {
+						rfout << "\t" << substitution_record.front().altbase3 << "\t"
+						      << substitution_record.front().altsupp3;
+					}
 					alt_base_vcf.emplace_back(substitution_record.front().altbase3);
 					alt_supp_vcf.emplace_back(substitution_record.front().altsupp3);
 				}
-				rfout << "\n";
+				if (snv_mode_no_edit) {
+					rfout << "\n";
+				}
 				unsigned curr_best_alt_supp = 0;
 				char best_alt_base = '1';
 				std::string best_alt_supp;
 				std::string genotype;
 				// If there are alt bases
 				if (!alt_base_vcf.empty()) {
-					unsigned curr_best_supp = 0;
 					if (opt::snv) {
-						bool ref = false;
-						for (int i = 0; i < alt_base_vcf.size(); ++i) {
-							// Prioritize ref base over other alt base
-							if (substitution_record.front().draft_char == alt_base_vcf[i]) {
-								curr_best_alt_supp = alt_supp_vcf[i];
-								ref = true;
-								break;
+						if (!snv_mode_no_edit) {
+							for (size_t i = 0; i < alt_base_vcf.size(); ++i) {
+								if (alt_supp_vcf[i] > curr_best_alt_supp) {
+									curr_best_alt_supp = alt_supp_vcf[i];
+									base = alt_base_vcf[i];
+								}
 							}
-							if (alt_supp_vcf[i] > curr_best_alt_supp) {
-								curr_best_alt_supp = alt_supp_vcf[i];
-								best_alt_base = alt_base_vcf[i];
-							}
-						}
-						best_alt_supp = std::to_string(curr_best_alt_supp);
-						if (ref) {
+							best_alt_supp = std::to_string(curr_best_alt_supp);
 							support.append(",");
 							support.append(best_alt_supp);
 							genotype = "0/1";
 						} else {
-							genotype = "1/2";
-							support += ",";
-							support += best_alt_supp;
-							base += ",";
-							base += best_alt_base;
-							std::ostringstream altid; // RLW 21AUG2023
-							altid << contigHdr.c_str() << ">"
-							      << char(toupper(substitution_record.front().draft_char))
-							      << substitution_record.front().pos + 1
-							      << char(toupper(best_alt_base)); // RLW 21AUG2023
-							std::string altvarid = altid.str();    // RLW 21AUG2023
-							if (!clinvar[altvarid].empty()) {
-								clinvarinfo += "^";
-								clinvarinfo += clinvar[altvarid];
+							bool ref = false;
+							for (size_t i = 0; i < alt_base_vcf.size(); ++i) {
+								// Prioritize ref base over other alt base
+								if (substitution_record.front().draft_char == alt_base_vcf[i]) {
+									curr_best_alt_supp = alt_supp_vcf[i];
+									ref = true;
+									break;
+								}
+								if (alt_supp_vcf[i] > curr_best_alt_supp) {
+									curr_best_alt_supp = alt_supp_vcf[i];
+									best_alt_base = alt_base_vcf[i];
+								}
+							}
+							best_alt_supp = std::to_string(curr_best_alt_supp);
+							if (ref) {
+								support = best_alt_supp + "," + support;
+								genotype = "0/1";
+							} else {
+								genotype = "1/2";
+								support += ",";
+								support += best_alt_supp;
+								base += ",";
+								base += best_alt_base;
+								std::ostringstream altid; // RLW 21AUG2023
+								altid << contigHdr.c_str() << ">"
+								      << char(toupper(substitution_record.front().draft_char))
+								      << substitution_record.front().pos + 1
+								      << char(toupper(best_alt_base)); // RLW 21AUG2023
+								std::string altvarid = altid.str();    // RLW 21AUG2023
+								// std::cerr << "altvarid: " << altid.str() << std::endl;
+								if (!clinvar[altvarid].empty()) {
+									clinvarinfo += "^";
+									clinvarinfo += clinvar[altvarid];
+								} else {
+									clinvarinfo += "^NA";
+								}
+								// std::cerr << "clinvarinfo: " << clinvarinfo << std::endl;
+								// exit(0);
 							}
 						}
 					} else {
-						for (int i = 0; i < alt_base_vcf.size(); ++i) {
+						for (size_t i = 0; i < alt_base_vcf.size(); ++i) {
 							// Skip ref base in non snv mode
 							if (substitution_record.front().draft_char == alt_base_vcf[i]) {
 								continue;
@@ -913,10 +1099,12 @@ writeEditsToFile(
 						      << substitution_record.front().pos + 1
 						      << char(toupper(best_alt_base)); // RLW 21AUG2023
 						std::string altvarid = altid.str();    // RLW 21AUG2023
-
+						// std::cerr << "altvarid: " << altid.str() << std::endl;
 						if (!clinvar[altvarid].empty()) {
 							clinvarinfo += "^";
 							clinvarinfo += clinvar[altvarid];
+						} else {
+							clinvarinfo += "^NA";
 						}
 					}
 				} else {
@@ -981,6 +1169,10 @@ roll(
 	charOut = getCharacter(h_seq_i, newSeq[h_node_index], contigSeq);
 	increment(h_seq_i, h_node_index, newSeq);
 
+	if (t_seq_i >= contigSeq.size() || t_node_index >= newSeq.size()) {
+		return false;
+	}
+
 	increment(t_seq_i, t_node_index, newSeq);
 	// quit if t_seq_i is out of scope
 	if (t_seq_i >= contigSeq.size() || t_node_index >= newSeq.size()) {
@@ -997,7 +1189,7 @@ makeEdit(
     unsigned char& draft_char,
     unsigned& best_edit_type,
     unsigned char& best_sub_base,
-    string& best_indel,
+    std::string& best_indel,
     unsigned& best_num_support,
     unsigned char& altbase1,
     unsigned& altsupp1,
@@ -1170,6 +1362,22 @@ makeEdit(
 		if (opt::verbose) {
 			std::cout << "\tt_seq_i: " << t_seq_i << " FIX NOT FOUND" << std::endl;
 		}
+		if (opt::snv) {
+			sRec subst;
+			subst.draft_char = draft_char;
+			subst.pos = t_seq_i;
+			subst.sub_base = draft_char; // same char as signal to not write to changes.tsv
+			subst.num_support = best_num_support;
+			subst.altbase1 = altbase1;
+			subst.altsupp1 = altsupp1;
+			subst.altbase2 = altbase2;
+			subst.altsupp2 = altsupp2;
+			subst.altbase3 = altbase3;
+			subst.altsupp3 = altsupp3;
+			if (altsupp1) {
+				substitution_record.push(subst);
+			}
+		}
 		break;
 	default:
 		break;
@@ -1190,8 +1398,8 @@ tryDeletion(
     uint64_t* hVal,
     const std::string& contigSeq,
     std::vector<seqNode>& newSeq,
-    BloomFilter& bloom,
-    BloomFilter& bloomrep,
+    BFWrapper& bloom,
+    BFWrapper& bloomrep,
     std::string& deleted_bases)
 {
 
@@ -1221,7 +1429,9 @@ tryDeletion(
 
 	// verify the deletion with a subset
 	unsigned check_present = 0;
-	if (bloom.contains(hVal) && (!opt::secbf || !bloomrep.contains(hVal))) {
+	std::vector<uint8_t> check_present_median_vec;
+	unsigned check_present_median = 0;
+	if (bloom.contains(hVal) && is_kmer_solid(hVal, bloom, bloomrep)) {
 		check_present++; // check for changing the kmer after deletion
 	}
 	for (unsigned k = 1; k <= (opt::k - 2) && temp_h_seq_i < contigSeq.size(); k++) {
@@ -1236,21 +1446,36 @@ tryDeletion(
 		        charIn)) {
 			NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
 			if (k % opt::jump == 0 && bloom.contains(hVal) &&
-			    (!opt::secbf || !bloomrep.contains(hVal))) {
+			    is_kmer_solid(hVal, bloom, bloomrep)) {
 				check_present++;
+				if (bloom.is_counting()) {
+					check_present_median_vec.emplace_back(bloom.get_count(hVal));
+				}
 			}
 		}
 	}
+	if (bloom.is_counting()) {
+		check_present_median = median(check_present_median_vec);
+	}
 
 	if (opt::verbose) {
-		std::cout << "\t\tdeleting: " << deleted_bases << " check_present: " << check_present
-		          << std::endl;
+		std::cout << "\t\tdeleting: " << deleted_bases << " check_present: " << check_present;
+		if (bloom.is_counting()) {
+			std::cout << " check_present_median_coverage: " << check_present_median;
+		}
+		std::cout << std::endl;
 	}
 	if ((!opt::use_ratio &&
 	     static_cast<float>(check_present) >= (static_cast<float>(opt::k) / opt::edit_threshold)) ||
 	    (opt::use_ratio &&
 	     static_cast<float>(check_present) >=
 	         (1 + (static_cast<float>(opt::k) / opt::jump)) * opt::edit_ratio)) { // RLW
+		/*if (bloom.is_counting()) {
+		    if (!opt::snv && !(check_present_median >= opt::min_threshold && check_present_median <=
+		opt::max_insertions)) { return 0;
+		    }
+		    return static_cast<int>(check_present_median);
+		}*/
 		return static_cast<int>(check_present);
 	}
 	return 0;
@@ -1271,8 +1496,8 @@ tryIndels(
     uint64_t* hVal,
     const std::string& contigSeq,
     std::vector<seqNode>& newSeq,
-    BloomFilter& bloom,
-    BloomFilter& bloomrep,
+    BFWrapper& bloom,
+    BFWrapper& bloomrep,
     unsigned& best_edit_type,
     std::string& best_indel,
     std::string& alt_indel,
@@ -1313,6 +1538,8 @@ tryIndels(
 		NTMC64_changelast(draft_char, index_char, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
 		unsigned check_present = 0;
 		unsigned k = 0; // RLW
+		std::vector<uint8_t> check_present_median_vec;
+		unsigned check_present_median = 0;
 		// check subset with the insertion
 		for (; k < insertion_bases.size() - 1 && temp_h_seq_i < contigSeq.size(); k++) {
 			NTMC64(
@@ -1325,8 +1552,11 @@ tryIndels(
 			    hVal);
 			increment(temp_h_seq_i, temp_h_node_index, newSeq);
 			if (k % opt::jump == 0 && bloom.contains(hVal) &&
-			    (!opt::secbf || !bloomrep.contains(hVal))) { // RLW
+			    is_kmer_solid(hVal, bloom, bloomrep)) { // RLW
 				check_present++;
+				if (bloom.is_counting()) {
+					check_present_median_vec.emplace_back(bloom.get_count(hVal));
+				}
 			}
 		}
 		// check subset after insertion
@@ -1342,15 +1572,25 @@ tryIndels(
 			        charIn)) {
 				NTMC64(charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
 				if (k % opt::jump == 0 && bloom.contains(hVal) &&
-				    (!opt::secbf || !bloomrep.contains(hVal))) { // RLW
+				    is_kmer_solid(hVal, bloom, bloomrep)) { // RLW
 					check_present++;
+					if (bloom.is_counting()) {
+						check_present_median_vec.emplace_back(bloom.get_count(hVal));
+					}
 				}
 			}
 		}
 		insertion_bases.pop_back();
+		if (bloom.is_counting()) {
+			check_present_median = median(check_present_median_vec);
+		}
 		if (opt::verbose) {
-			std::cout << "\t\tinserting: " << insertion_bases << " check_present: " << check_present
-			          << std::endl;
+			std::cout << "\t\tinserting: " << insertion_bases
+			          << " check_present: " << check_present;
+			if (bloom.is_counting()) {
+				std::cout << " check_present_median_coverage: " << check_present_median;
+			}
+			std::cout << std::endl;
 		}
 		// if the insertion is good, store the insertion accordingly RLW
 		if ((!opt::use_ratio && static_cast<float>(check_present) >=
@@ -1358,6 +1598,13 @@ tryIndels(
 		    (opt::use_ratio &&
 		     static_cast<float>(check_present) >=
 		         (static_cast<float>(opt::k) / opt::jump) * opt::edit_ratio)) { // RLW
+			/*if (bloom.is_counting()) {
+			    if (!opt::snv && !(check_present_median <= opt::max_threshold &&
+			                       check_present_median >= opt::min_threshold)) {
+			        continue;
+			    }
+			    check_present = check_present_median;
+			}*/
 			if (opt::mode == 0) {
 				// if we are in default mode, we just accept this first good insertion and return
 				best_edit_type = 2;
@@ -1436,15 +1683,15 @@ tryIndels(
 /* Kmerize and polish the contig. */
 void
 kmerizeAndCorrect(
-    string& contigHdr,
-    string& contigSeq,
+    std::string& contigHdr,
+    std::string& contigSeq,
     unsigned seqLen,
-    BloomFilter& bloom,
-    BloomFilter& bloomrep,
+    BFWrapper& bloom,
+    BFWrapper& bloomrep,
     std::ofstream& dfout,
     std::ofstream& rfout,
     std::ofstream& vfout,
-    std::map<std::string, std::string> clinvar)
+    std::map<std::string, std::string>& clinvar)
 {
 
 	// initialize values for hashing
@@ -1493,7 +1740,8 @@ kmerizeAndCorrect(
 			std::cout << h_seq_i << " " << t_seq_i << " " << charIn << " " << h_node_index << " "
 			          << t_node_index << " " << hVal[0] << hVal[1] << hVal[2] << std::endl;
 		}
-		if (opt::snv || !bloom.contains(hVal)) {
+		if (opt::snv || !bloom.contains(hVal) ||
+		    (bloom.is_counting() && bloom.get_count(hVal) < opt::min_threshold)) {
 			// make temporary value holders
 			uint64_t temp_fhVal = fhVal;
 			uint64_t temp_rhVal = rhVal;
@@ -1508,6 +1756,8 @@ kmerizeAndCorrect(
 			// confirm missing by checking subset
 			unsigned check_missing = 0;
 			unsigned check_there = 0; // RLW
+			unsigned check_there_median = 0;
+			std::vector<uint8_t> check_there_median_vec;
 			bool do_not_fix = false;
 
 			for (unsigned k = 0; k < opt::k && temp_h_seq_i < seqLen;
@@ -1531,26 +1781,33 @@ kmerizeAndCorrect(
 						                         // IUPAC here, may filter out some bases
 						check_missing++;
 					} else if (
-					    isATGCBase(draft_char) && k % opt::jump == 0 &&
-					    bloom.contains(hVal)) { // XXRLWnov2020 important to screen for ACGT
+					    isATGCBase(draft_char) && k % opt::jump == 0 && bloom.contains(hVal) &&
+					    (!bloom.is_counting() || bloom.get_count(hVal) >= opt::min_threshold)) {
 						check_there++;
+						if (bloom.is_counting()) {
+							check_there_median_vec.emplace_back(bloom.get_count(hVal));
+						}
 					}
 				} else {
 					do_not_fix = true;
 					break;
 				}
 			}
-
+			if (bloom.is_counting()) {
+				check_there_median = median(check_there_median_vec);
+			}
 			if (opt::verbose) {
 				std::cout << "\tcheck_missing: " << check_missing << std::endl;
 			}
-			if ((opt::snv) || ((!do_not_fix) &&
-			                   (((!opt::use_ratio &&
-			                      static_cast<float>(check_missing) >=
-			                          (static_cast<float>(opt::k) / opt::missing_threshold))) ||
-			                    ((opt::use_ratio && static_cast<float>(check_missing) >=
-			                                            ((static_cast<float>(opt::k) / opt::jump) *
-			                                             opt::missing_ratio)))))) { // RLW
+			if ((opt::snv) ||
+			    ((!do_not_fix) &&
+			     (((!opt::use_ratio &&
+			        static_cast<float>(check_missing) >=
+			            (static_cast<float>(opt::k) / opt::missing_threshold))) ||
+			      ((opt::use_ratio &&
+			        static_cast<float>(check_missing) >=
+			            ((static_cast<float>(opt::k) / opt::jump) * opt::missing_ratio))) ||
+			      (bloom.is_counting() && check_there_median < opt::min_threshold)))) { // RLW
 
 				// recorders
 				unsigned num_deletions = 1;
@@ -1576,11 +1833,19 @@ kmerizeAndCorrect(
 					     static_cast<float>(check_there) >=
 					         ((static_cast<float>(opt::k) / opt::jump)) * opt::edit_ratio)) {
 						best_sub_base = draft_char;
-						best_num_support = check_there;
+						if (bloom.is_counting()) {
+							best_num_support = check_there_median;
+						} else {
+							best_num_support = check_there;
+						}
 
 						if (opt::verbose) {
 							std::cout << "\t\tORI BEST SUB BASE: " << best_sub_base
-							          << " NUMBER: " << best_num_support << std::endl;
+							          << " NUMBER: " << best_num_support;
+							if (bloom.is_counting()) {
+								std::cout << " COVERAGE: " << check_there_median;
+							}
+							std::cout << std::endl;
 						}
 					}
 				}
@@ -1594,9 +1859,9 @@ kmerizeAndCorrect(
 					// hash the substitution change
 					NTMC64_changelast(
 					    draft_char, sub_base, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
-
 					// only do verification of substitution if it is found in Bloom filter
-					if ((bloom.contains(hVal) && (!opt::secbf || !bloomrep.contains(hVal))) ||
+
+					if ((bloom.contains(hVal) && is_kmer_solid(hVal, bloom, bloomrep)) ||
 					    opt::mode == 2) {
 						// reset temporary values
 						temp_h_node_index = h_node_index;
@@ -1612,6 +1877,8 @@ kmerizeAndCorrect(
 						}
 						// check the subset to see if this substitution is good
 						unsigned check_present = 0;
+						std::vector<uint8_t> check_present_median_vec;
+						unsigned check_present_median = 0;
 						for (unsigned k = 0; // RLW
 						     k < opt::k && temp_h_seq_i < seqLen && temp_t_seq_i < seqLen;
 						     k++) {
@@ -1627,12 +1894,18 @@ kmerizeAndCorrect(
 								NTMC64(
 								    charOut, charIn, opt::k, opt::h, temp_fhVal, temp_rhVal, hVal);
 								if (k % opt::jump == 0 && bloom.contains(hVal) &&
-								    (!opt::secbf || !bloomrep.contains(hVal))) { // RLW
+								    is_kmer_solid(hVal, bloom, bloomrep)) { // RLW
 									check_present++;
+									if (bloom.is_counting()) {
+										check_present_median_vec.push_back(bloom.get_count(hVal));
+									}
 								}
 							} else {
 								break;
 							}
+						}
+						if (bloom.is_counting()) {
+							check_present_median = median(check_present_median_vec);
 						}
 
 						// revert the substitution
@@ -1645,7 +1918,12 @@ kmerizeAndCorrect(
 						}
 						if (opt::verbose) {
 							std::cout << "\t\tsub: " << sub_base
-							          << " check_present: " << check_present << std::endl;
+							          << " check_present: " << check_present;
+							if (bloom.is_counting()) {
+								std::cout << " check_present_median_coverage: "
+								          << check_present_median;
+							}
+							std::cout << std::endl;
 						}
 
 						if ((!opt::use_ratio &&
@@ -1656,6 +1934,14 @@ kmerizeAndCorrect(
 						                               opt::edit_ratio)) { // RLW
 
 							// update the best substitution
+							/*if (bloom.is_counting()) {
+							    if (!opt::snv && !(check_present_median <= opt::max_threshold &&
+							                       check_present_median >= opt::min_threshold)) {
+							        continue;
+							    }
+							    check_present = check_present_median;
+
+							}*/
 							if (check_present >= best_num_support) {
 								if (altsupp2) {
 									altbase3 = altbase2;
@@ -1786,7 +2072,7 @@ kmerizeAndCorrect(
 				continue_edit = false;
 				break;
 			}
-		} while (target_t_seq_i >= 0 && t_seq_i != target_t_seq_i);
+		} while (target_t_seq_i >= 0 && static_cast<int>(t_seq_i) != target_t_seq_i);
 	} while (continue_edit);
 
 	// clean allocated memory for hash
@@ -1797,23 +2083,13 @@ kmerizeAndCorrect(
 	{
 		// write edits to file
 		writeEditsToFile(
-		    dfout,
-		    rfout,
-		    vfout,
-		    contigHdr,
-		    contigSeq,
-		    newSeq,
-		    substitution_record,
-		    std::move(clinvar));
+		    dfout, rfout, vfout, contigHdr, contigSeq, newSeq, substitution_record, clinvar);
 	}
 }
 
 /* Read the contigs from the file and polish each contig. */
 void
-readAndCorrect(
-    BloomFilter& bloom,
-    BloomFilter& bloomrep,
-    std::map<std::string, std::string> const& clinvar)
+readAndCorrect(BFWrapper& bloom, BFWrapper& bloomrep, std::map<std::string, std::string>& clinvar)
 {
 	// read file handle
 	gzFile dfp;
@@ -1826,16 +2102,28 @@ readAndCorrect(
 	std::string d_filename = opt::outfile_prefix + "_edited.fa";
 	std::string r_filename = opt::outfile_prefix + "_changes.tsv";
 	std::string v_filename = opt::outfile_prefix + "_variants.vcf";
-	ofstream dfout;
-	ofstream rfout;
-	ofstream vfout;
+	std::ofstream dfout;
+	std::ofstream rfout;
+	std::ofstream vfout;
 	dfout.open(d_filename);
 	rfout.open(r_filename);
 	// printf ( "OUT OF %.1f\n", ceil( double(opt::k) / double(opt::jump) ) );
 
-	rfout << "ID\tbpPosition+1\tOriginalBase\tNewBase\tSupport " << opt::k << "-mer (out of "
-	      << ceil(double(opt::k) / double(opt::jump)) << ")\tAlt.Base1\tAlt.Support1\t"
-	      << "Alt.Base2\tAlt.Support2\tAlt.Base3\tAlt.Support3\n"; // RLW
+	rfout << "ID\tbpPosition+1\tOriginalBase\tNewBase\t";
+	if (bloom.is_counting()) {
+		rfout << "Coverage (max 255)";
+	} else {
+		rfout << "Support " << opt::k << "-mer (out of " << ceil(double(opt::k) / double(opt::jump))
+		      << ")";
+	}
+
+	std::string alt_evi = "Support";
+	if (bloom.is_counting()) {
+		alt_evi = "Coverage";
+	}
+	rfout << "\tAlt.Base1\tAlt." << alt_evi << "1\t"
+	      << "Alt.Base2\tAlt." << alt_evi << "2\t"
+	      << "Alt.Base3\tAlt." << alt_evi << "3\n"; // RLW
 
 	vfout.open(v_filename);
 
@@ -1854,7 +2142,7 @@ readAndCorrect(
 	}
 
 	vfout << "##fileDate=" << year << month << day << std::endl;
-	vfout << "##source=ntEditV1.4.3" << std::endl;
+	vfout << "##source=" << PROGRAM << std::endl;
 	vfout << "##reference=file:" << opt::draft_filename << std::endl;
 	vfout << "##INFO=<ID=AD,Number=2,Type=Integer,Description=\"Kmer Depth\">" << std::endl;
 	vfout << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tINTEGRATION" << std::endl;
@@ -1899,12 +2187,27 @@ readAndCorrect(
 			}
 		}
 	}
-	//#pragma omp barrier
+	// #pragma omp barrier
 	kseq_destroy(seq);
 	gzclose(dfp);
 	dfout.close();
 	rfout.close();
 	vfout.close();
+}
+
+void
+vcf_entry_to_map(const std::string& vcf_entry, std::map<std::string, std::string>& var_map)
+{
+	const std::regex re("\t");
+	std::sregex_token_iterator first{ vcf_entry.begin(), vcf_entry.end(), re, -1 }, // NOLINT
+	    last; // the '-1' is what makes the regex split (-1 := what was not matched)
+	std::vector<std::string> tokens{ first, last };
+	if (tokens.size() >= 8) {
+		std::ostringstream id;
+		id << tokens[0] << ">" << tokens[3] << tokens[1] << tokens[4];
+		std::string varid = id.str();
+		var_map[varid] = tokens[7];
+	}
 }
 
 int
@@ -1975,6 +2278,12 @@ main(int argc, char** argv) // NOLINT
 			break;
 		case 'v':
 			arg >> opt::verbose;
+			break;
+		case 'p':
+			arg >> opt::min_threshold;
+			break;
+		case 'q':
+			arg >> opt::max_threshold;
 			break;
 		case OPT_HELP:
 			std::cerr << USAGE_MESSAGE;
@@ -2063,8 +2372,8 @@ main(int argc, char** argv) // NOLINT
 	time(&rawtime);
 	std::cout << "---------- loading Bloom filter from file           : " << ctime(&rawtime)
 	          << "\n";
-	BloomFilter bloom(opt::bloom_filename.c_str());
-	opt::h = bloom.getHashNum();
+	BFWrapper bloom(opt::bloom_filename);
+	opt::h = bloom.get_hash_num();
 
 	// Checks for the Bloom filter
 	if (opt::h == 0) {
@@ -2073,13 +2382,20 @@ main(int argc, char** argv) // NOLINT
 	}
 
 	// assign k from Bloom filter header
-	opt::k = bloom.getKmerSize();
+	opt::k = bloom.get_k();
 
 	opt::insertion_cap =
 	    static_cast<unsigned>(static_cast<float>(opt::k) * opt::default_insertion_cap_ratio);
 
+	if (!bloom.is_counting() && opt::min_threshold != 1) {
+		std::cerr << PROGRAM
+		    ": warning: Bloom filter is not counting, min k-mer presence threshold will be "
+		    "set to 1.\n";
+		opt::min_threshold = 1;
+	}
+
 	// print bloom filter details
-	bloom.printBloomFilterDetails();
+	bloom.print_details();
 
 	// Checking parameters
 	time(&rawtime);
@@ -2137,43 +2453,47 @@ main(int argc, char** argv) // NOLINT
 	          << vcf_basename << "\n -a " << opt::mask << "\n -t " << opt::nthreads << "\n -v "
 	          << opt::verbose << "\n"
 	          << std::endl;
+	if (bloom.is_counting()) {
+		std::cout << " -p " << opt::min_threshold << "\n -q " << opt::max_threshold << "\n"
+		          << std::endl;
+	}
 
 	// VCF file reading RLW 19AUG2023
-	string line;
+	std::string line;
 	std::map<std::string, std::string> clinvar;
 
 	// check the vcf file is specified
 	if (!opt::vcf_filename.empty()) {
 		// if the file is specified check that it is readable
 		assert_readable(opt::vcf_filename);
-		if (opt::vcf_filename.substr(opt::vcf_filename.find_last_of('.') + 1) == "gz") { // NOLINT
-			cout << PROGRAM
-			    ": warning: *gz files are not yet supported. The VCF will not be read. Please "
-			    "relaunch ntEdit with .vcf after decompressing with unpigz or gunzip\n\n";
+		// read file handle
 
-		} else {
-			ifstream myfile(opt::vcf_filename);
+		// check if vcf is gzipped
+		if (opt::vcf_filename.substr(opt::vcf_filename.find_last_of(".") + 1) == "gz") {
+			std::ifstream myfile(opt::vcf_filename, std::ios_base::in | std::ios_base::binary);
+			boost::iostreams::filtering_streambuf<boost::iostreams::input> inbuf;
+			inbuf.push(boost::iostreams::gzip_decompressor());
+			inbuf.push(myfile);
+			// Convert streambuf to istream
+			std::istream instream(&inbuf);
+			// Iterate lines
 			if (myfile.is_open()) {
-				while (std::getline(myfile, line)) {
-					const std::regex re("\t");
-					std::sregex_token_iterator first{ line.begin(), line.end(), re, -1 }, // NOLINT
-					    last; // the '-1' is what makes the regex split (-1 := what was not matched)
-					std::vector<std::string> tokens{ first, last };
-					// cout << tokens.size() << " numtoken\n";
-					if (tokens.size() >= 8) {
-						std::ostringstream id;
-						id << tokens[0] << ">" << tokens[3] << tokens[1] << tokens[4];
-						std::string varid = id.str();
-						clinvar[varid] = tokens[7];
-						// Print results
-						// for (auto t : tokens) {
-						//	std::cout << t << std::endl;
-						// }
-					}
+				while (std::getline(instream, line)) {
+					vcf_entry_to_map(line, clinvar);
 				}
 				myfile.close();
 			} else {
-				cout << "Unable to open file";
+				std::cerr << "Unable to open file" << std::endl;
+			}
+		} else {
+			std::ifstream myfile(opt::vcf_filename);
+			if (myfile.is_open()) {
+				while (std::getline(myfile, line)) {
+					vcf_entry_to_map(line, clinvar);
+				}
+				myfile.close();
+			} else {
+				std::cerr << "Unable to open file" << std::endl;
 			}
 		}
 	}
@@ -2184,8 +2504,8 @@ main(int argc, char** argv) // NOLINT
 		time(&rawtime);
 		std::cout << "---------- loading secondary Bloom filter from file : " << ctime(&rawtime)
 		          << "\n";
-		BloomFilter bloomrep(opt::bloomrep_filename.c_str());
-		opt::e = bloomrep.getHashNum();
+		BFWrapper bloomrep(opt::bloomrep_filename);
+		opt::e = bloomrep.get_hash_num();
 
 		// Checks for the Bloom filter
 		if (opt::e == 0) {
@@ -2195,21 +2515,20 @@ main(int argc, char** argv) // NOLINT
 		}
 
 		// Check that primary and secondary BF kmer sizes match
-		if (opt::k != bloomrep.getKmerSize()) {
-			std::cerr << PROGRAM ": error: secondary Bloom filter k size ("
-			          << bloomrep.getKmerSize() << ") is different than main Bloom filter k size ("
-			          << opt::k << ")\n";
+		if (opt::k != bloomrep.get_k()) {
+			std::cerr << PROGRAM ": error: secondary Bloom filter k size (" << bloomrep.get_k()
+			          << ") is different than main Bloom filter k size (" << opt::k << ")\n";
 			exit(EXIT_FAILURE);
 		}
 		// print Bloom filter details
-		bloomrep.printBloomFilterDetails();
+		bloomrep.print_details();
 
 		std::cout << "\n---------- reading/processing input sequence        : " << ctime(&rawtime);
 		readAndCorrect(bloom, bloomrep, clinvar);
 
 	} else {
 		std::cout << "---------- reading/processing input sequence        : " << ctime(&rawtime);
-		BloomFilter bloomrep(1000, 1, 1);
+		BFWrapper bloomrep;
 		readAndCorrect(bloom, bloomrep, clinvar);
 	}
 	time(&rawtime);
