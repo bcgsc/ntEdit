@@ -24,7 +24,7 @@ Thank you for your [![Stars](https://img.shields.io/github/stars/bcgsc/ntEdit.sv
 7. [Credits](#credits)
 8. [How to run ntEdit](#howto)
 9. [Running ntEdit](#run)
-10. [ntEdit modes](#modes)
+10. [ntEdit polishing options](#options)
 11. [Soft-mask option](#soft)
 12. [SNV mode](#snv)
 13. [VCF input option](#clinvarvcf)
@@ -232,8 +232,8 @@ run-ntedit polish --draft ecoliWithMismatches001Indels0001.fa --reads my_reads -
   - solid mode will output non-error kmers, as determined by ntCard. Use this option only when you don't wish to set the threshold (--cutoff) manually
 
 
-## ntEdit Modes <a name=modes></a>
-The ntEdit mode is only used in polishing mode, and is controlled by `-m`
+## ntEdit polishing options <a name=options></a>
+The ntEdit polishing option (or editing mode) is only used in polishing mode, and is controlled by `-m`
 <pre>
 Mode 0: (default)
 	ntEdit will try to substitute the last base of an incorrect k-mer with a different ATGC base. If that k-mer is found in the bloom filter and has enough subset support, ntEdit will then try the other substitution bases and then choose the best substitution fix. However, if the substituion was not found, then ntEdit will try all indels of max length (-i) and (-d) starting with that substitution base and make edit based on the first accepted indel. 
@@ -246,6 +246,7 @@ Mode 2:
 </pre>
 
 *We recommend running ntEdit polishing in Mode 1 (or 0)
+
 
 ## ntEdit -a (soft mask) <a name=soft></a>
 See https://github.com/bcgsc/ntedit_sealer_protocol and https://github.com/bcgsc/goldrush-edit for genome polishing pipelines that make use of this mode
