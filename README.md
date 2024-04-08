@@ -152,7 +152,7 @@ optional arguments:
 ```
 run-ntedit polish --help
 usage: run-ntedit polish [-h] --draft DRAFT --reads READS [-i {0,1,2,3,4,5}] [-d {0,1,2,3,4,5,6,7,8,9,10}] [-x X] [--cap CAP] [-m {0,1,2}] [-a {0,1}] -k K
-                         [--cutoff CUTOFF] [-t T] [--solid] [-z Z] [-y Y] [-v] [-j J] [-X X] [-Y Y] [-V] [-n] [-f]
+                         [--cutoff CUTOFF] [--solid] [-t T] [-z Z] [-y Y] [-j J] [-X X] [-Y Y] [-v] [-V] [-n] [-f]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -169,7 +169,7 @@ optional arguments:
                         overall (suggestion that you reduce i and d for performance)
   -a {0,1}              Soft masks missing k-mer positions having no fix (1 = yes, default = 0, no)
   -k K                  k-mer size, REQUIRED
-  --cutoff CUTOFF       The minimum coverage of k-mers in output Bloom filter[default=2, ignored if solid=True]
+  --cutoff CUTOFF       The minimum coverage of k-mers in output Bloom filter [default=2, ignored if solid=True]
   -t T                  Number of threads [default=4]
   --solid               Output the solid k-mers (non-erroneous k-mers), [default=False]
   -z Z                  Minimum contig length [default=100]
@@ -187,20 +187,20 @@ optional arguments:
 ### Running ntEdit in SNV mode
 ```
 run-ntedit snv --help
-usage: run-ntedit snv [-h] --draft DRAFT [--reads READS] [--genome GENOME [GENOME ...]] [-l L] -k K [--cutoff CUTOFF] [-t T] [--solid] [-z Z] [-y Y] [-v] [-j J]
-                      [-X X] [-Y Y] [-V] [-n] [-f]
+usage: run-ntedit snv [-h] --reference REFERENCE [--reads READS] [--genome GENOME [GENOME ...]] [-l L] -k K [--cutoff CUTOFF] [--solid] [-t T] [-z Z] [-y Y]
+                      [-j J] [-X X] [-Y Y] [-v] [-V] [-n] [-f]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --draft DRAFT         Draft genome assembly. Must be specified with exact FILE NAME. Ex: --draft myDraft.fa (FASTA, Multi-FASTA, and/or gzipped compatible),
-                        REQUIRED
+  --reference REFERENCE
+                        Reference genome assembly for SNV calling (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED
   --reads READS         Prefix of input reads file(s) for variant calling. All files in the working directory with the specified prefix will be used for
                         polishing (fastq, fasta, gz, bz, zip)
   --genome GENOME [GENOME ...]
-                        Genome assembly file(s) for detecting SNV on --draft
+                        Genome assembly file(s) for detecting SNV on --reference
   -l L                  input VCF file with annotated variants (e.g., clinvar.vcf)
   -k K                  k-mer size, REQUIRED
-  --cutoff CUTOFF       The minimum coverage of k-mers in output Bloom filter[default=2, ignored if solid=True]
+  --cutoff CUTOFF       The minimum coverage of k-mers in output Bloom filter [default=2, ignored if solid=True]
   -t T                  Number of threads [default=4]
   --solid               Output the solid k-mers (non-erroneous k-mers), [default=False]
   -z Z                  Minimum contig length [default=100]
@@ -293,18 +293,18 @@ https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/
 https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar_XXDATEXX.vcf.gz
 
 Note: If you use clinvar, you MUST ensure you use GRCh38 AND that the chromosome IDs in the 
-headers of your supplied (--draft) GRCH38 FASTA file matches that of clinvar's (e.g. >1 in FASTA and 1 in ClinVar VCF's #CHROM column).
+headers of your supplied (--reference) GRCH38 FASTA file matches that of clinvar's (e.g. >1 in FASTA and 1 in ClinVar VCF's #CHROM column).
 If you use any other VCF files as (-l) input, ensure consistency with FASTA headers.
 
 example command:
 ```
-run-ntedit snv --draft GRCh38.fa --reads HG004 -k 50 -t 48 -l clinvar_20230813.vcf
+run-ntedit snv --reference GRCh38.fa --reads HG004 -k 50 -t 48 -l clinvar_20230813.vcf
 ```
 where the input reads have the prefix `HG004`
 
 The SNV mode can also work on an input draft assembly:
 ```
-run-ntedit snv --draft GRCh38.fa --genome HG004.asm.fa -k 50 -t 48 -l clinvar_20230813.vcf
+run-ntedit snv --reference GRCh38.fa --genome HG004.asm.fa -k 50 -t 48 -l clinvar_20230813.vcf
 ```
 
 
@@ -343,7 +343,7 @@ ecoli_ntedit_k25_edited.fa
 ## Algorithm - how it works <a name=how></a>
 
 ![Logo](https://github.com/bcgsc/ntEdit/blob/master/figS1.png)
-Sequence reads are first shredded into kmers using ntHits, keeping track of kmer multiplicity. The kmers that pass coverage thresholds (ntHits, -c option builds a filter with kmers having a coverage higher than c) are used to construct a Bloom filter (BF). The draft assembly is supplied to ntEdit (-f option, fasta file), along with the BF (-r option) and sequences are read sequentially. Sequence strings are shredded into words of length k (kmers) at a specified value (-k option in versions before v1.3.1.  In newer releases, k is detected automatically from the main Bloom filter supplied in -r) matching that used to build the BF, and each kmer from 5’ to 3’ queries the BF data structure for presence/absence (step 1). When a kmer is not found in the filter, a subset (Sk) of overlapping k kmers (defined by k over three, k/3) containing the 3’-end base is queried for absence (step 2). The subset Sk, representing a subsampling of k kmers obtained by sliding over 3 bases at a time over k bases, is chosen to minimize the number of checks against the Bloom filter. Of this subset, when the number of absent (-) kmers matches or exceeds a threshold defined by Sk- >= k/x (-x option), representing the majority of kmers in Sk, editing takes place (step 3 and beyond), otherwise step 1 resumes. In the former case, the 3’-end base is permuted to one of the three alternate bases (step 3), and the subset (Sk_alt) containing the change is assessed for Bloom filter presence (+). When that number matches or exceeds the threshold defined by Sk_alt+ >= k/y (-y option), which means the base substitution qualifies, it is tracked along with the number of supported kmers and the remaining alternate 3’-end base substitutions are also assessed (ie. resuming step 3 until all bases inspected). If the edit does not qualify, then a cycle of base insertion(s) and deletion(s) of up to –i and –d bases begins (step 4, -i option and step 5, -d option, respectively). As is the case for the substitutions, a subset of k kmers containing the indel change is tested for presence. If there are no qualifying changes, then the next alternate 3’-end base is inspected as per above; otherwise the change is applied to the sequence string and the next assembly kmer is inspected (step 1). The process is repeated until a qualifying change or until no suitable edits are found. In the latter case, we go back to step 1. When a change is made, the position on the new sequence is tracked, along with an alternate base with lesser or equal k kmer subset support, when applicable. Currently, ntEdit only tracks cases when edits are made (steps 3-5), and does not flag unedited, missing draft kmers (steps 1-2).  
+Sequence reads are first shredded into kmers using ntHits, keeping track of kmer multiplicity. The kmers that pass coverage thresholds (using ntHits, --cutoff option builds a filter with kmers having a coverage higher than cutoff) are used to construct a Bloom filter (BF). The draft assembly is supplied to ntEdit (--draft option, fasta file), along with the BF and sequences are read sequentially. Sequence strings are shredded into words of length k (kmers) at a specified value (-k option in versions before v1.3.1.  In newer releases, k is detected automatically from the main Bloom filter) matching that used to build the BF, and each kmer from 5’ to 3’ queries the BF data structure for presence/absence (step 1). When a kmer is not found in the filter, a subset (Sk) of overlapping k kmers (defined by k over three, k/3) containing the 3’-end base is queried for absence (step 2). The subset Sk, representing a subsampling of k kmers obtained by sliding over 3 bases at a time over k bases, is chosen to minimize the number of checks against the Bloom filter. Of this subset, when the number of absent (-) kmers matches or exceeds a threshold defined by Sk- >= k/x (-x option), representing the majority of kmers in Sk, editing takes place (step 3 and beyond), otherwise step 1 resumes. In the former case, the 3’-end base is permuted to one of the three alternate bases (step 3), and the subset (Sk_alt) containing the change is assessed for Bloom filter presence (+). When that number matches or exceeds the threshold defined by Sk_alt+ >= k/y (-y option), which means the base substitution qualifies, it is tracked along with the number of supported kmers and the remaining alternate 3’-end base substitutions are also assessed (ie. resuming step 3 until all bases inspected). If the edit does not qualify, then a cycle of base insertion(s) and deletion(s) of up to –i and –d bases begins (step 4, -i option and step 5, -d option, respectively). As is the case for the substitutions, a subset of k kmers containing the indel change is tested for presence. If there are no qualifying changes, then the next alternate 3’-end base is inspected as per above; otherwise the change is applied to the sequence string and the next assembly kmer is inspected (step 1). The process is repeated until a qualifying change or until no suitable edits are found. In the latter case, we go back to step 1. When a change is made, the position on the new sequence is tracked, along with an alternate base with lesser or equal k kmer subset support, when applicable. Currently, ntEdit only tracks cases when edits are made (steps 3-5), and does not flag unedited, missing draft kmers (steps 1-2).  
 
 
 ## Output files <a name=output></a>

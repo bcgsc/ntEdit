@@ -29,11 +29,14 @@ def main():
     parser_snv = subparsers.add_parser("snv", help="Run ntEdit SNV mode")
 
     # Add draft argument first to ensure at top of help page
-    for subparser in [parser_snv, parser_polishing]:
-        subparser.add_argument("--draft",
+    parser_polishing.add_argument("--draft",
                                help="Draft genome assembly. Must be specified with exact FILE NAME. "
                                     "Ex: --draft myDraft.fa (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED",
                                     required=True)
+    parser_snv.add_argument("--reference",
+                            help="Reference genome assembly for SNV calling (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED")
+    parser_snv.add_argument("--draft",
+                            help=argparse.SUPPRESS)
 
     # Arguments for SNV mode only
     parser_snv.add_argument("--reads",
@@ -41,7 +44,7 @@ def main():
                             "All files in the working directory with the specified prefix will be used for polishing "
                             "(fastq, fasta, gz, bz, zip)", type=str)
     parser_snv.add_argument("--genome",
-                            help="Genome assembly file(s) for detecting SNV on --draft",
+                            help="Genome assembly file(s) for detecting SNV on --reference",
                             nargs="+")
     parser_snv.add_argument("-l",
                             help="input VCF file with annotated variants (e.g., clinvar.vcf)",
@@ -83,7 +86,7 @@ def main():
                                help="k-mer size, REQUIRED",
                                required=True, type=int)
         subparser.add_argument("--cutoff",
-                               help="The minimum coverage of k-mers in output Bloom filter"
+                               help="The minimum coverage of k-mers in output Bloom filter "
                                     "[default=2, ignored if solid=True]",
                                default=2, type=int)
         subparser.add_argument("--solid",
@@ -141,8 +144,21 @@ def main():
     intro_string = ["Running ntEdit...",
                     "Parameter settings:"]
 
+    if args.mode == "snv":
+        if args.reference:
+            input_genome = args.reference
+            intro_string.append(f"\t--reference {args.reference}")
+        elif args.draft:
+            input_genome = args.draft
+            intro_string.append(f"\t--reference {args.draft}")
+        else:
+            parser.error("Please specify --reference")
+    else:
+        input_genome = args.draft
+        intro_string.append(f"\t--draft {args.draft}")
+
     command = f"snakemake -s {base_dir}/ntedit_run_pipeline.smk {smk_rule} -p --cores {args.t} " \
-            f"--config draft={args.draft} k={args.k} t={args.t} " \
+            f"--config draft={input_genome} k={args.k} t={args.t} " \
             f"z={args.z} y={args.y} v={args.v} j={args.j} "
 
     if args.mode == "snv" and args.genome:
@@ -153,7 +169,6 @@ def main():
         command += f"reads={args.reads}"
 
     intro_string.extend([f"\t-k {args.k}",
-                        f"\t--draft {args.draft}",
                         f"\t-t {args.t}",
                         f"\t-z {args.z}",
                         f"\t-y {args.y}",
