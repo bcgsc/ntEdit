@@ -61,7 +61,7 @@ ntEdit v1.2.0 and subsequent versions are written in C++.
 
 Clone and enter the ntEdit directory.
 <pre>
-https://github.com/bcgsc/ntEdit.git
+git clone https://github.com/bcgsc/ntEdit.git
 cd ntEdit
 </pre>
 Compile ntEdit.
