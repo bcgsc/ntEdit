@@ -148,15 +148,15 @@ def main():
     if args.mode == "snv":
         if args.reference:
             input_genome = args.reference
-            intro_string.append("\t--reference {args.reference}")
+            intro_string.append(f"\t--reference {args.reference}")
         elif args.draft:
             input_genome = args.draft
-            intro_string.append("\t--reference {args.draft}")
+            intro_string.append(f"\t--reference {args.draft}")
         else:
             parser.error("Please specify --reference")
     else:
         input_genome = args.draft
-        intro_string.append("\t--draft {args.draft}")
+        intro_string.append(f"\t--draft {args.draft}")
 
     command = f"snakemake -s {base_dir}/ntedit_run_pipeline.smk {smk_rule} -p --cores {args.t} " \
             f"--config draft={input_genome} k={args.k} t={args.t} " \
