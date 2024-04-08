@@ -35,8 +35,9 @@ def main():
                                     "Ex: --draft myDraft.fa (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED",
                                     required=True)
     parser_snv.add_argument("--reference",
-                            help="Reference genome assembly for SNV calling (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED",
-                            required=True)
+                            help="Reference genome assembly for SNV calling (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED")
+    parser_snv.add_argument("--draft",
+                            help=argparse.SUPPRESS)
 
     # Arguments for SNV mode only
     parser_snv.add_argument("--reads",
@@ -145,8 +146,14 @@ def main():
                     "Parameter settings:"]
 
     if args.mode == "snv":
-        input_genome = args.reference
-        intro_string.append("\t--reference {args.reference}")
+        if args.reference:
+            input_genome = args.reference
+            intro_string.append("\t--reference {args.reference}")
+        elif args.draft:
+            input_genome = args.draft
+            intro_string.append("\t--reference {args.draft}")
+        else:
+            parser.error("Please specify --reference")
     else:
         input_genome = args.draft
         intro_string.append("\t--draft {args.draft}")
