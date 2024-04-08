@@ -29,7 +29,6 @@ def main():
     parser_snv = subparsers.add_parser("snv", help="Run ntEdit SNV mode")
 
     # Add draft argument first to ensure at top of help page
-    #for subparser in [parser_snv, parser_polishing]:   
     parser_polishing.add_argument("--draft",
                                help="Draft genome assembly. Must be specified with exact FILE NAME. "
                                     "Ex: --draft myDraft.fa (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED",
