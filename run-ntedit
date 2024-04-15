@@ -206,7 +206,7 @@ def main():
         command += " v=0"
 
     # Polishing-specific parameter logs
-    if args.mode == "polishing":
+    if args.mode == "polish":
         if args.cap:
             intro_string.append(f"\t--cap {args.cap}")
             command += " cap={args.cap}"
