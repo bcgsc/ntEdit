@@ -217,7 +217,7 @@ rule ntedit_snv_cbf:
         ratio = f"-X {X} -Y {Y}" if X != -1 or Y != -1 else "",
         vcf = f"-l {l}" if l != "" else ""
     shell:
-        "{params.benchmark} ntedit -r {input.bloom_filter} -f {draft} -b {params.prefix} -t {t} -z {z} -y {y} -v {v} -a {a} -j {j} {params.ratio} -s 1 {params.vcf}"
+        "{params.benchmark} ntedit -r {input.bloom_filter} -f {draft} -b {params.prefix} -t {t} -i {i} -d {d} -z {z} -y {y} -v {v} -a {a} -j {j} {params.ratio} -s 1 {params.vcf}"
 
 rule ntedit_snv:
     input:
@@ -230,7 +230,7 @@ rule ntedit_snv:
         ratio = f"-X {X} -Y {Y}" if X != -1 or Y != -1 else "",
         vcf = f"-l {l}" if l != "" else ""
     shell:
-        "{params.benchmark} ntedit -r {input.bloom_filter} -f {draft} -b {params.prefix} -t {t} -z {z} -y {y} -v {v} -a {a} -j {j} {params.ratio} -s 1 {params.vcf}"
+        "{params.benchmark} ntedit -r {input.bloom_filter} -f {draft} -b {params.prefix} -t {t} -i {i} -d {d} -z {z} -y {y} -v {v} -a {a} -j {j} {params.ratio} -s 1 {params.vcf}"
 
 
 rule ntedit_genome_bf:

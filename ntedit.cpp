@@ -2346,10 +2346,8 @@ main(int argc, char** argv) // NOLINT
 
 	// added RLW 21NOV2019
 	if (opt::snv) {
-		opt::max_insertions = 0;
-		opt::max_deletions = 0;
-		std::cerr << "\nSNV mode ON\nTracking all single-base variants\nNote: -i and -d both "
-		             "set to 0 when -s is set to 1\nConsider -l clinvar.vcf to identify SNVs with "
+		std::cerr << "\nSNV mode ON\nTracking all variants\n"
+		             "Consider -l clinvar.vcf to identify SNVs with "
 		             "putative clinical significance (consult README)\n\n";
 		current_bases_array = snv_bases_array;
 	} else {
