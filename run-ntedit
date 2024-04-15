@@ -49,6 +49,12 @@ def main():
     parser_snv.add_argument("-l",
                             help="input VCF file with annotated variants (e.g., clinvar.vcf)",
                             type=str)
+    parser_snv.add_argument("-i",
+                                  help="Maximum number of insertion bases to try, range 0-5, [default=0]",
+                                  default=0, type=int, choices=range(0, 6))
+    parser_snv.add_argument("-d",
+                                  help="Maximum number of deletions bases to try, range 0-5, [default=0]",
+                                  default=0, type=int, choices=range(0, 6))
     # Arguments for polishing only
     parser_polishing.add_argument("--reads",
                                   help="Prefix of reads file(s). "
@@ -159,7 +165,7 @@ def main():
 
     command = f"snakemake -s {base_dir}/ntedit_run_pipeline.smk {smk_rule} -p --cores {args.t} " \
             f"--config draft={input_genome} k={args.k} t={args.t} " \
-            f"z={args.z} y={args.y} v={args.v} j={args.j} "
+            f"z={args.z} y={args.y} v={args.v} j={args.j} i={args.i} d={args.d} "
 
     if args.mode == "snv" and args.genome:
         intro_string.append(f"\t--genome {args.genome}")
@@ -172,7 +178,9 @@ def main():
                         f"\t-t {args.t}",
                         f"\t-z {args.z}",
                         f"\t-y {args.y}",
-                        f"\t-j {args.j}"])
+                        f"\t-j {args.j}",
+                        f"\t-i {args.i}",
+                        f"\t-d {args.d}"])
 
     if args.X != -1 or args.Y != -1:
         if args.X == -1:
@@ -202,12 +210,10 @@ def main():
         if args.cap:
             intro_string.append(f"\t--cap {args.cap}")
             command += " cap={args.cap}"
-        intro_string.append(f"\t-i {args.i}")
-        intro_string.append(f"\t-d {args.d}")
         intro_string.append(f"\t-x {args.x}")
         intro_string.append(f"\t-m {args.m}")
         intro_string.append(f"\t-a {args.a}")
-        command += f" i={args.i} d={args.d} x={args.x} m={args.m} a={args.a} "
+        command += f" x={args.x} m={args.m} a={args.a} "
 
     # SNV / Ancestry-specific parameter logs
     if args.mode == "snv":
