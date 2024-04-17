@@ -116,7 +116,7 @@ def main():
                                     "[default=0.5, if -Y is specified]", default=-1, type=float)
 
         subparser.add_argument("-Y",
-                               help="Ratio of number of k-mers in the k subset that should"
+                               help="Ratio of number of k-mers in the k subset that should "
                                     "be present to accept an edit (higher=stringent) [default=0.5, if -X is specified]",
                                     default=-1, type=float)
         subparser.add_argument("-v",
