@@ -40,5 +40,5 @@ src_files = [ 'ntedit_make_genome_bf.cpp' ]
 # Source files and scripts
 subdir('src')
 
-scripts = ['run-ntedit', 'ntedit_run_pipeline.smk']
+scripts = ['run-ntedit', 'ntedit_run_pipeline.smk', 'ntedit_cross_reference_vcf.py']
 install_data(scripts, install_dir : 'bin', install_mode : 'rwxr-xr--')

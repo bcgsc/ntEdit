@@ -59,7 +59,6 @@ p = config["p"] if "p" in config else 1
 q = config["q"] if "q" in config else 255
 l = config["l"] if "l" in config else ""
 
-
 if l != "":
     if not os.path.isfile(l):
         raise ValueError("VCF file not found. Please check that the file name is correct.")
@@ -141,10 +140,9 @@ rule ntedit:
     params:
         prefix = f"{b}ntedit_k{k}",
         benchmark = f"{time_command} ntedit_{reads_prefix}.time",
-        ratio = f"-X {X} -Y {Y}" if X != -1 or Y != -1 else "",
-        vcf = f"-l {l}" if l != "" else ""
+        ratio = f"-X {X} -Y {Y}" if X != -1 or Y != -1 else ""
     shell:
-        "{params.benchmark} ntedit -r {input.bloom_filter} -f {draft} -b {params.prefix} -t {t} -z {z} -i {i} -d {d} -x {x} -y {y} -c {cap} -m {m} -v {v} -a {a} -j {j} {params.ratio} -s {s} {params.vcf}"
+        "{params.benchmark} ntedit -r {input.bloom_filter} -f {draft} -b {params.prefix} -t {t} -z {z} -i {i} -d {d} -x {x} -y {y} -c {cap} -m {m} -v {v} -a {a} -j {j} {params.ratio} -s {s}"
         
 
 rule nthits:
@@ -179,10 +177,9 @@ rule ntedit_cbf:
     params:
         prefix = f"{b}ntedit_k{k}_cbf_p{p}_q{q}",
         benchmark = f"{time_command} ntedit_{reads_prefix}_k{k}_cbf_p{p}_q{q}.time",
-        ratio = f"-X {X} -Y {Y}" if X != -1 or Y != -1 else "",
-        vcf = f"-l {l}" if l != "" else ""
+        ratio = f"-X {X} -Y {Y}" if X != -1 or Y != -1 else ""
     shell:
-        "{params.benchmark} ntedit -r {input.bloom_filter} -f {draft} -b  {params.prefix} -p {p} -q {q} -t {t} -z {z} -i {i} -d {d} -x {x} -y {y} -c {cap} -m {m} -v {v} -a {a} -j {j} {params.ratio} -s {s} {params.vcf}"        
+        "{params.benchmark} ntedit -r {input.bloom_filter} -f {draft} -b  {params.prefix} -p {p} -q {q} -t {t} -z {z} -i {i} -d {d} -x {x} -y {y} -c {cap} -m {m} -v {v} -a {a} -j {j} {params.ratio} -s {s}"        
 
 rule nthits_cbf:
     input:
@@ -206,32 +203,78 @@ rule ntedit_snv_reads:
 rule ntedit_snv_reads_cbf:
     input: f"{reads_prefix}_ntedit_k{k}_cbf_variants.vcf"
 
+rule ntedit_snv_genome_l:
+    input: f"{genome_prefix}_ntedit_k{k}_variants.cross-referenced.vcf"
+
+rule ntedit_snv_reads_l:
+    input: f"{reads_prefix}_ntedit_k{k}_variants.cross-referenced.vcf"
+
+rule ntedit_snv_reads_cbf_l:
+    input: f"{reads_prefix}_ntedit_k{k}_cbf_variants.cross-referenced.vcf"
+
 rule ntedit_snv_cbf:
     input:
         bloom_filter = expand("{{prefix}}_k{k}.cbf", k=k)
     output:
-        out_vcf=expand("{{prefix}}_ntedit_k{k}_cbf_variants.vcf", k=k)
+        out_vcf=temp(expand("{{prefix}}_ntedit_k{k}_cbf_variants.vcf", k=k))
     params:
         prefix = expand("{{prefix}}_ntedit_k{k}_cbf", k=k),
         benchmark = expand("{time_command} ntedit_{{prefix}}.time", time_command=time_command),
-        ratio = f"-X {X} -Y {Y}" if X != -1 or Y != -1 else "",
-        vcf = f"-l {l}" if l != "" else ""
+        ratio = f"-X {X} -Y {Y}" if X != -1 or Y != -1 else ""
     shell:
-        "{params.benchmark} ntedit -r {input.bloom_filter} -f {draft} -b {params.prefix} -t {t} -i {i} -d {d} -z {z} -y {y} -v {v} -a {a} -j {j} {params.ratio} -s 1 {params.vcf}"
+        "{params.benchmark} ntedit -r {input.bloom_filter} -f {draft} -b {params.prefix} -t {t} -i {i} -d {d} -z {z} -y {y} -v {v} -a {a} -j {j} {params.ratio} -s 1 "
 
 rule ntedit_snv:
     input:
         bloom_filter = expand("{{prefix}}_k{k}.bf", k=k)
     output:
-        out_vcf=expand("{{prefix}}_ntedit_k{k}_variants.vcf", k=k)
+        out_vcf=temp(expand("{{prefix}}_ntedit_k{k}_variants.vcf", k=k))
     params:
         prefix = expand("{{prefix}}_ntedit_k{k}", k=k),
         benchmark = expand("{time_command} ntedit_{{prefix}}.time", time_command=time_command),
-        ratio = f"-X {X} -Y {Y}" if X != -1 or Y != -1 else "",
-        vcf = f"-l {l}" if l != "" else ""
+        ratio = f"-X {X} -Y {Y}" if X != -1 or Y != -1 else ""
     shell:
-        "{params.benchmark} ntedit -r {input.bloom_filter} -f {draft} -b {params.prefix} -t {t} -i {i} -d {d} -z {z} -y {y} -v {v} -a {a} -j {j} {params.ratio} -s 1 {params.vcf}"
+        "{params.benchmark} ntedit -r {input.bloom_filter} -f {draft} -b {params.prefix} -t {t} -i {i} -d {d} -z {z} -y {y} -v {v} -a {a} -j {j} {params.ratio} -s 1 "
 
+rule sort_vcf:
+    input: vcf = "{vcf}"
+    output: vcf_sorted = temp("{vcf}_sorted.vcf")
+    params:
+        benchmark = expand("{time_command} sort_vcf_{{vcf}}.time", time_command=time_command)
+    shell:
+        """{params.benchmark} sh -c '(echo "##fileformat=VCFv4.2" ; cat {input.vcf} |grep -v "#" |sort -k1,1 -k2,2n) > {output.vcf_sorted}'"""
+
+rule sort_vcf_l:
+    input: vcf = l
+    output: temp(f"{os.path.basename(os.path.realpath(l))}_sorted.tmp.vcf")
+    params:
+        benchmark = expand("{time_command} sort_vcf_l.time", time_command=time_command),
+        cat_cmd = "gunzip -c" if f"{l}".endswith(".gz") else "cat"
+    shell:
+        """{params.benchmark} sh -c '(echo "##fileformat=VCFv4.2" ; {params.cat_cmd} {input.vcf} |grep -v "#" |sort -k1,1 -k2,2n) > {output}'"""
+
+rule bedtools_intersect:
+    input:         
+        sorted_vcf = "{prefix}.vcf_sorted.vcf",
+        sorted_ref_vars = f"{os.path.basename(os.path.realpath(l))}_sorted.tmp.vcf"
+    output:
+        bedtools = temp("{prefix}.bedtools-intersect.bed")
+    params:
+        benchmark = expand("{time_command} bedtools_intersect_{{prefix}}.time", time_command=time_command)
+    shell:
+        "{params.benchmark} bedtools intersect -loj -sorted -a {input.sorted_vcf} -b {input.sorted_ref_vars} > {output.bedtools}"
+
+rule cross_reference_vcf:
+    input: 
+        vcf = "{prefix}.vcf",
+        ref_vars = f"{l}",
+        bedtools = "{prefix}.bedtools-intersect.bed"
+    output: "{prefix}.cross-referenced.vcf"
+    params:
+        benchmark = expand("{time_command} cross_reference_vcf_{{prefix}}.time", time_command=time_command),
+        prefix="{prefix}.cross-referenced"
+    shell: 
+        "{params.benchmark} ntedit_cross_reference_vcf.py -b {input.bedtools} --vcf {input.vcf} --vcf_l {input.ref_vars} -p {params.prefix}"
 
 rule ntedit_genome_bf:
     input:

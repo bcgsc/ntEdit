@@ -48,7 +48,7 @@ def main():
                             nargs="+")
     parser_snv.add_argument("-l",
                             help="input VCF file with annotated variants (e.g., clinvar.vcf)",
-                            type=str)
+                            type=str, required=False)
     parser_snv.add_argument("-i",
                                   help="Maximum number of insertion bases to try, range 0-5, [default=0]",
                                   default=0, type=int, choices=range(0, 6))
@@ -141,9 +141,15 @@ def main():
     # Determining which snakemake target to run
     if args.mode == "snv":
         if args.reads:
-            smk_rule = "ntedit_snv_reads"
+            if args.l:
+                smk_rule = "ntedit_snv_reads_l"
+            else:
+                smk_rule = "ntedit_snv_reads"
         if args.genome:
-            smk_rule = "ntedit_snv_genome"
+            if args.l:
+                smk_rule = "ntedit_snv_genome_l"
+            else:
+                smk_rule = "ntedit_snv_genome"
     else:
         smk_rule = "ntedit"
 
