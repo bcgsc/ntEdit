@@ -81,6 +81,7 @@ ninja install
 5. [ninja](https://ninja-build.org/)
 6. [btllib](https://github.com/bcgsc/btllib)
 7. [snakemake](https://snakemake.readthedocs.io/en/stable/)
+8. python 3.9+
 
 ```diff
 ! NOTE: ntEdit v2.0.0+ IS ONLY compatible with ntHits release v1.0.0+
