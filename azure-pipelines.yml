@@ -37,9 +37,10 @@ jobs:
     steps:
       - script: echo "##vso[task.prependpath]$CONDA/bin"
         displayName: Add conda to PATH
-      - script: conda create --yes --quiet --name ntedit_ci
+      - script: conda create --yes --quiet --name ntedit_CI
         displayName: Create Anaconda environment
       - script: |
+          source activate ntedit_CI
           conda install --yes -c conda-forge mamba python=3.9
           mamba install --yes -c conda-forge -c bioconda compilers=1.7.0 llvm-openmp make btllib perl zlib clang-tools meson ninja nthits ntcard boost snakemake cmake
         displayName: Install dependencies
@@ -50,7 +51,7 @@ jobs:
           ninja install
         displayName: Compile ntedit
       - script: |
-          source activate ntedit_ci
+          source activate ntedit_CI
           export PATH=$(pwd)/test_build/bin:$PATH
           make check
         displayName: Check output files
