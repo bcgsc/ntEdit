@@ -22,6 +22,7 @@ jobs:
           ninja install
         displayName: Compile ntedit
       - script: |
+          source activate ntedit_CI
           make clang-format
         displayName: Clang-format
       - script: |
