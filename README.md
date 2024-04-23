@@ -188,10 +188,10 @@ optional arguments:
 ### Running ntEdit in SNV mode
 ```
 run-ntedit snv --help
-usage: run-ntedit snv [-h] [--reference REFERENCE] [--reads READS] [--genome GENOME [GENOME ...]] [-l L] [-i {0,1,2,3,4,5}] [-d {0,1,2,3,4,5}] -k K
-                      [--cutoff CUTOFF] [--solid] [-t T] [-z Z] [-y Y] [-j J] [-X X] [-Y Y] [-v] [-V] [-n] [-f]
+usage: run-ntedit snv [-h] --reference REFERENCE [--reads READS] [--genome GENOME [GENOME ...]] [-l L] -k K [--cutoff CUTOFF] [--solid] [-t T] [-z Z] [-y Y]
+                      [-j J] [-X X] [-Y Y] [-v] [-V] [-n] [-f]
 
-options:
+optional arguments:
   -h, --help            show this help message and exit
   --reference REFERENCE
                         Reference genome assembly for SNV calling (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED
@@ -200,19 +200,17 @@ options:
   --genome GENOME [GENOME ...]
                         Genome assembly file(s) for detecting SNV on --reference
   -l L                  input VCF file with annotated variants (e.g., clinvar.vcf)
-  -i {0,1,2,3,4,5}      Maximum number of insertion bases to try, range 0-5, [default=0]
-  -d {0,1,2,3,4,5}      Maximum number of deletions bases to try, range 0-5, [default=0]
   -k K                  k-mer size, REQUIRED
   --cutoff CUTOFF       The minimum coverage of k-mers in output Bloom filter [default=2, ignored if solid=True]
-  --solid               Output the solid k-mers (non-erroneous k-mers), [default=False]
   -t T                  Number of threads [default=4]
+  --solid               Output the solid k-mers (non-erroneous k-mers), [default=False]
   -z Z                  Minimum contig length [default=100]
   -y Y                  k/y ratio for the number of edited k-mers that should be present, [default=9.000]
+  -v                    Verbose mode, [default=False]
   -j J                  controls size of k-mer subset. When checking subset of k-mers, check every jth k-mer [default=3]
   -X X                  Ratio of number of k-mers in the k subset that should be missing in orderto attempt fix (higher=stringent) [default=0.5, if -Y is
                         specified]
   -Y Y                  Ratio of number of k-mers in the k subset that shouldbe present to accept an edit (higher=stringent) [default=0.5, if -X is specified]
-  -v                    Verbose mode, [default=False]
   -V, --version         show program's version number and exit
   -n, --dry-run         Print out the commands that will be executed
   -f, --force           Run all ntEdit steps, regardless of existing output files
@@ -271,7 +269,7 @@ This mode can be useful for identifying unresolved genomic regions, those with n
 
 Version 1.3+ implements a new mode (`run-ntedit snv`) to help detect simple base variation in genome sequences.
 
-It works by overriding the kmer absence verification stage of ntEdit, effectively testing every base position for possible alternate k kmers. ntEdit reports possible base substitutions/indels, along with the number of supported kmers (the latter is NOT a proxy for read/kmer coverage). In our tests on simulated (C. elegans, H. sapiens) and experimental (GIAB, HG001/HG004), we find k52/k55 (-j 3 -- see below) to give the best performance.
+It works by overriding the kmer absence verification stage of ntEdit, effectively testing every base position for possible alternate k kmers. At the moment, ntEdit only reports possible base substitutions (no indels), along with the number of supported kmers (the latter is NOT a proxy for read/kmer coverage). In our tests on simulated (C. elegans, H. sapiens) and experimental (GIAB, HG001/HG004), we find k52/k55 (-j 3 -- see below) to give the best performance.
 
 Caveats: Variations occurring within 2*k are not reported. Because kmers are shorter and have less sequence context than reads and read pairs, kmer variations that occur within a genomic allele (intra allelic) may be reported. In order to minimize false discovery, we recommend using a secondary Bloom filter built with repeat kmers (see details on the -e Secondary Bloom filter option below). 
 
