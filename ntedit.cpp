@@ -977,13 +977,12 @@ writeEditsToFile(
 					clinvarinfo += "^NA";
 				}
 
-
 				if (snv_mode_no_edit) {
 					std::ostringstream id; // RLW 21AUG2023
 					id << contigHdr.c_str() << ">"
-						<< char(toupper(substitution_record.front().draft_char))
-						<< substitution_record.front().pos + 1
-						<< char(toupper(base.at(0))); // RLW 21AUG2023
+					   << char(toupper(substitution_record.front().draft_char))
+					   << substitution_record.front().pos + 1
+					   << char(toupper(base.at(0))); // RLW 21AUG2023
 					std::string varid = id.str();    // RLW 21AUG2023
 					if (!clinvar[varid].empty()) {
 						clinvarinfo += "^";
@@ -1040,9 +1039,9 @@ writeEditsToFile(
 							base += best_alt_base;
 							std::ostringstream altid; // RLW 21AUG2023
 							altid << contigHdr.c_str() << ">"
-									<< char(toupper(substitution_record.front().draft_char))
-									<< substitution_record.front().pos + 1
-									<< char(toupper(best_alt_base)); // RLW 21AUG2023
+							      << char(toupper(substitution_record.front().draft_char))
+							      << substitution_record.front().pos + 1
+							      << char(toupper(best_alt_base)); // RLW 21AUG2023
 							std::string altvarid = altid.str();    // RLW 21AUG2023
 							if (!clinvar[altvarid].empty()) {
 								clinvarinfo += "^";
@@ -2137,8 +2136,7 @@ readAndCorrect(BFWrapper& bloom, BFWrapper& bloomrep, std::map<std::string, std:
 	if (bloom.is_counting()) {
 		alt_evi = "Coverage";
 	}
-	rfout << "\tAlt.Base1\tAlt." << alt_evi << "1\t"
-	      << "Alt.Base2\tAlt." << alt_evi << "2\t"
+	rfout << "\tAlt.Base1\tAlt." << alt_evi << "1\t" << "Alt.Base2\tAlt." << alt_evi << "2\t"
 	      << "Alt.Base3\tAlt." << alt_evi << "3\n"; // RLW
 
 	vfout.open(v_filename);
