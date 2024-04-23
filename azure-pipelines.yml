@@ -41,7 +41,7 @@ jobs:
         displayName: Create Anaconda environment
       - script: |
           conda install --yes -c conda-forge mamba python=3.9
-          mamba install --yes -c conda-forge -c bioconda libcxx llvm clang compilers=1.7.0 meson ninja btllib make clang-tools perl zlib nthits ntcard boost snakemake cmake
+          mamba install --yes -c conda-forge -c bioconda llvm-openmp compilers=1.7.0 meson ninja btllib make clang-tools perl zlib nthits ntcard boost snakemake cmake
         displayName: Install dependencies
       - script: |
           source activate ntedit_CI
