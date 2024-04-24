@@ -1,4 +1,4 @@
-#define PROGRAM "ntEdit v2.0.1" // NOLINT
+#define PROGRAM "ntEdit v2.0.2" // NOLINT
 
 // clang-format off
 #include <iostream> //NOLINT(llvm-include-order)
