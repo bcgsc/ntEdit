@@ -939,7 +939,7 @@ writeEditsToFile(
 				      << insertion_bases.c_str() << "\t" << num_support << "\n";
 
 				vfout << contigHdr.c_str() << "\t" << pos + 1 << "\t.\t" << draft_char << "\t"
-				      << insertion_bases.c_str() << draft_char << "\t.\tPASS\tAD=" << num_support
+				      << draft_char << insertion_bases.c_str() << "\t.\tPASS\tAD=" << num_support
 				      << "\tGT\t1/1\n";
 
 				insertion_bases = "";
@@ -1150,7 +1150,7 @@ writeEditsToFile(
 			curr_node = newSeq[node_index];
 			if (curr_node.node_type == 0 && curr_node.s_pos != pos) {
 				// print out the deletion
-				rfout << contigHdr.c_str() << "\t" << pos + 1 << "\t" << contigSeq.at(pos) << "\t-"
+				rfout << contigHdr.c_str() << "\t" << pos << "\t" << contigSeq.at(pos) << "\t-"
 				      << contigSeq.substr(pos, (curr_node.s_pos - pos)).c_str() << "\t"
 				      << curr_node.num_support << "\n";
 
