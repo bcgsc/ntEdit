@@ -42,7 +42,7 @@ def main():
     parser_snv.add_argument("--reads",
                             help="Prefix of input reads file(s) for variant calling. "
                             "All files in the working directory with the specified prefix will be used for polishing "
-                            "(fastq, fasta, gz, bz, zip)", type=str)
+                            "(fastq, fasta, gz)", type=str)
     parser_snv.add_argument("--genome",
                             help="Genome assembly file(s) for detecting SNV on --reference",
                             nargs="+")
@@ -53,7 +53,7 @@ def main():
     parser_polishing.add_argument("--reads",
                                   help="Prefix of reads file(s). "
                                     "All files in the working directory with the specified prefix will be used for polishing "
-                                    "(fastq, fasta, gz, bz, zip), REQUIRED",
+                                    "(fastq, fasta, gz), REQUIRED",
                                     required=True)
     parser_polishing.add_argument("-i",
                                   help="Maximum number of insertion bases to try, range 0-5, [default=5]",
