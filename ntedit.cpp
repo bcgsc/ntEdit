@@ -976,18 +976,22 @@ writeEditsToFile(
 				} else {
 					clinvarinfo += "^NA";
 				}
-				std::ostringstream id; // RLW 21AUG2023
-				id << contigHdr.c_str() << ">"
-				   << char(toupper(substitution_record.front().draft_char))
-				   << substitution_record.front().pos + 1
-				   << char(toupper(base.at(0))); // RLW 21AUG2023
-				std::string varid = id.str();    // RLW 21AUG2023
-				if (!clinvar[varid].empty()) {
-					clinvarinfo += "^";
-					clinvarinfo += clinvar[varid];
-				} else {
-					clinvarinfo += "^NA";
+
+				if (snv_mode_no_edit) {
+					std::ostringstream id; // RLW 21AUG2023
+					id << contigHdr.c_str() << ">"
+					   << char(toupper(substitution_record.front().draft_char))
+					   << substitution_record.front().pos + 1
+					   << char(toupper(base.at(0))); // RLW 21AUG2023
+					std::string varid = id.str();    // RLW 21AUG2023
+					if (!clinvar[varid].empty()) {
+						clinvarinfo += "^";
+						clinvarinfo += clinvar[varid];
+					} else {
+						clinvarinfo += "^NA";
+					}
 				}
+
 				// std::cerr << "varid: " << id.str() << std::endl;
 				// std::cerr << "clinvarinfo: " << clinvarinfo << std::endl;
 				if (substitution_record.front().altsupp1 > 0) { // XXRLWXX
@@ -1028,10 +1032,23 @@ writeEditsToFile(
 							for (size_t i = 0; i < alt_base_vcf.size(); ++i) {
 								if (alt_supp_vcf[i] > curr_best_alt_supp) {
 									curr_best_alt_supp = alt_supp_vcf[i];
-									base = alt_base_vcf[i];
+									best_alt_base = alt_base_vcf[i];
 								}
 							}
 							best_alt_supp = std::to_string(curr_best_alt_supp);
+							base = best_alt_base;
+							std::ostringstream altid;
+							altid << contigHdr.c_str() << ">"
+							      << char(toupper(substitution_record.front().draft_char))
+							      << substitution_record.front().pos + 1
+							      << char(toupper(best_alt_base));
+							std::string altvarid = altid.str();
+							if (!clinvar[altvarid].empty()) {
+								clinvarinfo += "^";
+								clinvarinfo += clinvar[altvarid];
+							} else {
+								clinvarinfo += "^NA";
+							}
 							support.append(",");
 							support.append(best_alt_supp);
 							genotype = "0/1";
@@ -1065,7 +1082,6 @@ writeEditsToFile(
 								      << substitution_record.front().pos + 1
 								      << char(toupper(best_alt_base)); // RLW 21AUG2023
 								std::string altvarid = altid.str();    // RLW 21AUG2023
-								// std::cerr << "altvarid: " << altid.str() << std::endl;
 								if (!clinvar[altvarid].empty()) {
 									clinvarinfo += "^";
 									clinvarinfo += clinvar[altvarid];
@@ -1099,7 +1115,6 @@ writeEditsToFile(
 						      << substitution_record.front().pos + 1
 						      << char(toupper(best_alt_base)); // RLW 21AUG2023
 						std::string altvarid = altid.str();    // RLW 21AUG2023
-						// std::cerr << "altvarid: " << altid.str() << std::endl;
 						if (!clinvar[altvarid].empty()) {
 							clinvarinfo += "^";
 							clinvarinfo += clinvar[altvarid];
@@ -2121,8 +2136,7 @@ readAndCorrect(BFWrapper& bloom, BFWrapper& bloomrep, std::map<std::string, std:
 	if (bloom.is_counting()) {
 		alt_evi = "Coverage";
 	}
-	rfout << "\tAlt.Base1\tAlt." << alt_evi << "1\t"
-	      << "Alt.Base2\tAlt." << alt_evi << "2\t"
+	rfout << "\tAlt.Base1\tAlt." << alt_evi << "1\t" << "Alt.Base2\tAlt." << alt_evi << "2\t"
 	      << "Alt.Base3\tAlt." << alt_evi << "3\n"; // RLW
 
 	vfout.open(v_filename);
