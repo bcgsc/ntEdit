@@ -943,6 +943,7 @@ writeEditsToFile(
 	seqNode curr_node = newSeq[node_index];
 	while (node_index < newSeq.size() && curr_node.node_type != -1) {
 		if (curr_node.node_type == 0) {
+			// print out every information about  contigSeq
 			draft_char = contigSeq.at(curr_node.s_pos);
 			// log an insertion if it occured before this
 			if (!insertion_bases.empty()) {
@@ -951,6 +952,7 @@ writeEditsToFile(
                                 std::string clinvarinfo;
                                 std::ostringstream altid;
                                 std::string insert_str;
+								draft_char = contigSeq.at(curr_node.s_pos - insertion_bases.size());
                                 insert_str = draft_char + insertion_bases.c_str();
 
                                 altid << contigHdr.c_str() << ">"
