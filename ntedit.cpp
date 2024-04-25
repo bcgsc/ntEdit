@@ -1,4 +1,4 @@
-#define PROGRAM "ntEdit v2.0.1" // NOLINT
+#define PROGRAM "ntEdit v2.0.2" // NOLINT
 
 // clang-format off
 #include <iostream> //NOLINT(llvm-include-order)
@@ -544,6 +544,19 @@ findFirstAcceptedKmer(unsigned b_i, const std::string& contigSeq)
 	return contigSeq.size() - 1;
 }
 
+/* Code to upper-case strings */
+std::string
+str_to_upper(const std::string& str)
+{
+	std::string result = str;
+
+	for (char& c : result) {
+		c = std::toupper(c);
+	}
+
+	return result;
+}
+
 /* Helper for filling out the LPS array for detecting a low complexity repeat. */
 void
 computeLPSArray(std::string possible_repeat, int n, std::vector<int>& lps)
@@ -932,15 +945,36 @@ writeEditsToFile(
 	seqNode curr_node = newSeq[node_index];
 	while (node_index < newSeq.size() && curr_node.node_type != -1) {
 		if (curr_node.node_type == 0) {
+			// print out every information about  contigSeq
 			draft_char = contigSeq.at(curr_node.s_pos);
 			// log an insertion if it occured before this
 			if (!insertion_bases.empty()) {
-				rfout << contigHdr.c_str() << "\t" << pos + 1 << "\t" << draft_char << "\t+"
+
+				// 19APR2024RLW >>>
+				std::string clinvarinfo;
+				std::ostringstream altid;
+				std::string insert_str;
+				draft_char = contigSeq.at(curr_node.s_pos - insertion_bases.size());
+				insert_str = draft_char;
+				insert_str += insertion_bases;
+
+				altid << contigHdr.c_str() << ">" << char(toupper(draft_char)) << pos
+				      << str_to_upper(insert_str);
+				std::string altvarid = altid.str(); // RLW 21AUG2023
+				if (!clinvar[altvarid].empty()) {
+					clinvarinfo += "^";
+					clinvarinfo += clinvar[altvarid];
+				} else {
+					clinvarinfo += "^NA";
+				}
+				// 19APR2024RLW <<<
+
+				rfout << contigHdr.c_str() << "\t" << pos << "\t" << draft_char << "\t+"
 				      << insertion_bases.c_str() << "\t" << num_support << "\n";
 
-				vfout << contigHdr.c_str() << "\t" << pos + 1 << "\t.\t" << draft_char << "\t"
-				      << insertion_bases.c_str() << draft_char << "\t.\tPASS\tAD=" << num_support
-				      << "\tGT\t1/1\n";
+				vfout << contigHdr.c_str() << "\t" << pos << "\t.\t" << draft_char << "\t"
+				      << draft_char << insertion_bases.c_str() << "\t.\tPASS\tAD=" << num_support
+				      << clinvarinfo << "\tGT\t1/1\n";
 
 				insertion_bases = "";
 				num_support = -1;
@@ -992,8 +1026,6 @@ writeEditsToFile(
 					}
 				}
 
-				// std::cerr << "varid: " << id.str() << std::endl;
-				// std::cerr << "clinvarinfo: " << clinvarinfo << std::endl;
 				if (substitution_record.front().altsupp1 > 0) { // XXRLWXX
 					if (snv_mode_no_edit) {
 						rfout << "\t" << substitution_record.front().altbase1 << "\t"
@@ -1150,14 +1182,33 @@ writeEditsToFile(
 			curr_node = newSeq[node_index];
 			if (curr_node.node_type == 0 && curr_node.s_pos != pos) {
 				// print out the deletion
-				rfout << contigHdr.c_str() << "\t" << pos + 1 << "\t" << contigSeq.at(pos) << "\t-"
+
+				// 19APR2024 RLW>>>
+				std::string clinvarinfo;
+				std::ostringstream altid;
+				std::string delete_str;
+
+				delete_str = contigSeq.substr(pos - 1, (curr_node.s_pos - pos) + 1).c_str();
+				altid << contigHdr.c_str() << ">" << str_to_upper(delete_str) << pos
+				      << char(toupper(contigSeq.at(pos - 1)));
+				std::string altvarid = altid.str(); // RLW 21AUG2023
+
+				if (!clinvar[altvarid].empty()) {
+					clinvarinfo += "^";
+					clinvarinfo += clinvar[altvarid];
+				} else {
+					clinvarinfo += "^NA";
+				}
+				// 19APR2024 RLW<<<
+
+				rfout << contigHdr.c_str() << "\t" << pos << "\t" << contigSeq.at(pos) << "\t-"
 				      << contigSeq.substr(pos, (curr_node.s_pos - pos)).c_str() << "\t"
 				      << curr_node.num_support << "\n";
 
 				vfout << contigHdr.c_str() << "\t" << pos << "\t.\t"
 				      << contigSeq.substr(pos - 1, (curr_node.s_pos - pos) + 1).c_str() << "\t"
 				      << contigSeq.at(pos - 1) << "\t.\tPASS\tAD=" << curr_node.num_support
-				      << "\tGT\t1/1\n";
+				      << clinvarinfo << "\tGT\t1/1\n";
 			}
 		}
 	}
