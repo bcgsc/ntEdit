@@ -153,13 +153,14 @@ optional arguments:
 ```
 run-ntedit polish --help
 usage: run-ntedit polish [-h] --draft DRAFT --reads READS [-i {0,1,2,3,4,5}] [-d {0,1,2,3,4,5,6,7,8,9,10}] [-x X] [--cap CAP] [-m {0,1,2}] [-a {0,1}] -k K
-                         [--cutoff CUTOFF] [--solid] [-t T] [-z Z] [-y Y] [-j J] [-X X] [-Y Y] [-v] [-V] [-n] [-f]
+                         [-l L] [--cutoff CUTOFF] [--solid] [-t T] [-z Z] [-y Y] [-j J] [-X X] [-Y Y] [-v] [-V] [-n] [-f]
 
 optional arguments:
   -h, --help            show this help message and exit
   --draft DRAFT         Draft genome assembly. Must be specified with exact FILE NAME. Ex: --draft myDraft.fa (FASTA, Multi-FASTA, and/or gzipped compatible),
                         REQUIRED
-  --reads READS         Prefix of reads file(s). All files in the working directory with the specified prefix will be used for polishing (fastq, fasta, gz), REQUIRED
+  --reads READS         Prefix of reads file(s). All files in the working directory with the specified prefix will be used for polishing (fastq, fasta, gz),
+                        REQUIRED
   -i {0,1,2,3,4,5}      Maximum number of insertion bases to try, range 0-5, [default=5]
   -d {0,1,2,3,4,5,6,7,8,9,10}
                         Maximum number of deletions bases to try, range 0-10, [default=5]
@@ -169,16 +170,17 @@ optional arguments:
                         overall (suggestion that you reduce i and d for performance)
   -a {0,1}              Soft masks missing k-mer positions having no fix (1 = yes, default = 0, no)
   -k K                  k-mer size, REQUIRED
+  -l L                  input VCF file with annotated variants (e.g., clinvar.vcf)
   --cutoff CUTOFF       The minimum coverage of k-mers in output Bloom filter [default=2, ignored if solid=True]
-  -t T                  Number of threads [default=4]
   --solid               Output the solid k-mers (non-erroneous k-mers), [default=False]
+  -t T                  Number of threads [default=4]
   -z Z                  Minimum contig length [default=100]
   -y Y                  k/y ratio for the number of edited k-mers that should be present, [default=9.000]
-  -v                    Verbose mode, [default=False]
   -j J                  controls size of k-mer subset. When checking subset of k-mers, check every jth k-mer [default=3]
   -X X                  Ratio of number of k-mers in the k subset that should be missing in orderto attempt fix (higher=stringent) [default=0.5, if -Y is
                         specified]
-  -Y Y                  Ratio of number of k-mers in the k subset that shouldbe present to accept an edit (higher=stringent) [default=0.5, if -X is specified]
+  -Y Y                  Ratio of number of k-mers in the k subset that should be present to accept an edit (higher=stringent) [default=0.5, if -X is specified]
+  -v                    Verbose mode, [default=False]
   -V, --version         show program's version number and exit
   -n, --dry-run         Print out the commands that will be executed
   -f, --force           Run all ntEdit steps, regardless of existing output files
@@ -187,7 +189,7 @@ optional arguments:
 ### Running ntEdit in SNV mode
 ```
 run-ntedit snv --help
-usage: run-ntedit snv [-h] --reference REFERENCE [--reads READS] [--genome GENOME [GENOME ...]] [-l L] -k K [--cutoff CUTOFF] [--solid] [-t T] [-z Z] [-y Y]
+usage: run-ntedit snv [-h] [--reference REFERENCE] [--reads READS] [--genome GENOME [GENOME ...]] -k K [-l L] [--cutoff CUTOFF] [--solid] [-t T] [-z Z] [-y Y]
                       [-j J] [-X X] [-Y Y] [-v] [-V] [-n] [-f]
 
 optional arguments:
@@ -198,18 +200,17 @@ optional arguments:
                         polishing (fastq, fasta, gz)
   --genome GENOME [GENOME ...]
                         Genome assembly file(s) for detecting SNV on --reference
-  -l L                  input VCF file with annotated variants (e.g., clinvar.vcf)
   -k K                  k-mer size, REQUIRED
+  -l L                  input VCF file with annotated variants (e.g., clinvar.vcf)
   --cutoff CUTOFF       The minimum coverage of k-mers in output Bloom filter [default=2, ignored if solid=True]
-  -t T                  Number of threads [default=4]
   --solid               Output the solid k-mers (non-erroneous k-mers), [default=False]
+  -t T                  Number of threads [default=4]
   -z Z                  Minimum contig length [default=100]
   -y Y                  k/y ratio for the number of edited k-mers that should be present, [default=9.000]
-  -v                    Verbose mode, [default=False]
   -j J                  controls size of k-mer subset. When checking subset of k-mers, check every jth k-mer [default=3]
-  -X X                  Ratio of number of k-mers in the k subset that should be missing in orderto attempt fix (higher=stringent) [default=0.5, if -Y is
-                        specified]
-  -Y Y                  Ratio of number of k-mers in the k subset that shouldbe present to accept an edit (higher=stringent) [default=0.5, if -X is specified]
+  -X X                  Ratio of number of k-mers in the k subset that should be missing in orderto attempt fix (higher=stringent) [default=0.5, if -Y is specified]
+  -Y Y                  Ratio of number of k-mers in the k subset that should be present to accept an edit (higher=stringent) [default=0.5, if -X is specified]
+  -v                    Verbose mode, [default=False]
   -V, --version         show program's version number and exit
   -n, --dry-run         Print out the commands that will be executed
   -f, --force           Run all ntEdit steps, regardless of existing output files

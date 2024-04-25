@@ -46,9 +46,7 @@ def main():
     parser_snv.add_argument("--genome",
                             help="Genome assembly file(s) for detecting SNV on --reference",
                             nargs="+")
-    parser_snv.add_argument("-l",
-                            help="input VCF file with annotated variants (e.g., clinvar.vcf)",
-                            type=str)
+
     # Arguments for polishing only
     parser_polishing.add_argument("--reads",
                                   help="Prefix of reads file(s). "
@@ -85,6 +83,9 @@ def main():
         subparser.add_argument("-k",
                                help="k-mer size, REQUIRED",
                                required=True, type=int)
+        subparser.add_argument("-l",
+                            help="input VCF file with annotated variants (e.g., clinvar.vcf)",
+                            type=str)
         subparser.add_argument("--cutoff",
                                help="The minimum coverage of k-mers in output Bloom filter "
                                     "[default=2, ignored if solid=True]",
@@ -196,6 +197,12 @@ def main():
         command += " v=1"
     else:
         command += " v=0"
+ 
+    if args.l:
+        if not os.path.isfile(args.l):
+            raise FileNotFoundError(f"VCF file {args.l} not found")
+        intro_string.append(f"\t-l {args.l}")
+        command += f" l={args.l}"
 
     # Polishing-specific parameter logs
     if args.mode == "polish":
@@ -211,11 +218,6 @@ def main():
 
     # SNV / Ancestry-specific parameter logs
     if args.mode == "snv":
-        if args.l:
-            if not os.path.isfile(args.l):
-                raise FileNotFoundError(f"VCF file {args.l} not found")
-            intro_string.append(f"\t-l {args.l}")
-            command += f" l={args.l}"
         if args.reads and args.genome:
             raise argparse.ArgumentTypeError("Please specify --reads OR --genome")
         if not args.reads and not args.genome:
