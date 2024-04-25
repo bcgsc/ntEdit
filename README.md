@@ -159,8 +159,7 @@ optional arguments:
   -h, --help            show this help message and exit
   --draft DRAFT         Draft genome assembly. Must be specified with exact FILE NAME. Ex: --draft myDraft.fa (FASTA, Multi-FASTA, and/or gzipped compatible),
                         REQUIRED
-  --reads READS         Prefix of reads file(s). All files in the working directory with the specified prefix will be used for polishing (fastq, fasta, gz, bz,
-                        zip), REQUIRED
+  --reads READS         Prefix of reads file(s). All files in the working directory with the specified prefix will be used for polishing (fastq, fasta, gz), REQUIRED
   -i {0,1,2,3,4,5}      Maximum number of insertion bases to try, range 0-5, [default=5]
   -d {0,1,2,3,4,5,6,7,8,9,10}
                         Maximum number of deletions bases to try, range 0-10, [default=5]
@@ -196,7 +195,7 @@ optional arguments:
   --reference REFERENCE
                         Reference genome assembly for SNV calling (FASTA, Multi-FASTA, and/or gzipped compatible), REQUIRED
   --reads READS         Prefix of input reads file(s) for variant calling. All files in the working directory with the specified prefix will be used for
-                        polishing (fastq, fasta, gz, bz, zip)
+                        polishing (fastq, fasta, gz)
   --genome GENOME [GENOME ...]
                         Genome assembly file(s) for detecting SNV on --reference
   -l L                  input VCF file with annotated variants (e.g., clinvar.vcf)
