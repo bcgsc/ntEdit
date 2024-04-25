@@ -953,7 +953,8 @@ writeEditsToFile(
                                 std::ostringstream altid;
                                 std::string insert_str;
 								draft_char = contigSeq.at(curr_node.s_pos - insertion_bases.size());
-                                insert_str = draft_char + insertion_bases.c_str();
+								insert_str = draft_char;
+								insert_str += insertion_bases;
 
                                 altid << contigHdr.c_str() << ">"
                                 << char(toupper(draft_char))
