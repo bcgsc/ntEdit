@@ -545,14 +545,16 @@ findFirstAcceptedKmer(unsigned b_i, const std::string& contigSeq)
 }
 
 /* Code to upper-case strings */
-std::string str_to_upper(const std::string& str) {
-    std::string result = str;
-   
-    for (char& c : result) {
-        c = std::toupper(c);
-    }
-   
-    return result;
+std::string
+str_to_upper(const std::string& str)
+{
+	std::string result = str;
+
+	for (char& c : result) {
+		c = std::toupper(c);
+	}
+
+	return result;
 }
 
 /* Helper for filling out the LPS array for detecting a low complexity repeat. */
@@ -949,32 +951,30 @@ writeEditsToFile(
 			if (!insertion_bases.empty()) {
 
 				// 19APR2024RLW >>>
-                                std::string clinvarinfo;
-                                std::ostringstream altid;
-                                std::string insert_str;
-								draft_char = contigSeq.at(curr_node.s_pos - insertion_bases.size());
-								insert_str = draft_char;
-								insert_str += insertion_bases;
+				std::string clinvarinfo;
+				std::ostringstream altid;
+				std::string insert_str;
+				draft_char = contigSeq.at(curr_node.s_pos - insertion_bases.size());
+				insert_str = draft_char;
+				insert_str += insertion_bases;
 
-                                altid << contigHdr.c_str() << ">"
-                                << char(toupper(draft_char))
-                                << pos
-                                << str_to_upper(insert_str);
-                                std::string altvarid = altid.str();    // RLW 21AUG2023
-                                if (!clinvar[altvarid].empty()) {
-                                        clinvarinfo += "^";
-                                        clinvarinfo += clinvar[altvarid];
-                                } else {
-                                        clinvarinfo += "^NA";
-                                }
-				//19APR2024RLW <<<
-				
+				altid << contigHdr.c_str() << ">" << char(toupper(draft_char)) << pos
+				      << str_to_upper(insert_str);
+				std::string altvarid = altid.str(); // RLW 21AUG2023
+				if (!clinvar[altvarid].empty()) {
+					clinvarinfo += "^";
+					clinvarinfo += clinvar[altvarid];
+				} else {
+					clinvarinfo += "^NA";
+				}
+				// 19APR2024RLW <<<
+
 				rfout << contigHdr.c_str() << "\t" << pos << "\t" << draft_char << "\t+"
 				      << insertion_bases.c_str() << "\t" << num_support << "\n";
 
 				vfout << contigHdr.c_str() << "\t" << pos << "\t.\t" << draft_char << "\t"
-				      << draft_char << insertion_bases.c_str() << "\t.\tPASS\tAD=" << num_support << clinvarinfo
-				      << "\tGT\t1/1\n";
+				      << draft_char << insertion_bases.c_str() << "\t.\tPASS\tAD=" << num_support
+				      << clinvarinfo << "\tGT\t1/1\n";
 
 				insertion_bases = "";
 				num_support = -1;
@@ -1026,8 +1026,6 @@ writeEditsToFile(
 					}
 				}
 
-				// std::cerr << "varid: " << id.str() << std::endl;
-				// std::cerr << "clinvarinfo: " << clinvarinfo << std::endl;
 				if (substitution_record.front().altsupp1 > 0) { // XXRLWXX
 					if (snv_mode_no_edit) {
 						rfout << "\t" << substitution_record.front().altbase1 << "\t"
@@ -1185,36 +1183,32 @@ writeEditsToFile(
 			if (curr_node.node_type == 0 && curr_node.s_pos != pos) {
 				// print out the deletion
 
-                                // 19APR2024 RLW>>>
-                                std::string clinvarinfo;
-                                std::ostringstream altid;
-                                std::string delete_str;
+				// 19APR2024 RLW>>>
+				std::string clinvarinfo;
+				std::ostringstream altid;
+				std::string delete_str;
 
-                                delete_str = contigSeq.substr(pos - 1, (curr_node.s_pos - pos) + 1).c_str();
-                                altid << contigHdr.c_str() << ">"
-                                << str_to_upper(delete_str)
-                                << pos
-                                << char(toupper(contigSeq.at(pos - 1)));
-                                std::string altvarid = altid.str();    // RLW 21AUG2023
+				delete_str = contigSeq.substr(pos - 1, (curr_node.s_pos - pos) + 1).c_str();
+				altid << contigHdr.c_str() << ">" << str_to_upper(delete_str) << pos
+				      << char(toupper(contigSeq.at(pos - 1)));
+				std::string altvarid = altid.str(); // RLW 21AUG2023
 
-                                // std::cout << "key=" << altvarid << "|END\n";
-
-                                if (!clinvar[altvarid].empty()) {
-                                        clinvarinfo += "^";
-                                        clinvarinfo += clinvar[altvarid];
-                                } else {
-                                        clinvarinfo += "^NA";
-                                }
+				if (!clinvar[altvarid].empty()) {
+					clinvarinfo += "^";
+					clinvarinfo += clinvar[altvarid];
+				} else {
+					clinvarinfo += "^NA";
+				}
 				// 19APR2024 RLW<<<
-				
+
 				rfout << contigHdr.c_str() << "\t" << pos << "\t" << contigSeq.at(pos) << "\t-"
 				      << contigSeq.substr(pos, (curr_node.s_pos - pos)).c_str() << "\t"
 				      << curr_node.num_support << "\n";
 
 				vfout << contigHdr.c_str() << "\t" << pos << "\t.\t"
 				      << contigSeq.substr(pos - 1, (curr_node.s_pos - pos) + 1).c_str() << "\t"
-				      << contigSeq.at(pos - 1) << "\t.\tPASS\tAD=" << curr_node.num_support << clinvarinfo
-				      << "\tGT\t1/1\n";
+				      << contigSeq.at(pos - 1) << "\t.\tPASS\tAD=" << curr_node.num_support
+				      << clinvarinfo << "\tGT\t1/1\n";
 			}
 		}
 	}
@@ -2193,7 +2187,8 @@ readAndCorrect(BFWrapper& bloom, BFWrapper& bloomrep, std::map<std::string, std:
 	if (bloom.is_counting()) {
 		alt_evi = "Coverage";
 	}
-	rfout << "\tAlt.Base1\tAlt." << alt_evi << "1\t" << "Alt.Base2\tAlt." << alt_evi << "2\t"
+	rfout << "\tAlt.Base1\tAlt." << alt_evi << "1\t"
+	      << "Alt.Base2\tAlt." << alt_evi << "2\t"
 	      << "Alt.Base3\tAlt." << alt_evi << "3\n"; // RLW
 
 	vfout.open(v_filename);
