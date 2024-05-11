@@ -2209,6 +2209,7 @@ readAndCorrect(BFWrapper& bloom, BFWrapper& bloomrep, std::map<std::string, std:
 	vfout << "##fileDate=" << year << month << day << std::endl;
 	vfout << "##source=" << PROGRAM << std::endl;
 	vfout << "##reference=file:" << opt::draft_filename << std::endl;
+	vfout << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">" << std::endl;
 	vfout << "##INFO=<ID=AD,Number=2,Type=Integer,Description=\"Kmer Depth\">" << std::endl;
 	vfout << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tINTEGRATION" << std::endl;
 
