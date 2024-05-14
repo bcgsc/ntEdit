@@ -2187,7 +2187,8 @@ readAndCorrect(BFWrapper& bloom, BFWrapper& bloomrep, std::map<std::string, std:
 	if (bloom.is_counting()) {
 		alt_evi = "Coverage";
 	}
-	rfout << "\tAlt.Base1\tAlt." << alt_evi << "1\t" << "Alt.Base2\tAlt." << alt_evi << "2\t"
+	rfout << "\tAlt.Base1\tAlt." << alt_evi << "1\t"
+	      << "Alt.Base2\tAlt." << alt_evi << "2\t"
 	      << "Alt.Base3\tAlt." << alt_evi << "3\n"; // RLW
 
 	vfout.open(v_filename);
@@ -2209,6 +2210,7 @@ readAndCorrect(BFWrapper& bloom, BFWrapper& bloomrep, std::map<std::string, std:
 	vfout << "##fileDate=" << year << month << day << std::endl;
 	vfout << "##source=" << PROGRAM << std::endl;
 	vfout << "##reference=file:" << opt::draft_filename << std::endl;
+	vfout << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">" << std::endl;
 	vfout << "##INFO=<ID=AD,Number=2,Type=Integer,Description=\"Kmer Depth\">" << std::endl;
 	vfout << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tINTEGRATION" << std::endl;
 
