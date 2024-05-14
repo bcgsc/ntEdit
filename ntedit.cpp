@@ -2188,8 +2188,8 @@ readAndCorrect(BFWrapper& bloom, BFWrapper& bloomrep, std::map<std::string, std:
 		alt_evi = "Coverage";
 	}
 	rfout << "\tAlt.Base1\tAlt." << alt_evi << "1\t" 
-	      << "Alt.Base2\tAlt." << alt_evi << "2\t"
-	      << "Alt.Base3\tAlt." << alt_evi << "3\n"; // RLW
+		<< "Alt.Base2\tAlt." << alt_evi << "2\t"
+		<< "Alt.Base3\tAlt." << alt_evi << "3\n"; // RLW
 
 	vfout.open(v_filename);
 
