@@ -9,7 +9,7 @@ import gzip
 
 class Vcf:
     "Represents a VCF entry"
-    def __init__(self, chr, position, idenfitier, ref, alt, qual, filter, info, format=None, integration=None):
+    def __init__(self, chr, position, idenfitier, ref, alt, qual, filter, info, format=None, integration=None, parse_info=True):
         self.chr = chr
         self.position = int(position)
         self.idenfitier = idenfitier
@@ -17,7 +17,15 @@ class Vcf:
         self.alt = alt.split(",")
         self.qual = qual
         self.filter = filter
-        self.info_alts = self.parse_info(info)
+        self.info_alts = None
+        if parse_info:
+            self.info_alts = self.parse_info(info)
+        if "VCF_L" in info: # Accounting for placeholders for INFO line in the temp VCF
+            self.info_str = info.split("VCF_L")[0].strip(";")
+        elif not parse_info:
+            self.info_str = info
+        else:
+            self.info_str = None
         self.format = format
         self.integration = integration
 
@@ -29,7 +37,7 @@ class Vcf:
     def get_info(self, alt_base):
         "Return the info for the given alt_base"
         info_str = ""
-        if alt_base in self.alt and alt_base in self.info_alts:
+        if alt_base in self.alt and self.info_alts is not None and alt_base in self.info_alts:
             info_str += ";".join(self.info_alts[alt_base])
         return info_str
 
@@ -48,6 +56,8 @@ class Vcf:
     def parse_info(self, info):
         "Parse INFO string to data structures for: alt alleles, both"
         info_formatted = self.strip_string_from_info(info) if "^" in info else info
+        if "VCF_L" in info_formatted:
+            info_formatted = info_formatted.split("VCF_L")[1].strip(";") # Only parse the VCF_L part
         alt_alleles = {}
         for item in info_formatted.split(";"):
             if "=" in item:
@@ -63,12 +73,18 @@ class Vcf:
                         if alt_base not in alt_alleles:
                             alt_alleles[alt_base] = []
                         alt_alleles[alt_base].append(f"{key}={value}")
+            else:
+                for alt_base in self.alt:
+                    if alt_base not in alt_alleles:
+                        alt_alleles[alt_base] = []
+                    alt_alleles[alt_base].append(item)
+       
 
         return alt_alleles
 
     def get_info_dict(self):
         "Return the INFO in a dictionary form"
-        return {alt_base: {info.split("=")[0]: info.split("=")[1] for info in info_list} \
+        return {alt_base: {info.split("=")[0]: info.split("=")[1] if len(info.split("=")) == 2 else None for info in info_list} \
                 for alt_base, info_list in self.info_alts.items()}
 
 
@@ -79,8 +95,29 @@ class Vcf:
                 strs.append(f"{self.chr}\t{self.position}\t{self.idenfitier}\t{self.ref}\t{alt_base}\t{self.qual}"\
                         f"\t{self.filter}\t{self.get_info(alt_base)}")
             else:
+                if self.info_str is None:
+                    info = self.get_info(alt_base)
+                else:
+                    info = self.info_str + ";" + self.get_info(alt_base)
+                info = info.strip(";")
                 strs.append(f"{self.chr}\t{self.position}\t{self.idenfitier}\t{self.ref}\t{alt_base}\t{self.qual}"\
-                            f"\t{self.filter}\t{self.get_info(alt_base)}\t{self.format}\t{self.integration}")
+                            f"\t{self.filter}\t{info}\t{self.format}\t{self.integration}")
+        return "\n".join(strs)
+    
+    def get_tmp_print_line(self):
+        "Return a line for printing to a temporary file"
+        strs = []
+        for alt_base in self.alt:
+            if self.get_info(alt_base) == "":
+                info = self.info_str + ";VCF_L;"
+            else:
+                info = self.get_info(alt_base) + ";VCF_L;"
+            if self.format is None or self.integration is None:
+                strs.append(f"{self.chr}\t{self.position}\t{self.idenfitier}\t{self.ref}\t{alt_base}\t{self.qual}"\
+                        f"\t{self.filter}\t{info}")
+            else:
+                strs.append(f"{self.chr}\t{self.position}\t{self.idenfitier}\t{self.ref}\t{alt_base}\t{self.qual}"\
+                            f"\t{self.filter}\t{info}\t{self.format}\t{self.integration}")
         return "\n".join(strs)
 
 def write_header(vcffile, outfile, info_only=False):
@@ -104,7 +141,7 @@ def write_header(vcffile, outfile, info_only=False):
 
 def get_all_vcf_info(vcf1, vcf2, alt_base):
     "Concatenate INFO strings from both VCF files"
-    return f"{vcf1.get_info(alt_base)};{vcf2.get_info(alt_base)}".strip(";")
+    return f"{vcf1.info_str};VCF_L;{vcf2.get_info(alt_base)}".strip(";")
 
 def are_compatible(vcf1, vcf2):
     "Ensure that at least one alt in vcf1 matches vcf2, references match, positions match"
@@ -120,10 +157,10 @@ def are_compatible(vcf1, vcf2):
 def print_vcf_line(ntedit_vcf, l_vcf, outfile):
     "Print the info into a VCF"
     if l_vcf.position == -1:
-        outfile.write(f"{ntedit_vcf}\n")
+        outfile.write(f"{ntedit_vcf.get_tmp_print_line()}\n")
     else:
         if not are_compatible(ntedit_vcf, l_vcf):
-            outfile.write(f"{ntedit_vcf}\n")
+            outfile.write(f"{ntedit_vcf.get_tmp_print_line()}\n")
             return
         if len(ntedit_vcf.alt) > 1:
             out_strs = []
@@ -149,7 +186,7 @@ def parse_bedtools_loj(infile, outfile):
     with open(infile, 'r', encoding="utf8") as fin:
         for line in fin:
             line = line.strip().split("\t")
-            ntedit_vcf_new = Vcf(*line[:10])
+            ntedit_vcf_new = Vcf(*line[:10], parse_info=False)
             l_vcf_new = Vcf(*line[10:18])
             if ntedit_vcf is not None and ntedit_vcf.position == ntedit_vcf_new.position and ntedit_vcf.chr == ntedit_vcf_new.chr:
                 # This is the same position as before, tally extra INFO from l_vcf. Know that this cannot be due to ntEdit VCF.
@@ -185,12 +222,15 @@ def fold_attributes(vcf_list):
         attribute_lists.extend(list_attributes)
     attribute_set = set(attribute_lists)
 
+
     new_dict = {} # Key: [] to track lists of INFO
     for attribute in attribute_set:
         new_dict[attribute] = []
         for vcf in vcf_list:
             vcf_attributes = vcf.get_info_dict()[vcf.alt[0]]
-            if attribute in vcf_attributes:
+            if attribute in vcf_attributes and vcf_attributes[attribute] is None and attribute in new_dict:
+                continue
+            elif attribute in vcf_attributes:
                 new_dict[attribute].append(vcf_attributes[attribute])
             else:
                 new_dict[attribute].append("NA")
@@ -199,18 +239,27 @@ def fold_attributes(vcf_list):
     visited_attributes = set()
     for attribute in attribute_lists:
         if attribute not in visited_attributes:
-            new_info_line.append(f"{attribute}={','.join(new_dict[attribute])}")
-            visited_attributes.add(attribute)
+            if None not in new_dict[attribute] and attribute != "":
+                new_info_line.append(f"{attribute}={','.join(new_dict[attribute])}")
+                visited_attributes.add(attribute)
+            else:
+                new_info_line.append(f"{attribute}")
     rep_vcf = vcf_list[0]
+    if rep_vcf.info_str is not None:
+        info_line = rep_vcf.info_str + ";" + ";".join(new_info_line)
+    else:
+        info_line = ";".join(new_info_line)
+    info_line = info_line.strip(";")
     out_str = f"{rep_vcf.chr}\t{rep_vcf.position}\t{rep_vcf.idenfitier}\t{rep_vcf.ref}\t{','.join(alts)}\t"\
-            f"{rep_vcf.qual}\t{rep_vcf.filter}\t{';'.join(new_info_line)}\t{rep_vcf.format}\t{rep_vcf.integration}"
+            f"{rep_vcf.qual}\t{rep_vcf.filter}\t{info_line}\t{rep_vcf.format}\t{rep_vcf.integration}"
     return out_str
 
 
 def print_folded_vcf_line(vcf_list, outfile):
     "Print the lines to the VCF, folding variants and INFO if applicable"
     if len(vcf_list) == 1:
-        outfile.write(f"{vcf_list[0]}\n")
+        outline = vcf_list[0]
+        outfile.write(f"{outline}\n")
     else:
         new_info_line = fold_attributes(vcf_list)
         outfile.write(f"{new_info_line}\n")
