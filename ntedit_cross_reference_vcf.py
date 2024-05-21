@@ -18,7 +18,7 @@ class Vcf:
         self.qual = qual
         self.filter = filter
         self.info_alts = None
-        if parse_info:
+        if parse_info: # We want to parse the elements in info to a dictionary
             self.info_alts = self.parse_info(info)
         if "VCF_L" in info: # Accounting for placeholders for INFO line in the temp VCF
             self.info_str = info.split("VCF_L")[0].strip(";")
@@ -34,12 +34,16 @@ class Vcf:
         self.info_alts = {}
         self.position = -1
 
-    def get_info(self, alt_base):
-        "Return the info for the given alt_base"
+    def get_info(self, alt_base=None):
+        "Return the info for the given alt_base, if specified"
         info_str = ""
+        if self.info_str is not None:
+            info_str += self.info_str
+        if alt_base is None:
+            return info_str
         if alt_base in self.alt and self.info_alts is not None and alt_base in self.info_alts:
-            info_str += ";".join(self.info_alts[alt_base])
-        return info_str
+            info_str += ";" + ";".join(self.info_alts[alt_base])
+        return info_str.strip(";")
 
     def strip_string_from_info(self, info):
         "Strip ^NA from the info string" 
@@ -57,7 +61,7 @@ class Vcf:
         "Parse INFO string to data structures for: alt alleles, both"
         info_formatted = self.strip_string_from_info(info) if "^" in info else info
         if "VCF_L" in info_formatted:
-            info_formatted = info_formatted.split("VCF_L")[1].strip(";") # Only parse the VCF_L part
+            info_formatted = info_formatted.split("VCF_L")[1].strip(";") # Only parse after the VCF_L part
         alt_alleles = {}
         for item in info_formatted.split(";"):
             if "=" in item:
@@ -78,7 +82,7 @@ class Vcf:
                     if alt_base not in alt_alleles:
                         alt_alleles[alt_base] = []
                     alt_alleles[alt_base].append(item)
-       
+
 
         return alt_alleles
 
@@ -95,11 +99,7 @@ class Vcf:
                 strs.append(f"{self.chr}\t{self.position}\t{self.idenfitier}\t{self.ref}\t{alt_base}\t{self.qual}"\
                         f"\t{self.filter}\t{self.get_info(alt_base)}")
             else:
-                if self.info_str is None:
-                    info = self.get_info(alt_base)
-                else:
-                    info = self.info_str + ";" + self.get_info(alt_base)
-                info = info.strip(";")
+                info = self.get_info(alt_base)
                 strs.append(f"{self.chr}\t{self.position}\t{self.idenfitier}\t{self.ref}\t{alt_base}\t{self.qual}"\
                             f"\t{self.filter}\t{info}\t{self.format}\t{self.integration}")
         return "\n".join(strs)
@@ -141,7 +141,7 @@ def write_header(vcffile, outfile, info_only=False):
 
 def get_all_vcf_info(vcf1, vcf2, alt_base):
     "Concatenate INFO strings from both VCF files"
-    return f"{vcf1.info_str};VCF_L;{vcf2.get_info(alt_base)}".strip(";")
+    return f"{vcf1.get_info(None)};VCF_L;{vcf2.get_info(alt_base)}".strip(";")
 
 def are_compatible(vcf1, vcf2):
     "Ensure that at least one alt in vcf1 matches vcf2, references match, positions match"
