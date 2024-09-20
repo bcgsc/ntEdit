@@ -12,7 +12,7 @@ jobs:
         displayName: Create Anaconda environment
       - script: |
           source activate ntedit_CI
-          conda install --yes -c conda-forge mamba python=3.9
+          conda install --yes -c conda-forge mamba python
           mamba install --yes -c conda-forge -c bioconda libcxx llvm clang compilers=1.7.0 meson ninja btllib make clang-tools perl zlib nthits ntcard boost snakemake cmake
         displayName: Install dependencies
       - script: |
@@ -42,7 +42,7 @@ jobs:
         displayName: Create Anaconda environment
       - script: |
           source activate ntedit_CI
-          conda install --yes -c conda-forge mamba python=3.9
+          conda install --yes -c conda-forge mamba python
           mamba install --yes -c conda-forge -c bioconda compilers=1.7.0 llvm-openmp make btllib perl zlib clang-tools meson ninja nthits ntcard boost snakemake cmake
         displayName: Install dependencies
       - script: |
