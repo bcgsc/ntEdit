@@ -159,8 +159,8 @@ def main():
         intro_string.append(f"\t--draft {args.draft}")
 
     command = f"snakemake -s {base_dir}/ntedit_run_pipeline.smk {smk_rule} -p --cores {args.t} " \
-            f"--config draft={input_genome} k={args.k} t={args.t} " \
-            f"z={args.z} y={args.y} v={args.v} j={args.j} "
+            f"--config draft={input_genome} kmer={args.k} threads={args.t} " \
+            f"z_param={args.z} y_param={args.y} j_param={args.j} "
 
     if args.mode == "snv" and args.genome:
         intro_string.append(f"\t--genome {args.genome}")
@@ -182,7 +182,7 @@ def main():
             args.Y = 0.5
         intro_string.append(f"\t-X {args.X}")
         intro_string.append(f"\t-Y {args.Y}")
-        command += f" X={args.X} Y={args.Y}"
+        command += f" X_param={args.X} Y_param={args.Y}"
 
     if not (args.mode == "snv" and args.genome):
         if args.solid:
@@ -194,15 +194,15 @@ def main():
 
     if args.v:
         intro_string.append("\t-v")
-        command += " v=1"
+        command += " verbose=1"
     else:
-        command += " v=0"
+        command += " verbose=0"
  
     if args.l:
         if not os.path.isfile(args.l):
             raise FileNotFoundError(f"VCF file {args.l} not found")
         intro_string.append(f"\t-l {args.l}")
-        command += f" l={args.l}"
+        command += f" l_vcf={args.l}"
 
     # Polishing-specific parameter logs
     if args.mode == "polish":
@@ -214,7 +214,7 @@ def main():
         intro_string.append(f"\t-x {args.x}")
         intro_string.append(f"\t-m {args.m}")
         intro_string.append(f"\t-a {args.a}")
-        command += f" i={args.i} d={args.d} x={args.x} m={args.m} a={args.a} "
+        command += f" i_param={args.i} d_param={args.d} x_param={args.x} m_param={args.m} a_param={args.a} "
 
     # SNV / Ancestry-specific parameter logs
     if args.mode == "snv":
