@@ -6,7 +6,7 @@ import os
 # Read parameters from config or set default values
 draft=config["draft"]
 reads_prefix=config["reads"] if "reads" in config else ""
-k=config["k"]
+k=config["kmer"]
 
 # ancestry parameters
 genomes = config["genomes"] if "genomes" in config else ""
@@ -34,30 +34,30 @@ if k <= 0:
     raise ValueError("k must be greater than 0.")
 
 # Common parameters
-t = config["t"] if "t" in config else 4
-b = config["b"] + "_" if "b" in config and config["b"] != "" else ""
+t = config["threads"] if "threads" in config else 4
+b = config["b_prefix"] + "_" if "b_prefix" in config and config["b_prefix"] != "" else ""
 
 # ntHits parameters
 solid = config["solid"] if "solid" in config else False
 cutoff = config["cutoff"] if "cutoff" in config else 2
 
 # ntEdit parameters
-z = config["z"] if "z" in config else 100
-i = config["i"] if "i" in config else 5
-d = config["d"] if "d" in config else 5
-x = config["x"] if "x" in config else 5.000
-y = config["y"] if "y" in config else 9.000
+z = config["z_param"] if "z_param" in config else 100
+i = config["i_param"] if "i_param" in config else 5
+d = config["d_param"] if "d_param" in config else 5
+x = config["x_param"] if "x_param" in config else 5.000
+y = config["y_param"] if "y_param" in config else 9.000
 cap = config["cap"] if "cap" in config else (int(k * 3 / 2) if k is not None else None)
-m = config["m"] if "m" in config else 0
-v = config["v"] if "v" in config else 0
-a = config["a"] if "a" in config else 0
-j = config["j"] if "j" in config else 3
-s = config["s"] if "s" in config else 0
-X = config["X"] if "X" in config else -1
-Y = config["Y"] if "Y" in config else -1
-p = config["p"] if "p" in config else 1
-q = config["q"] if "q" in config else 255
-l = config["l"] if "l" in config else ""
+m = config["m_param"] if "m_param" in config else 0
+v = config["verbose"] if "verbose" in config else 0
+a = config["a_param"] if "a_param" in config else 0
+j = config["j_param"] if "j_param" in config else 3
+s = config["s_param"] if "s_param" in config else 0
+X = config["X_param"] if "X_param" in config else -1
+Y = config["Y_param"] if "Y_param" in config else -1
+p = config["p_param"] if "p_param" in config else 1
+q = config["q_param"] if "q_param" in config else 255
+l = config["l_vcf"] if "l_vcf" in config else ""
 
 
 if l != "":
