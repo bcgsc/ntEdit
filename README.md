@@ -96,7 +96,7 @@ conda install -c bioconda ntedit
 Refer to the README.md file on how to install and run ntEdit.
 Our [manuscript](http://dx.doi.org/10.1093/bioinformatics/btz400) contains information about the software and its performance.
 ![ntEdit ISMB poster](https://github.com/bcgsc/ntEdit/blob/master/ntedit_ismb2019.png)
-This [ISMB2019 poster](https://warrenlr.github.io/papers/ntedit_ismb2019.pdf) contains additional information, benchmarks and results. 
+This ISMB2019 poster contains additional information, benchmarks and results. 
 
 
 ## Citing ntEdit <a name=citing></a>
