@@ -20,7 +20,7 @@ jobs:
           meson build --prefix=$(pwd)/test_build
           cd build
           ninja install
-        displayName: Compile ntedit
+        displayName: Compile ntEdit
       - script: |
           source activate ntedit_CI
           make clang-format
@@ -58,7 +58,7 @@ jobs:
           meson build --prefix=$(pwd)/test_build
           cd build
           ninja install
-        displayName: Compile ntedit
+        displayName: Compile ntEdit
       - script: |
           source activate ntedit_CI
           export PATH=$(pwd)/test_build/bin:$PATH
