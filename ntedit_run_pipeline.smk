@@ -127,7 +127,7 @@ rule help:
         echo "        snakemake -s ntedit_run_pipeline.smk ntedit draft=myDraft.fa reads=myReads solid=true"
         echo ""
         echo "Make sure your read files all have the same prefix, as indicated by 'reads=<prefix>'. The Snakefile will use all files in the current working directory with this prefix for polishing."
-        echo "To ensure that the pipeline runs correctly, make sure that the following tools are in your PATH: ntedit, nthits"
+        echo "To ensure that the pipeline runs correctly, make sure that the following tools are in your PATH: ntedit, ntstat"
 	    echo "You must either specify the cutoff parameter or define solid=true in your command to set it automatically"
 	    echo "If one of X/Y is set, ntEdit will use those parameters instead. Otherwise, it uses x/y by default."
         """
@@ -147,17 +147,17 @@ rule ntedit:
         "{params.benchmark} ntedit -r {input.bloom_filter} -f {draft} -b {params.prefix} -t {t} -z {z} -i {i} -d {d} -x {x} -y {y} -c {cap} -m {m} -v {v} -a {a} -j {j} {params.ratio} -s {s} {params.vcf}"
         
 
-rule nthits:
+rule ntstat:
     input:
         hist=f"{reads_prefix}_k{k}.hist",
         reads_files = reads_files
     output:
         bloom_filter=f"{reads_prefix}_k{k}.bf"
     params:
-        benchmark = f"{time_command} nthits_{reads_prefix}_k{k}.time",
-        min_cutoff = f"--solid" if solid else f"-cmin {cutoff}"      
+        benchmark = f"{time_command} ntstat_{reads_prefix}_k{k}.time",
+        min_cutoff = f"-cmin 0" if solid else f"-cmin {cutoff}"      
     shell:
-        "{params.benchmark} nthits bf -t {t} -f {input.hist} -o {output.bloom_filter} -k {k} {params.min_cutoff} -v {input.reads_files}"
+        "{params.benchmark} ntstat filter -k {k} {params.min_cutoff} -t {t}  -f {input.hist} -o {reads_prefix}_k{k} {input.reads_files}"
         
 
 rule ntcard:
@@ -184,17 +184,17 @@ rule ntedit_cbf:
     shell:
         "{params.benchmark} ntedit -r {input.bloom_filter} -f {draft} -b  {params.prefix} -p {p} -q {q} -t {t} -z {z} -i {i} -d {d} -x {x} -y {y} -c {cap} -m {m} -v {v} -a {a} -j {j} {params.ratio} -s {s} {params.vcf}"        
 
-rule nthits_cbf:
+rule ntstat_cbf:
     input:
         hist=f"{reads_prefix}_k{k}.hist",
         reads_files = reads_files
     output:
         bloom_filter=f"{reads_prefix}_k{k}.cbf"
     params:
-        benchmark = f"{time_command} nthits_{reads_prefix}_k{k}_cbf.time",
-        min_cutoff = f"--solid" if solid else f"-cmin {cutoff}"      
+        benchmark = f"{time_command} ntstat_{reads_prefix}_k{k}_cbf.time",
+        min_cutoff = f"-cmin 0" if solid else f"-cmin {cutoff}"      
     shell:
-        "{params.benchmark} nthits cbf -t {t} -f {input.hist} -o {output.bloom_filter} -k {k} {params.min_cutoff} {input.reads_files}"
+        "{params.benchmark} ntstat filter -k {k} {params.min_cutoff} -t {t} --counts -f {input.hist} -o {output.bloom_filter} {input.reads_files}"
 
 
 rule ntedit_snv_genome:
