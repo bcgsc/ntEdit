@@ -157,7 +157,7 @@ rule ntstat:
         benchmark = f"{time_command} ntstat_{reads_prefix}_k{k}.time",
         min_cutoff = f"-cmin 0" if solid else f"-cmin {cutoff}"      
     shell:
-        "{params.benchmark} ntstat filter -k {k} {params.min_cutoff} -t {t}  -f {input.hist} -o {reads_prefix}_k{k} {input.reads_files}"
+        "{params.benchmark} ntstat filter -k {k} {params.min_cutoff} -t {t}  -f {input.hist} -o {output.bloom_filter} {input.reads_files}"
         
 
 rule ntcard:
