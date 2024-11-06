@@ -37,7 +37,7 @@ if k <= 0:
 t = config["threads"] if "threads" in config else 4
 b = config["b_prefix"] + "_" if "b_prefix" in config and config["b_prefix"] != "" else ""
 
-# ntHits parameters
+# ntStat parameters
 solid = config["solid"] if "solid" in config else False
 cutoff = config["cutoff"] if "cutoff" in config else 2
 
@@ -97,7 +97,7 @@ rule help:
         echo "    t        number of threads [default=4]"
         echo "    b        output file prefix, OPTIONAL"
         echo ""
-        echo "Options specific to ntHits:"
+        echo "Options specific to ntStat:"
         echo "    solid    output the solid k-mers (non-erroneous k-mers), True = yes, False = no [default=False]"
         echo "	  cutoff   the minimum coverage of k-mers in output bloom filter, [default=2, ignored if solid=True]"
         echo ""

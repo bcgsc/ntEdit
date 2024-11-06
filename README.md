@@ -73,7 +73,7 @@ ninja install
 
 ## Dependencies <a name=dependencies></a>
 
-1. ntHits (v1.0.0+, https://github.com/bcgsc/nthits)
+1. ntStat (v1.0.0+, https://github.com/bcgsc/ntstat)
 2. BloomFilter utilities (provided in ./lib)
 3. kseq (provided in ./lib)
 4. [meson](https://mesonbuild.com/)
@@ -121,7 +121,9 @@ The experimental data described in our paper can be downloaded from: http://www.
 
 ntedit (concept, algorithm design and prototype): Rene Warren
 
-nthits / nthash: Hamid Mohamadi, Parham Kazemi
+nthash: Hamid Mohamadi, Parham Kazemi
+
+ntstat: Parham Kazemi
 
 C++ implementation: Jessica Zhang, Rene Warren, Johnathan Wong
 
