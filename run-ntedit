@@ -78,6 +78,7 @@ def main():
                                   default=0, type=int, choices=range(0, 2))
 
 
+
     # Arguments common to all modes
     for subparser in [parser_polishing, parser_snv]:
         subparser.add_argument("-k",
@@ -114,6 +115,8 @@ def main():
                                help="Ratio of number of k-mers in the k subset that should "
                                     "be present to accept an edit (higher=stringent) [default=0.5, if -X is specified]",
                                     default=-1, type=float)
+        subparser.add_argument("-e",
+                                  help="False positive rate for ntStat Bloom filter", default=0.01, type=float)
         subparser.add_argument("-v",
                                help="Verbose mode, [default=False]", action="store_true", default=False)
         subparser.add_argument("-V", "--version", action="version", version=NTEDIT_VERSION)
@@ -160,7 +163,7 @@ def main():
 
     command = f"snakemake -s {base_dir}/ntedit_run_pipeline.smk {smk_rule} -p --cores {args.t} " \
             f"--config draft={input_genome} kmer={args.k} threads={args.t} " \
-            f"z_param={args.z} y_param={args.y} j_param={args.j} "
+            f"z_param={args.z} y_param={args.y} j_param={args.j} e_param={args.e} "
 
     if args.mode == "snv" and args.genome:
         intro_string.append(f"\t--genome {args.genome}")
@@ -173,7 +176,8 @@ def main():
                         f"\t-t {args.t}",
                         f"\t-z {args.z}",
                         f"\t-y {args.y}",
-                        f"\t-j {args.j}"])
+                        f"\t-j {args.j}",
+                        f"\t-e {args.e}"])
 
     if args.X != -1 or args.Y != -1:
         if args.X == -1:
@@ -197,7 +201,7 @@ def main():
         command += " verbose=1"
     else:
         command += " verbose=0"
- 
+
     if args.l:
         if not os.path.isfile(args.l):
             raise FileNotFoundError(f"VCF file {args.l} not found")
@@ -214,7 +218,7 @@ def main():
         intro_string.append(f"\t-x {args.x}")
         intro_string.append(f"\t-m {args.m}")
         intro_string.append(f"\t-a {args.a}")
-        command += f" i_param={args.i} d_param={args.d} x_param={args.x} m_param={args.m} a_param={args.a} "
+        command += f" i_param={args.i} d_param={args.d} x_param={args.x} m_param={args.m} a_param={args.a}"
 
     # SNV / Ancestry-specific parameter logs
     if args.mode == "snv":

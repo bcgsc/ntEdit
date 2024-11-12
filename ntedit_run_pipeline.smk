@@ -58,7 +58,7 @@ Y = config["Y_param"] if "Y_param" in config else -1
 p = config["p_param"] if "p_param" in config else 1
 q = config["q_param"] if "q_param" in config else 255
 l = config["l_vcf"] if "l_vcf" in config else ""
-
+e = config["e_param"] if "e_param" in config else 0.01
 
 if l != "":
     if not os.path.isfile(l):
@@ -157,7 +157,7 @@ rule ntstat:
         benchmark = f"{time_command} ntstat_{reads_prefix}_k{k}.time",
         min_cutoff = f"-cmin 0" if solid else f"-cmin {cutoff}"      
     shell:
-        "{params.benchmark} ntstat filter -k {k} {params.min_cutoff} -t {t}  -f {input.hist} -o {output.bloom_filter} {input.reads_files}"
+        "{params.benchmark} ntstat filter -k {k} {params.min_cutoff} -t {t} -e {e} -f {input.hist} -o {output.bloom_filter} {input.reads_files}"
         
 
 rule ntcard:
@@ -194,7 +194,7 @@ rule ntstat_cbf:
         benchmark = f"{time_command} ntstat_{reads_prefix}_k{k}_cbf.time",
         min_cutoff = f"-cmin 0" if solid else f"-cmin {cutoff}"      
     shell:
-        "{params.benchmark} ntstat filter -k {k} {params.min_cutoff} -t {t} --counts -f {input.hist} -o {output.bloom_filter} {input.reads_files}"
+        "{params.benchmark} ntstat filter -k {k} {params.min_cutoff} -t {t} -e {e} --counts -f {input.hist} -o {output.bloom_filter} {input.reads_files}"
 
 
 rule ntedit_snv_genome:
