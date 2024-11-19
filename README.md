@@ -83,7 +83,7 @@ ninja install
 8. python 3.9+
 
 ```diff
-! NOTE: ntEdit v2.0.0+ IS ONLY compatible with ntHits release v1.0.0+
+! NOTE: ntEdit v2.1.0+ IS ONLY compatible with ntStat release v1.0.0+
 ```
 We recommend installing ntEdit and its dependencies, using conda: 
 <pre>
