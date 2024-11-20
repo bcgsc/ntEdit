@@ -1,7 +1,7 @@
 project(
     'ntEdit',
     'cpp',
-    version: '2.0.3',
+    version: '2.1.0',
     license: 'GPL-3',
     default_options: [
         'cpp_std=c++17',
