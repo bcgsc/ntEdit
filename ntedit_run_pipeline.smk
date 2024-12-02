@@ -20,11 +20,14 @@ if draft is None or reads_prefix is None or k is None:
 if not os.path.isfile(draft):
     raise ValueError("Draft file does not exist. Please check that the file name is correct and that the file is in the current working directory.")
 # Check that reads files exist
-if [file for file in os.listdir(reads_dirname) if file.startswith(reads_prefix) and file.endswith((".fq", ".fq.gz", ".fastq", ".fastq.gz", ".fa", ".fa.gz", ".fasta", ".fasta.gz"))] == []:
+if [f"{reads_dirname}/{file}" for file in os.listdir(reads_dirname) if file.startswith(reads_prefix) and file.endswith((".fq", ".fq.gz", ".fastq", ".fastq.gz", ".fa", ".fa.gz", ".fasta", ".fasta.gz"))] == []:
     if genomes == "":
         raise ValueError("Reads files do not exist. Please check that the prefix is correct and that the files are in the current working directory.")
 
-reads_files = [file for file in os.listdir(reads_dirname) if file.startswith(reads_prefix) and file.endswith((".fq", ".fq.gz", ".fastq", ".fastq.gz", ".fa", ".fa.gz", ".fasta", ".fasta.gz"))]
+reads_files = [(f"{reads_dirname}/{file}", file) for file in os.listdir(reads_dirname) \
+                if file.startswith(reads_prefix) and \
+                file.endswith((".fq", ".fq.gz", ".fastq", ".fastq.gz", ".fa", ".fa.gz", ".fasta", ".fasta.gz"))]
+reads_files = [file if reads_dirname == "." else full_path for full_path, file in reads_files]
 
 # Check that k is an integer
 try:
