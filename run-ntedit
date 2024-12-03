@@ -12,7 +12,7 @@ from packaging import version
 
 import snakemake
 
-NTEDIT_VERSION = "ntEdit v2.1.0"
+NTEDIT_VERSION = "ntEdit v2.1.1"
 
 def main():
     "Run ntEdit snakemake file"
