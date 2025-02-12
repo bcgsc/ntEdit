@@ -46,7 +46,7 @@ We anticipate that ntEdit will find further applications in the rapid mapping of
 ```
   
 ![SARS-CoV-2 evolution in human hosts](https://bcgsc.github.io/SARS2/fig1.png?raw=true)
-**SARS-CoV-2 evolution in human hosts**. ntEdit v1.3.4 was used to map nucleotide variation between the first published coronavirus isolate from Wuhan in early January and over 1,500,000 SARS-CoV-2 genomes sampled from around the globe during the COVID-19 pandemic. <a href="https://bcgsc.github.io/SARS2" target="_blank">Additional (& interactive) timemaps are available</a>.
+**SARS-CoV-2 evolution in human hosts**. ntEdit v1.3.4 was used to map nucleotide variation between the first published coronavirus isolate from Wuhan in early January 2020 and over 1,500,000 SARS-CoV-2 genomes sampled from around the globe during the COVID-19 pandemic. <a href="https://bcgsc.github.io/SARS2" target="_blank">Additional (& interactive) timemaps are available</a>.
 
 
 ## Implementation and requirements <a name=implementation></a>
