@@ -290,9 +290,12 @@ Note: it will also work in polishing mode on single nucleotide variants, but is
 of limited value since only homozygously divergent sites (i.e., with completely absent k-mers and k*k-mer) are reported in polishing mode. 
 
 We recommend the use of clinvar resources:
+
 https://www.ncbi.nlm.nih.gov/clinvar/
+
 https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/
-https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar_XXDATEXX.vcf.gz
+
+e.g., clinvar_20250623.vcf.gz
 
 Note: If you use clinvar, you MUST ensure you use GRCh38 AND that the chromosome IDs in the 
 headers of your supplied (--reference) GRCH38 FASTA file matches that of clinvar's (e.g. >1 in FASTA and 1 in ClinVar VCF's #CHROM column).
