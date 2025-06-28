@@ -265,7 +265,7 @@ This strategy is used in the ntedit_sealer_protocol and GoldPolish [a.k.a. goldr
 
 ## ntEdit SNV mode <a name=snv></a> 
 
-<pre>
+
 This mode can be useful for identifying unresolved genomic regions, those with no equivalent in the supplied Bloom filter(s).
 
 Version 1.3+ implements a new mode (`run-ntedit snv`) to help detect simple base variation in genome sequences.
@@ -278,7 +278,7 @@ This option is provided as a convenience feature, implemented to do a quick and 
 
 VCF output (v1.3.2+ _variants.vcf): We assume a diploid genome for reporting on the possible genotype (GT). Users working on polyploid genomes should chose to ignore the last two columns of the VCF file (ie. FORMAT INTEGRATION)
 
-</pre>
+
 
 ## ntEdit SNV -l input VCF file with annotated variants <a name=clinvarvcf></a>
 
