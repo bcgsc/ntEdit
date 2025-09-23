@@ -314,7 +314,7 @@ run-ntedit snv --reference GRCh38.fa --genome HG004.asm.fa -k 50 -t 48 -l clinva
 
 
 
-### Test data <a name=test></a>
+## Test data <a name=test></a>
 The demo script will use the installed ntEdit binary. Please ensure that the ntEdit binary is in your PATH.
 <pre>
 export PATH=/path/to/ntEdit:$PATH
