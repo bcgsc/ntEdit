@@ -933,7 +933,7 @@ writeEditsToFile(
     std::queue<sRec>& substitution_record,
     std::map<std::string, std::string>& clinvar)
 {
-	dfout << ">" << contigHdr.c_str() << "\n"; // FASTA HEADER RLWYY
+	dfout << ">" << contigHdr << "\n"; // FASTA HEADER RLWYY
 	unsigned node_index = 0;
 	std::string insertion_bases;
 	int num_support = -1;
@@ -958,7 +958,7 @@ writeEditsToFile(
 				insert_str = draft_char;
 				insert_str += insertion_bases;
 
-				altid << contigHdr.c_str() << ">" << char(toupper(draft_char)) << pos
+				altid << contigHdr << ">" << char(toupper(draft_char)) << pos
 				      << str_to_upper(insert_str);
 				std::string altvarid = altid.str(); // RLW 21AUG2023
 				if (!clinvar[altvarid].empty()) {
@@ -969,12 +969,12 @@ writeEditsToFile(
 				}
 				// 19APR2024RLW <<<
 
-				rfout << contigHdr.c_str() << "\t" << pos << "\t" << draft_char << "\t+"
-				      << insertion_bases.c_str() << "\t" << num_support << "\n";
+				rfout << contigHdr << "\t" << pos << "\t" << draft_char << "\t+" << insertion_bases
+				      << "\t" << num_support << "\n";
 
-				vfout << contigHdr.c_str() << "\t" << pos << "\t.\t" << draft_char << "\t"
-				      << draft_char << insertion_bases.c_str() << "\t.\tPASS\tAD=" << num_support
-				      << clinvarinfo << "\tGT\t1/1\n";
+				vfout << contigHdr << "\t" << pos << "\t.\t" << draft_char << "\t" << draft_char
+				      << insertion_bases << "\t.\tPASS\tAD=" << num_support << clinvarinfo
+				      << "\tGT\t1/1\n";
 
 				insertion_bases = "";
 				num_support = -1;
@@ -989,8 +989,8 @@ writeEditsToFile(
 				    !(opt::snv && substitution_record.front().draft_char ==
 				                      substitution_record.front().sub_base);
 				if (snv_mode_no_edit) {
-					rfout << contigHdr.c_str() << "\t" << substitution_record.front().pos + 1
-					      << "\t" << substitution_record.front().draft_char << "\t"
+					rfout << contigHdr << "\t" << substitution_record.front().pos + 1 << "\t"
+					      << substitution_record.front().draft_char << "\t"
 					      << substitution_record.front().sub_base << "\t"
 					      << substitution_record.front().num_support;
 				}
@@ -999,8 +999,7 @@ writeEditsToFile(
 				std::string clinvarinfo; // RLW 23AUG2023
 
 				std::ostringstream orig_id;
-				orig_id << contigHdr.c_str() << ">"
-				        << char(toupper(substitution_record.front().draft_char))
+				orig_id << contigHdr << ">" << char(toupper(substitution_record.front().draft_char))
 				        << substitution_record.front().pos + 1
 				        << char(toupper(substitution_record.front().draft_char));
 				std::string origid = orig_id.str();
@@ -1013,8 +1012,7 @@ writeEditsToFile(
 
 				if (snv_mode_no_edit) {
 					std::ostringstream id; // RLW 21AUG2023
-					id << contigHdr.c_str() << ">"
-					   << char(toupper(substitution_record.front().draft_char))
+					id << contigHdr << ">" << char(toupper(substitution_record.front().draft_char))
 					   << substitution_record.front().pos + 1
 					   << char(toupper(base.at(0))); // RLW 21AUG2023
 					std::string varid = id.str();    // RLW 21AUG2023
@@ -1070,7 +1068,7 @@ writeEditsToFile(
 							best_alt_supp = std::to_string(curr_best_alt_supp);
 							base = best_alt_base;
 							std::ostringstream altid;
-							altid << contigHdr.c_str() << ">"
+							altid << contigHdr << ">"
 							      << char(toupper(substitution_record.front().draft_char))
 							      << substitution_record.front().pos + 1
 							      << char(toupper(best_alt_base));
@@ -1109,7 +1107,7 @@ writeEditsToFile(
 								base += ",";
 								base += best_alt_base;
 								std::ostringstream altid; // RLW 21AUG2023
-								altid << contigHdr.c_str() << ">"
+								altid << contigHdr << ">"
 								      << char(toupper(substitution_record.front().draft_char))
 								      << substitution_record.front().pos + 1
 								      << char(toupper(best_alt_base)); // RLW 21AUG2023
@@ -1142,7 +1140,7 @@ writeEditsToFile(
 						base += ",";
 						base += best_alt_base;
 						std::ostringstream altid; // RLW 21AUG2023
-						altid << contigHdr.c_str() << ">"
+						altid << contigHdr << ">"
 						      << char(toupper(substitution_record.front().draft_char))
 						      << substitution_record.front().pos + 1
 						      << char(toupper(best_alt_base)); // RLW 21AUG2023
@@ -1158,7 +1156,7 @@ writeEditsToFile(
 					genotype = "1/1";
 				}
 
-				vfout << contigHdr.c_str() << "\t" << substitution_record.front().pos + 1 << "\t.\t"
+				vfout << contigHdr << "\t" << substitution_record.front().pos + 1 << "\t.\t"
 				      << substitution_record.front().draft_char << "\t" << base
 				      << "\t.\tPASS\tAD=" << support << clinvarinfo << "\tGT\t" << genotype
 				      << "\n"; // modified RLW 21AUG2023
@@ -1167,8 +1165,7 @@ writeEditsToFile(
 			// fprintf(dfout, "%s", contigSeq.substr(curr_node.s_pos,
 			// (curr_node.e_pos-curr_node.s_pos+1)).c_str());
 			// NEXT 3 LINES CARRY INSTRUCTIONS TO PRINT NEW FASTA SEQ RLW
-			dfout << contigSeq.substr(curr_node.s_pos, (curr_node.e_pos - curr_node.s_pos + 1))
-			             .c_str();
+			dfout << contigSeq.substr(curr_node.s_pos, (curr_node.e_pos - curr_node.s_pos + 1));
 			pos = curr_node.e_pos + 1;
 		} else if (curr_node.node_type == 1) {
 			insertion_bases += curr_node.c;
@@ -1189,7 +1186,7 @@ writeEditsToFile(
 				std::string delete_str;
 
 				delete_str = contigSeq.substr(pos - 1, (curr_node.s_pos - pos) + 1).c_str();
-				altid << contigHdr.c_str() << ">" << str_to_upper(delete_str) << pos
+				altid << contigHdr << ">" << str_to_upper(delete_str) << pos
 				      << char(toupper(contigSeq.at(pos - 1)));
 				std::string altvarid = altid.str(); // RLW 21AUG2023
 
@@ -1201,12 +1198,12 @@ writeEditsToFile(
 				}
 				// 19APR2024 RLW<<<
 
-				rfout << contigHdr.c_str() << "\t" << pos << "\t" << contigSeq.at(pos) << "\t-"
-				      << contigSeq.substr(pos, (curr_node.s_pos - pos)).c_str() << "\t"
+				rfout << contigHdr << "\t" << pos << "\t" << contigSeq.at(pos) << "\t-"
+				      << contigSeq.substr(pos, (curr_node.s_pos - pos)) << "\t"
 				      << curr_node.num_support << "\n";
 
-				vfout << contigHdr.c_str() << "\t" << pos << "\t.\t"
-				      << contigSeq.substr(pos - 1, (curr_node.s_pos - pos) + 1).c_str() << "\t"
+				vfout << contigHdr << "\t" << pos << "\t.\t"
+				      << contigSeq.substr(pos - 1, (curr_node.s_pos - pos) + 1) << "\t"
 				      << contigSeq.at(pos - 1) << "\t.\tPASS\tAD=" << curr_node.num_support
 				      << clinvarinfo << "\tGT\t1/1\n";
 			}
@@ -2187,8 +2184,7 @@ readAndCorrect(BFWrapper& bloom, BFWrapper& bloomrep, std::map<std::string, std:
 	if (bloom.is_counting()) {
 		alt_evi = "Coverage";
 	}
-	rfout << "\tAlt.Base1\tAlt." << alt_evi << "1\t"
-	      << "Alt.Base2\tAlt." << alt_evi << "2\t"
+	rfout << "\tAlt.Base1\tAlt." << alt_evi << "1\t" << "Alt.Base2\tAlt." << alt_evi << "2\t"
 	      << "Alt.Base3\tAlt." << alt_evi << "3\n"; // RLW
 
 	vfout.open(v_filename);
