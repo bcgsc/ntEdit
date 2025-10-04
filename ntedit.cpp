@@ -855,7 +855,6 @@ findAcceptedKmer(
     std::vector<seqNode>& newSeq)
 {
 	// temporary values
-	std::string kmer_str;
 	seqNode curr_node = newSeq[t_node_index];
 	unsigned temp_t_node_index = t_node_index;
 	unsigned temp_h_node_index;
@@ -941,7 +940,6 @@ writeEditsToFile(
 	unsigned pos = 0;
 
 	// track a deletion
-	std::string deleted_bases;
 	seqNode curr_node = newSeq[node_index];
 	while (node_index < newSeq.size() && curr_node.node_type != -1) {
 		if (curr_node.node_type == 0) {
